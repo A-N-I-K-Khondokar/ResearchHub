@@ -1,0 +1,435 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>CSE Research Hub - Explore</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Source+Serif+4:wght@400;600;700&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary": "#3157C8",
+                        "secondary-accent": "#159A9C",
+                        "surface": "#FFFFFF",
+                        "on-surface": "#172033",
+                        "on-surface-variant": "#667085",
+                        "outline-variant": "#E4E8F0",
+                        "tertiary-fixed": "#ffdbcb",
+                        "surface-bright": "#faf8ff",
+                        "on-error": "#ffffff",
+                        "on-primary-container": "#d2d9ff",
+                        "secondary-fixed-dim": "#bdc7de",
+                        "surface-dim": "#dad9e3",
+                        "secondary": "#555f73",
+                        "on-primary-fixed-variant": "#063bae",
+                        "inverse-on-surface": "#f1f0fa",
+                        "primary-container": "#3157c8",
+                        "tertiary-container": "#a04400",
+                        "on-secondary-fixed-variant": "#3d475a",
+                        "primary-fixed-dim": "#b6c4ff",
+                        "tertiary-fixed-dim": "#ffb691",
+                        "on-primary": "#ffffff",
+                        "on-tertiary": "#ffffff",
+                        "on-background": "#1a1b22",
+                        "error": "#ba1a1a",
+                        "tertiary": "#7a3200",
+                        "on-tertiary-fixed-variant": "#783100",
+                        "surface-container-low": "#f3f2fd",
+                        "background": "#F6F8FC",
+                        "surface-variant": "#e2e1eb",
+                        "outline": "#747685",
+                        "surface-container": "#eeedf7",
+                        "on-secondary-container": "#596377",
+                        "on-secondary-fixed": "#111c2d",
+                        "secondary-container": "#d6e0f8",
+                        "on-primary-fixed": "#00164f",
+                        "surface-tint": "#2f55c6",
+                        "primary-fixed": "#dce1ff",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-fixed": "#d9e3fb",
+                        "surface-container-highest": "#e2e1eb",
+                        "on-tertiary-container": "#ffd1bb",
+                        "inverse-surface": "#2f3038",
+                        "on-error-container": "#93000a",
+                        "error-container": "#ffdad6",
+                        "on-secondary": "#ffffff",
+                        "surface-container-high": "#e8e7f1",
+                        "inverse-primary": "#b6c4ff",
+                        "on-tertiary-fixed": "#341100"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "unit": "8px",
+                        "stack-md": "16px",
+                        "stack-sm": "8px",
+                        "stack-lg": "24px",
+                        "gutter-mobile": "16px",
+                        "margin-mobile": "16px",
+                        "stack-xs": "4px",
+                        "stack-xl": "32px"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Inter"],
+                        "headline-sm": ["\"Source Serif 4\""],
+                        "display-lg": ["\"Source Serif 4\""],
+                        "headline-lg": ["\"Source Serif 4\""],
+                        "label-lg": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "label-md": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "headline-md": ["\"Source Serif 4\""]
+                    },
+                    "fontSize": {
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-sm": ["18px", { "lineHeight": "24px", "fontWeight": "600" }],
+                        "display-lg": ["32px", { "lineHeight": "40px", "fontWeight": "700" }],
+                        "headline-lg": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "label-sm": ["10px", { "lineHeight": "12px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500" }],
+                        "body-sm": ["12px", { "lineHeight": "18px", "fontWeight": "400" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { background-color: #F6F8FC; } /* Base level 0 */
+        .glass-panel {
+            background: #FFFFFF;
+            border: 1px solid #E4E8F0;
+        }
+        .bento-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+        }
+        .bento-wide {
+            grid-column: span 1;
+        }
+        @media (min-width: 768px) {
+            .bento-wide {
+                grid-column: span 2;
+            }
+        }
+        /* Hide scrollbar for horizontal scrolling areas */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-[#F6F8FC] text-on-surface font-body-md min-h-screen pb-24 md:pb-0">
+<!-- Top App Bar (Shared Component Logic) -->
+<header class="bg-surface border-b border-outline-variant flex justify-between items-center w-full px-4 py-2 sticky top-0 z-40 md:hidden">
+<div class="flex items-center gap-2">
+<img class="w-8 h-8 rounded-full object-cover" data-alt="A small, professional headshot of an academic researcher with a neutral background, highly detailed and lit with soft, professional studio lighting. The researcher is wearing formal attire. The overall mood is serious and intellectual." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAgwg-IGhSdaRZ6jemvRSzgJzdRthdDjJ7_QWOuDLduRh5r_xjHIG33jiv3Nk42gEVL5_uCP-mWnoq-_pKXvfE1z7f24hKZYpvAmsEOkqz8jw_-6wH26Z5V2ARmoUCGIl4c1gbHckPgwybcbZaZjC8hZSVfpAxdbAzXbDRvqaGQq98XnNFxfZvasDFUGPkZh1FCxjK5eZPwEHl_TOm_2duEE6uMvtrecBHt0G7JsCn2nKaO_MCaf1j3">
+<span class="font-headline-md text-headline-md font-bold text-primary">CSE Research Hub</span>
+</div>
+<button class="w-11 h-11 flex items-center justify-center text-primary rounded-full hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined" data-icon="search">search</span>
+</button>
+</header>
+<!-- Web Top Nav (Desktop) -->
+<header class="hidden md:flex bg-surface border-b border-outline-variant justify-between items-center w-full px-6 py-4 sticky top-0 z-40">
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-3">
+<img class="w-10 h-10 rounded-full object-cover" data-alt="A small, professional headshot of an academic researcher with a neutral background, highly detailed and lit with soft, professional studio lighting. The researcher is wearing formal attire. The overall mood is serious and intellectual." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBo7F-lLpWgiZ-Mz6nljpxCQd4qdn1d7pmexYkK-r5VO4Ek2Fn7p5ib_703rPExDs_dWXbxvCPjUinL_kd7Ok_JEYvwq5YlRvxiARZm8URTW7_-FYYv_kxSZVa5k7SwfMpBO63WjA9lcK5djZkXh0fU-hxxa2wFMScR0RKPkwq3l3jDcBMq6vLt5j-T-xzuLduE45Niin4nu9e1nGLfjZY_5cSh4YWx1jV2FuoYdMIbLn9w5ClYGlvE">
+<span class="font-headline-md text-headline-md font-bold text-primary">CSE Research Hub</span>
+</div>
+<nav class="flex gap-6">
+<a class="text-on-surface-variant font-label-md text-label-md hover:text-primary transition-colors py-2" href="#">Home</a>
+<a class="text-primary font-label-md text-label-md font-bold border-b-2 border-primary py-2" href="#">Explore</a>
+<a class="text-on-surface-variant font-label-md text-label-md hover:text-primary transition-colors py-2" href="#">Share</a>
+<a class="text-on-surface-variant font-label-md text-label-md hover:text-primary transition-colors py-2" href="#">Notifications</a>
+<a class="text-on-surface-variant font-label-md text-label-md hover:text-primary transition-colors py-2" href="#">Profile</a>
+</nav>
+</div>
+</header>
+<main class="max-w-6xl mx-auto px-4 md:px-6 pt-stack-lg pb-stack-xl">
+<!-- Header & Search -->
+<div class="mb-stack-lg">
+<h1 class="font-display-lg text-display-lg text-on-surface mb-4">Explore</h1>
+<div class="relative w-full max-w-2xl flex items-center gap-2">
+<div class="relative flex-grow">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">search</span>
+<input class="w-full h-11 pl-10 pr-4 bg-surface border border-outline-variant rounded-full font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all shadow-sm" placeholder="Search researchers, topics, or research" type="text">
+</div>
+<button class="w-11 h-11 flex items-center justify-center bg-surface border border-outline-variant rounded-full text-primary shadow-sm hover:bg-surface-container-low transition-colors" onclick="toggleBottomSheet()">
+<span class="material-symbols-outlined" data-icon="tune">tune</span>
+</button>
+</div>
+</div>
+<!-- Bento Grid Layout for Main Content -->
+<div class="bento-grid">
+<!-- PEOPLE: Researchers (High Priority) -->
+<section class="bento-wide glass-panel p-6 rounded-xl border border-[#E4E8F0] shadow-sm">
+<div class="flex justify-between items-center mb-6">
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Featured Researchers</h2>
+<a class="text-primary font-label-md text-label-md hover:underline" href="#">View All</a>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<!-- Researcher Card 1 -->
+<div class="bg-surface p-4 rounded-lg border border-[#E4E8F0] shadow-[0px_2px_4px_rgba(23,32,51,0.04)] hover:shadow-md transition-shadow">
+<div class="flex items-start gap-4 mb-4">
+<img class="w-16 h-16 rounded-full object-cover" data-alt="A portrait of a young female computer science researcher in a brightly lit modern academic office. She is smiling subtly, wearing glasses and a neat button-down shirt. The background includes slightly blurred bookshelves and a computer monitor, conveying an intellectual and focused atmosphere." src="https://lh3.googleusercontent.com/aida-public/AB6AXuClziVP_yGSKQAbpCklSaJCDfuAkBBgO971l0CuimU4IlCeLYMP5MPXqLpbXaKfeuqrWz1R_87QvzlHq5aR56CFhXm4tTKFYQdKUQLSQFJ9KcTkHWTerdxsjvnGITlxxDn5FXCQI-eNofXWg5u8-X81L2K_1jZ7scx4KsMK0nI1A8TV-5oEPSwltfNxLGEs62yC3dddIMNoBXyBPMzPIyPkx34WT6_T22CEO4Uqxdg50xJWZlwzMS3L">
+<div>
+<h3 class="font-label-lg text-label-lg text-on-surface">Mou Tusi</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-1">CSE Batch 14</p>
+<div class="flex flex-wrap gap-1">
+<span class="px-2 py-0.5 bg-primary/10 text-primary rounded-sm font-label-sm text-label-sm">AI</span>
+<span class="px-2 py-0.5 bg-primary/10 text-primary rounded-sm font-label-sm text-label-sm">NLP</span>
+</div>
+</div>
+</div>
+<div class="mb-4 pl-3 border-l-2 border-primary">
+<p class="font-label-sm text-label-sm text-outline uppercase mb-1">Current Work</p>
+<p class="font-body-sm text-body-sm text-on-surface">Bangla Question Answering via Transformer Models</p>
+</div>
+<div class="flex gap-2 mt-auto">
+<button class="flex-1 h-9 flex items-center justify-center bg-primary text-on-primary rounded font-label-md text-label-md hover:bg-primary/90 transition-colors">Connect</button>
+<button class="flex-1 h-9 flex items-center justify-center bg-transparent border border-[#E4E8F0] text-primary rounded font-label-md text-label-md hover:bg-surface-container-low transition-colors">View Profile</button>
+</div>
+</div>
+<!-- Researcher Card 2 -->
+<div class="bg-surface p-4 rounded-lg border border-[#E4E8F0] shadow-[0px_2px_4px_rgba(23,32,51,0.04)] hover:shadow-md transition-shadow">
+<div class="flex items-start gap-4 mb-4">
+<img class="w-16 h-16 rounded-full object-cover" data-alt="A portrait of a male computer science professor in a modern robotics lab. He is looking thoughtfully off-camera, arms crossed. Soft, cool lighting highlights the metallic structures in the blurred background. The overall tone is authoritative and innovative." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBCLwqwNEqRedoRCEuLN3Hvvg5KGK8zY4xTAlOTFh24CEtta44--ncMq1mQYJOec3v-pub6hEKdUJvWw5KbWku2sviFCusIgWfoKfOBBG3fmr5uZW1e6o064l1RsQSwTsjK_fsMtjI_Iy3hRrVtM08nqpaQDqNa8oE8T67Eg8EhbiRySFuOE8Pqvnk_Mmt-2XfZcLN0akBv9adr4WwmDC8g7sBHBlg9JkvH1ap-giPG-ExdHh6LzV7v">
+<div>
+<h3 class="font-label-lg text-label-lg text-on-surface">Dr. Hasan Mahmud</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-1">Faculty</p>
+<div class="flex flex-wrap gap-1">
+<span class="px-2 py-0.5 bg-tertiary-fixed text-on-tertiary-fixed rounded-sm font-label-sm text-label-sm">Computer Vision</span>
+<span class="px-2 py-0.5 bg-primary/10 text-primary rounded-sm font-label-sm text-label-sm">Machine Learning</span>
+</div>
+</div>
+</div>
+<div class="mb-4 pl-3 border-l-2 border-primary">
+<p class="font-label-sm text-label-sm text-outline uppercase mb-1">Current Work</p>
+<p class="font-body-sm text-body-sm text-on-surface">AI-Based Traffic Sign Recognition in Low Visibility</p>
+</div>
+<div class="flex gap-2 mt-auto">
+<button class="flex-1 h-9 flex items-center justify-center bg-primary text-on-primary rounded font-label-md text-label-md hover:bg-primary/90 transition-colors">Connect</button>
+<button class="flex-1 h-9 flex items-center justify-center bg-transparent border border-[#E4E8F0] text-primary rounded font-label-md text-label-md hover:bg-surface-container-low transition-colors">View Profile</button>
+</div>
+</div>
+</div>
+</section>
+<!-- RESEARCH TOPICS (Chips) -->
+<section class="bg-surface p-6 rounded-xl border border-[#E4E8F0] shadow-[0px_2px_4px_rgba(23,32,51,0.04)]">
+<h2 class="font-headline-sm text-headline-sm text-on-surface mb-4">Research Topics</h2>
+<div class="flex flex-wrap gap-2">
+<button class="px-4 py-2 bg-primary/10 text-primary rounded-full font-label-md text-label-md hover:opacity-90 transition-opacity">AI &amp; Machine Learning</button>
+<button class="px-4 py-2 bg-primary/10 text-primary rounded-full font-label-md text-label-md hover:opacity-90 transition-opacity">Computer Vision</button>
+<button class="px-4 py-2 bg-tertiary-fixed text-on-tertiary-fixed rounded-full font-label-md text-label-md hover:opacity-90 transition-opacity">Natural Language Processing</button>
+<button class="px-4 py-2 bg-surface-container-high text-on-surface rounded-full font-label-md text-label-md hover:bg-surface-variant transition-colors border border-[#E4E8F0]">Data Science</button>
+<button class="px-4 py-2 bg-surface-container-high text-on-surface rounded-full font-label-md text-label-md hover:bg-surface-variant transition-colors border border-[#E4E8F0]">Cybersecurity</button>
+<button class="px-4 py-2 bg-surface-container-high text-on-surface rounded-full font-label-md text-label-md hover:bg-surface-variant transition-colors border border-[#E4E8F0]">Robotics</button>
+<button class="px-4 py-2 bg-surface-container-high text-on-surface rounded-full font-label-md text-label-md hover:bg-surface-variant transition-colors border border-[#E4E8F0]">HCI</button>
+</div>
+</section>
+<!-- CURRENT WORK (Recent Updates) -->
+<section class="bg-surface p-6 rounded-xl border border-[#E4E8F0] shadow-[0px_2px_4px_rgba(23,32,51,0.04)]">
+<div class="flex justify-between items-center mb-4">
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Trending Current Work</h2>
+</div>
+<div class="space-y-4">
+<!-- Update Item -->
+<div class="border-l-2 border-primary pl-4 py-1">
+<h3 class="font-label-lg text-label-lg text-primary mb-1">AI-Based Traffic Sign Recognition</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-2">Updated 2 days ago by Dr. Hasan Mahmud &amp; Team</p>
+<div class="flex items-center gap-4 text-outline font-label-sm text-label-sm">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px]" data-icon="visibility">visibility</span> 1.2k</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px]" data-icon="bookmark">bookmark</span> 45</span>
+</div>
+</div>
+<!-- Update Item -->
+<div class="border-l-2 border-primary pl-4 py-1">
+<h3 class="font-label-lg text-label-lg text-primary mb-1">Optimizing LLMs for Low-Resource Languages</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-2">Updated 5 days ago by Mou Tusi</p>
+<div class="flex items-center gap-4 text-outline font-label-sm text-label-sm">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px]" data-icon="visibility">visibility</span> 890</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[16px]" data-icon="bookmark">bookmark</span> 32</span>
+</div>
+</div>
+</div>
+<button class="w-full mt-6 py-2 bg-primary/10 text-primary rounded font-label-md text-label-md hover:bg-primary/20 transition-colors">View Activity Feed</button>
+</section>
+<!-- PREVIOUS RESEARCH (Historical Papers) -->
+<section class="bento-wide bg-surface p-6 rounded-xl border border-[#E4E8F0] shadow-[0px_2px_4px_rgba(23,32,51,0.04)]">
+<h2 class="font-headline-sm text-headline-sm text-on-surface mb-6">Explore Previous Research</h2>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+<!-- Paper Card 1 -->
+<div class="p-4 rounded border border-[#E4E8F0] hover:bg-surface-container-low transition-colors cursor-pointer group">
+<div class="flex justify-between items-start mb-2">
+<span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors" data-icon="description">description</span>
+<span class="font-label-sm text-label-sm text-outline">2022</span>
+</div>
+<h3 class="font-label-md text-label-md text-on-surface-variant mb-2 line-clamp-2">A Comparative Analysis of Deep Learning Models for Crop Disease Detection</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-3">Journal of Agriculture &amp; Tech</p>
+<div class="flex items-center gap-1 font-label-sm text-label-sm text-outline">
+<span class="material-symbols-outlined text-[14px]" data-icon="format_quote">format_quote</span>
+<span class="">42 Citations</span>
+</div>
+</div>
+<!-- Paper Card 2 -->
+<div class="p-4 rounded border border-[#E4E8F0] hover:bg-surface-container-low transition-colors cursor-pointer group">
+<div class="flex justify-between items-start mb-2">
+<span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors" data-icon="description">description</span>
+<span class="font-label-sm text-label-sm text-outline">2021</span>
+</div>
+<h3 class="font-label-md text-label-md text-on-surface-variant mb-2 line-clamp-2">Efficient Routing Protocols in IoT Networks: A Survey</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-3">IEEE Comm. Surveys</p>
+<div class="flex items-center gap-1 font-label-sm text-label-sm text-outline">
+<span class="material-symbols-outlined text-[14px]" data-icon="format_quote">format_quote</span>
+<span class="">128 Citations</span>
+</div>
+</div>
+<!-- Paper Card 3 -->
+<div class="p-4 rounded border border-[#E4E8F0] hover:bg-surface-container-low transition-colors cursor-pointer group">
+<div class="flex justify-between items-start mb-2">
+<span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors" data-icon="description">description</span>
+<span class="font-label-sm text-label-sm text-outline">2020</span>
+</div>
+<h3 class="font-label-md text-label-md text-on-surface-variant mb-2 line-clamp-2">Sentiment Analysis on Bengali Text Data using Word2Vec</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-3">Int. Conf. on Machine Learning</p>
+<div class="flex items-center gap-1 font-label-sm text-label-sm text-outline">
+<span class="material-symbols-outlined text-[14px]" data-icon="format_quote">format_quote</span>
+<span class="">85 Citations</span>
+</div>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- Bottom Navigation Bar (Shared Component Logic) -->
+<nav class="md:hidden fixed bottom-0 w-full z-50 bg-surface border-t border-outline-variant shadow-sm flex justify-around items-center px-4 pb-4 pt-2"><a class="flex flex-col items-center justify-center text-on-surface-variant p-2 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined mb-1">home</span>
+<span class="font-label-md text-label-md">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-primary/10 text-primary rounded-xl px-4 py-1 transition-all" href="#">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 1;">search</span>
+<span class="font-label-md text-label-md">Explore</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant p-2 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined mb-1">add_circle</span>
+<span class="font-label-md text-label-md">Share</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant p-2 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined mb-1">notifications</span>
+<span class="font-label-md text-label-md">Notifications</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant p-2 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined mb-1">person</span>
+<span class="font-label-md text-label-md">Profile</span>
+</a></nav>
+<!-- Filter Bottom Sheet Modal -->
+<div class="fixed inset-0 z-[60] bg-on-background/50 hidden opacity-0 transition-opacity duration-300" id="filterBottomSheet">
+<div class="absolute bottom-0 left-0 w-full bg-surface rounded-t-2xl shadow-[0px_-4px_12px_rgba(23,32,51,0.08)] transform translate-y-full transition-transform duration-300 flex flex-col max-h-[751px]">
+<div class="flex justify-center pt-3 pb-2">
+<div class="w-12 h-1 bg-outline-variant rounded-full"></div>
+</div>
+<div class="px-6 py-4 border-b border-[#E4E8F0] flex justify-between items-center sticky top-0 bg-surface z-10">
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Filters</h2>
+<button class="w-11 h-11 flex items-center justify-center text-on-surface-variant rounded-full hover:bg-surface-container-low transition-colors" onclick="toggleBottomSheet()">
+<span class="material-symbols-outlined" data-icon="close">close</span>
+</button>
+</div>
+<div class="p-6 overflow-y-auto space-y-8">
+<div>
+<h3 class="font-label-lg text-label-lg text-on-surface mb-3">Type</h3>
+<div class="flex flex-wrap gap-2">
+<label class="flex items-center gap-2 px-3 py-2 border border-[#E4E8F0] rounded-lg cursor-pointer hover:bg-surface-container-low has-[:checked]:bg-primary/10 has-[:checked]:border-primary transition-colors">
+<input checked="" class="form-checkbox text-primary rounded-sm border-outline focus:ring-primary focus:ring-offset-0" type="checkbox">
+<span class="font-body-sm text-body-sm">People</span>
+</label>
+<label class="flex items-center gap-2 px-3 py-2 border border-[#E4E8F0] rounded-lg cursor-pointer hover:bg-surface-container-low has-[:checked]:bg-primary/10 has-[:checked]:border-primary transition-colors">
+<input checked="" class="form-checkbox text-primary rounded-sm border-outline focus:ring-primary focus:ring-offset-0" type="checkbox">
+<span class="font-body-sm text-body-sm">Current Work</span>
+</label>
+<label class="flex items-center gap-2 px-3 py-2 border border-[#E4E8F0] rounded-lg cursor-pointer hover:bg-surface-container-low has-[:checked]:bg-primary/10 has-[:checked]:border-primary transition-colors">
+<input class="form-checkbox text-primary rounded-sm border-outline focus:ring-primary focus:ring-offset-0" type="checkbox">
+<span class="font-body-sm text-body-sm">Previous Papers</span>
+</label>
+</div>
+</div>
+<div>
+<h3 class="font-label-lg text-label-lg text-on-surface mb-3">Topics</h3>
+<div class="flex flex-wrap gap-2">
+<label class="px-3 py-1.5 border border-[#E4E8F0] rounded-full cursor-pointer hover:bg-surface-container-low has-[:checked]:bg-primary/10 has-[:checked]:text-primary has-[:checked]:border-primary transition-colors">
+<input class="sr-only" type="checkbox">
+<span class="font-label-md text-label-md">AI</span>
+</label>
+<label class="px-3 py-1.5 border border-[#E4E8F0] rounded-full cursor-pointer hover:bg-surface-container-low has-[:checked]:bg-primary/10 has-[:checked]:text-primary has-[:checked]:border-primary transition-colors">
+<input class="sr-only" type="checkbox">
+<span class="font-label-md text-label-md">Machine Learning</span>
+</label>
+<label class="px-3 py-1.5 border border-[#E4E8F0] rounded-full cursor-pointer hover:bg-surface-container-low has-[:checked]:bg-primary/10 has-[:checked]:text-primary has-[:checked]:border-primary transition-colors">
+<input class="sr-only" type="checkbox">
+<span class="font-label-md text-label-md">NLP</span>
+</label>
+<label class="px-3 py-1.5 border border-[#E4E8F0] rounded-full cursor-pointer hover:bg-surface-container-low has-[:checked]:bg-primary/10 has-[:checked]:text-primary has-[:checked]:border-primary transition-colors">
+<input class="sr-only" type="checkbox">
+<span class="font-label-md text-label-md">Computer Vision</span>
+</label>
+</div>
+</div>
+<div>
+<h3 class="font-label-lg text-label-lg text-on-surface mb-3">Batch (Optional)</h3>
+<select class="w-full h-11 px-3 bg-surface border border-[#E4E8F0] rounded font-body-md text-body-md text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all">
+<option value="">All Batches</option>
+<option value="14">Batch 14</option>
+<option value="15">Batch 15</option>
+<option value="16">Batch 16</option>
+<option value="faculty">Faculty</option>
+</select>
+</div>
+</div>
+<div class="p-4 border-t border-[#E4E8F0] flex gap-4 sticky bottom-0 bg-surface">
+<button class="flex-1 h-11 flex items-center justify-center bg-transparent border border-[#E4E8F0] text-primary rounded font-label-lg text-label-lg hover:bg-surface-container-low transition-colors" onclick="toggleBottomSheet()">Clear All</button>
+<button class="flex-[2] h-11 flex items-center justify-center bg-primary text-on-primary rounded font-label-lg text-label-lg hover:bg-primary/90 transition-colors" onclick="toggleBottomSheet()">Apply Filters</button>
+</div>
+</div>
+</div>
+<script>
+        function toggleBottomSheet() {
+            const modal = document.getElementById('filterBottomSheet');
+            const sheet = modal.querySelector('div.absolute');
+            
+            if (modal.classList.contains('hidden')) {
+                modal.classList.remove('hidden');
+                // Trigger reflow
+                void modal.offsetWidth;
+                modal.classList.remove('opacity-0');
+                sheet.classList.remove('translate-y-full');
+            } else {
+                modal.classList.add('opacity-0');
+                sheet.classList.add('translate-y-full');
+                setTimeout(() => {
+                    modal.classList.add('hidden');
+                }, 300);
+            }
+        }
+    </script>
+
+
+</body></html>

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CSE Research Hub - Splash</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary": "#0a3daf",
+                        "on-surface": "#1a1b22",
+                        "secondary-fixed-dim": "#bdc7de",
+                        "on-tertiary": "#ffffff",
+                        "on-primary-fixed-variant": "#063bae",
+                        "outline": "#747685",
+                        "on-surface-variant": "#444653",
+                        "on-secondary-fixed-variant": "#3d475a",
+                        "primary-fixed": "#dce1ff",
+                        "secondary": "#555f73",
+                        "surface-bright": "#faf8ff",
+                        "background": "#faf8ff",
+                        "inverse-surface": "#2f3038",
+                        "on-primary": "#ffffff",
+                        "secondary-container": "#d6e0f8",
+                        "on-error-container": "#93000a",
+                        "tertiary-fixed": "#ffdbcb",
+                        "on-background": "#1a1b22",
+                        "surface-container-low": "#f3f2fd",
+                        "primary-container": "#3157c8",
+                        "tertiary": "#7a3200",
+                        "on-tertiary-container": "#ffd1bb",
+                        "surface-container-lowest": "#ffffff",
+                        "inverse-primary": "#b6c4ff",
+                        "surface-tint": "#2f55c6",
+                        "on-tertiary-fixed": "#341100",
+                        "on-primary-fixed": "#00164f",
+                        "outline-variant": "#c4c5d6",
+                        "on-error": "#ffffff",
+                        "on-secondary-fixed": "#111c2d",
+                        "tertiary-fixed-dim": "#ffb691",
+                        "surface-variant": "#e2e1eb",
+                        "on-tertiary-fixed-variant": "#783100",
+                        "on-primary-container": "#d2d9ff",
+                        "secondary-fixed": "#d9e3fb",
+                        "surface-container-highest": "#e2e1eb",
+                        "surface-container-high": "#e8e7f1",
+                        "tertiary-container": "#a04400",
+                        "error-container": "#ffdad6",
+                        "surface-container": "#eeedf7",
+                        "on-secondary-container": "#596377",
+                        "surface": "#faf8ff",
+                        "on-secondary": "#ffffff",
+                        "inverse-on-surface": "#f1f0fa",
+                        "surface-dim": "#dad9e3",
+                        "primary-fixed-dim": "#b6c4ff",
+                        "error": "#ba1a1a"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "margin-mobile": "16px",
+                        "gutter-mobile": "16px",
+                        "stack-md": "16px",
+                        "stack-xl": "32px",
+                        "stack-xs": "4px",
+                        "unit": "8px",
+                        "stack-lg": "24px",
+                        "stack-sm": "8px"
+                    },
+                    "fontFamily": {
+                        "body-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "label-lg": ["Inter"],
+                        "headline-lg": ["\"Source Serif 4\""],
+                        "headline-md": ["\"Source Serif 4\""],
+                        "body-sm": ["Inter"],
+                        "display-lg": ["\"Source Serif 4\""],
+                        "label-md": ["Inter"],
+                        "headline-sm": ["\"Source Serif 4\""]
+                    },
+                    "fontSize": {
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "label-sm": ["10px", { "lineHeight": "12px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+                        "headline-lg": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "body-sm": ["12px", { "lineHeight": "18px", "fontWeight": "400" }],
+                        "display-lg": ["32px", { "lineHeight": "40px", "fontWeight": "700" }],
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500" }],
+                        "headline-sm": ["18px", { "lineHeight": "24px", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .dot-pattern {
+            background-image: radial-gradient(circle at 2px 2px, #bdc7de 1px, transparent 0);
+            background-size: 24px 24px;
+        }
+        
+        @keyframes fade-in-up {
+            0% { opacity: 0; transform: translateY(20px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        
+        .animate-fade-in-up {
+            animation: fade-in-up 0.8s ease-out forwards;
+        }
+        
+        .delay-100 { animation-delay: 100ms; }
+        .delay-200 { animation-delay: 200ms; }
+        .delay-300 { animation-delay: 300ms; }
+    </style>
+</head>
+<body class="bg-background min-h-screen flex items-center justify-center relative overflow-hidden font-body-md text-on-surface">
+<!-- Subtle Scholarly Background Pattern -->
+<div class="absolute inset-0 dot-pattern opacity-50 z-0"></div>
+<!-- Decorative Gradient Blurs for Depth -->
+<div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-primary-fixed opacity-30 blur-[100px] z-0 pointer-events-none"></div>
+<div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-secondary-fixed opacity-30 blur-[100px] z-0 pointer-events-none"></div>
+<!-- Main Content Container -->
+<div class="relative z-10 flex flex-col items-center justify-center p-stack-xl max-w-md w-full text-center">
+<!-- Logo Container with elegant entrance -->
+<div class="mb-stack-lg opacity-0 animate-fade-in-up rounded-xl bg-surface p-stack-md shadow-md border border-outline-variant flex items-center justify-center w-32 h-32 md:w-40 md:h-40">
+<img alt="CSE Research Hub Logo" class="w-full h-full object-contain mix-blend-multiply" src="https://lh3.googleusercontent.com/aida/AEtjO1XurJ3MrZRkS3DkJIY-U2CZ7pbLWxyb_LeD_NOrsQ4OlJf-aUrdQ_xFiaHs0iXl79aa1L8DOv1G5QrgMxH3EoTIFiLe3--p2otWuV3l9kOCVjDPuNukfJDJEXeYlfQD9lmJB2-NzagXLnllaLCfEZRjtjlvkGK_Bus1s8c1O3cdobryqPz0o2PVfB4uD8bLyUP117Abj7S7OCVobp8M0pz4zcka_lwrHy7Mt2qd1hDUtEljvQ1q29m-lcg"/>
+</div>
+<!-- Product Name -->
+<h1 class="font-display-lg text-display-lg text-primary mb-stack-xs opacity-0 animate-fade-in-up delay-100">
+            CSE Research Hub
+        </h1>
+<!-- Subtle Tagline / Loading Indicator -->
+<div class="flex items-center gap-unit mt-stack-md opacity-0 animate-fade-in-up delay-200 text-on-surface-variant">
+<span class="material-symbols-outlined animate-spin text-primary" style="font-size: 20px;">sync</span>
+<span class="font-label-lg text-label-lg uppercase tracking-wider">Initializing Scholar Network...</span>
+</div>
+<!-- Decorative subtle line -->
+<div class="w-16 h-[2px] bg-outline-variant mt-stack-xl opacity-0 animate-fade-in-up delay-300 rounded-full"></div>
+</div>
+</body></html>

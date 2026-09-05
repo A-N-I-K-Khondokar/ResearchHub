@@ -1,0 +1,226 @@
+<!DOCTYPE html><html class="light" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Saved - CSE Research Hub</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&amp;family=Source+Serif+4:wght@600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-error": "#ffffff",
+                        "surface-bright": "#f8f9ff",
+                        "on-secondary-container": "#006f66",
+                        "background": "#f8f9ff",
+                        "surface-tint": "#565e74",
+                        "secondary-fixed-dim": "#6bd8cb",
+                        "tertiary": "#000000",
+                        "on-primary-container": "#7c839b",
+                        "on-surface": "#0b1c30",
+                        "surface-container-high": "#dce9ff",
+                        "surface-variant": "#d3e4fe",
+                        "surface-container": "#e5eeff",
+                        "tertiary-fixed": "#ffdbca",
+                        "inverse-surface": "#213145",
+                        "outline": "#76777d",
+                        "inverse-on-surface": "#eaf1ff",
+                        "on-background": "#0b1c30",
+                        "primary-fixed": "#dae2fd",
+                        "primary-fixed-dim": "#bec6e0",
+                        "tertiary-container": "#331200",
+                        "inverse-primary": "#bec6e0",
+                        "on-secondary-fixed": "#00201d",
+                        "on-primary-fixed-variant": "#3f465c",
+                        "on-tertiary-container": "#cf6721",
+                        "on-surface-variant": "#45464d",
+                        "primary-container": "#131b2e",
+                        "on-secondary": "#ffffff",
+                        "on-secondary-fixed-variant": "#005049",
+                        "secondary-container": "#86f2e4",
+                        "surface-dim": "#cbdbf5",
+                        "on-error-container": "#93000a",
+                        "error": "#ba1a1a",
+                        "surface": "#f8f9ff",
+                        "on-tertiary": "#ffffff",
+                        "secondary": "#006a61",
+                        "on-tertiary-fixed": "#331200",
+                        "on-primary": "#ffffff",
+                        "surface-container-low": "#eff4ff",
+                        "outline-variant": "#c6c6cd",
+                        "on-tertiary-fixed-variant": "#763300",
+                        "tertiary-fixed-dim": "#ffb68e",
+                        "secondary-fixed": "#89f5e7",
+                        "surface-container-highest": "#d3e4fe",
+                        "primary": "#000000",
+                        "error-container": "#ffdad6",
+                        "on-primary-fixed": "#131b2e",
+                        "surface-container-lowest": "#ffffff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "section-margin": "32px",
+                        "container-padding": "16px",
+                        "stack-gap-lg": "24px",
+                        "stack-gap-md": "16px",
+                        "unit": "4px",
+                        "stack-gap-sm": "8px"
+                    },
+                    "fontFamily": {
+                        "label-md": ["Inter"],
+                        "display-lg": ["\"Source Serif 4\""],
+                        "headline-md": ["\"Source Serif 4\""],
+                        "headline-sm": ["\"Source Serif 4\""],
+                        "body-lg": ["Inter"],
+                        "headline-lg-mobile": ["\"Source Serif 4\""],
+                        "body-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.5px", "fontWeight": "600" }],
+                        "display-lg": ["32px", { "lineHeight": "40px", "fontWeight": "700" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "headline-lg-mobile": ["28px", { "lineHeight": "36px", "fontWeight": "700" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen flex flex-col antialiased">
+<!-- TopAppBar Semantic Shell -->
+<header class="bg-surface dark:bg-background text-primary dark:text-primary-fixed w-full top-0 sticky border-b border-outline-variant dark:border-outline flat no shadows transition-colors duration-200 z-40">
+<div class="flex justify-between items-center px-container-padding py-unit w-full h-[64px]">
+<div class="flex items-center gap-4">
+<button aria-label="Go back" class="p-2 hover:bg-surface-container-low dark:hover:bg-surface-container-high rounded-full transition-colors">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+</button>
+<h1 class="font-headline-sm text-headline-sm dark:text-inverse-on-surface">Saved</h1>
+</div>
+<div class="font-headline-md text-headline-md text-primary dark:text-primary-fixed hidden md:block">
+                Scholarly Core
+            </div>
+<div class="w-10"></div> <!-- Placeholder for balance -->
+</div>
+</header>
+<main class="flex-1 w-full max-w-5xl mx-auto md:px-container-padding pb-[80px] md:pb-8">
+<!-- Tab Navigation -->
+<div class="flex w-full border-b border-outline-variant mb-6 px-container-padding md:px-0 mt-4 md:mt-8 sticky top-[64px] bg-background z-30 pt-2">
+<button class="flex-1 pb-3 text-center border-b-2 border-primary text-primary font-label-md text-label-md uppercase tracking-wider transition-colors">
+                Current Work
+            </button>
+<button class="flex-1 pb-3 text-center border-b-2 border-transparent text-on-surface-variant font-label-md text-label-md uppercase tracking-wider hover:text-primary transition-colors">
+                Research
+            </button>
+</div>
+<!-- Content Area: Current Work -->
+<div class="px-container-padding md:px-0 space-y-stack-gap-lg">
+<!-- Current Work Card 1 -->
+<article class="bg-surface rounded-lg border border-outline-variant p-4 shadow-sm hover:shadow-md transition-shadow duration-300 relative overflow-hidden">
+<!-- Academic 'Paper-on-table' effect subtly applied via shadow and border -->
+<div class="flex items-start justify-between mb-3">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full overflow-hidden bg-surface-variant flex-shrink-0">
+<img alt="Dr. Alice Chen" class="w-full h-full object-cover" data-alt="A professional headshot of an academic researcher with a clean, light-mode background, wearing modern business casual attire. Soft, high-key lighting emphasizing a trustworthy and intellectual demeanor, fitting for a premium research journal platform." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD_fHOUEJK4ZMZt3c1dsTe30LwWu7DJZzJkWecA0AtwP458GPdR9x2oMStOlJ2wffbWMms109mliLe30_Ph2uN152ObEupzAS6xrdwBxA0kylM-gzu3uROIXgd1gpnug_J_SgjeTUWahBzW0TKgKPAV7qZbJmVNkllfndP9F_ARs3BQ1Xmo2X1WFC2M9e4hQXyhR-y3FP-aaQhfid7aDoGiNz1hAaKT-eOlvA9b6-QFBN8NvuNsEaJ0">
+</div>
+<div>
+<h3 class="font-label-md text-label-md text-on-surface">Dr. Alice Chen</h3>
+<p class="font-body-md text-body-md text-on-surface-variant text-xs">Updated 2 days ago</p>
+</div>
+</div>
+<button aria-label="Unsave" class="text-primary hover:bg-surface-container-low p-1.5 rounded-full transition-colors">
+<span class="material-symbols-outlined" data-icon="bookmark" style="font-variation-settings: 'FILL' 1;">bookmark</span>
+</button>
+</div>
+<h2 class="font-headline-sm text-headline-sm mb-2 text-on-background">Optimizing LLM Context Windows for Specialized Academic Domains</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant mb-4 line-clamp-3">
+                    Initial findings suggest that applying hierarchical summarization prior to full-context ingestion reduces hallucination rates by 14% in complex medical literature tasks. Currently testing against larger parameter models to verify scaling laws...
+                </p>
+<div class="flex flex-wrap gap-2 mb-4">
+<span class="px-2 py-1 rounded bg-secondary-container bg-opacity-10 text-secondary border border-secondary border-opacity-20 font-label-md text-[10px] uppercase">Machine Learning</span>
+<span class="px-2 py-1 rounded bg-secondary-container bg-opacity-10 text-secondary border border-secondary border-opacity-20 font-label-md text-[10px] uppercase">NLP</span>
+</div>
+<div class="flex items-center justify-between border-t border-outline-variant pt-3">
+<div class="flex items-center gap-4 text-on-surface-variant">
+<span class="flex items-center gap-1 font-body-md text-body-md text-sm"><span class="material-symbols-outlined text-[18px]" data-icon="forum">forum</span> 12</span>
+<span class="flex items-center gap-1 font-body-md text-body-md text-sm"><span class="material-symbols-outlined text-[18px]" data-icon="monitoring">monitoring</span> 89% Complete</span>
+</div>
+<button class="font-label-md text-label-md text-secondary hover:text-on-secondary-container transition-colors">View Details</button>
+</div>
+</article>
+<!-- Current Work Card 2 -->
+<article class="bg-surface rounded-lg border border-outline-variant p-4 shadow-sm hover:shadow-md transition-shadow duration-300 relative overflow-hidden">
+<div class="flex items-start justify-between mb-3">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full overflow-hidden bg-surface-variant flex-shrink-0">
+<img alt="Prof. David Kim" class="w-full h-full object-cover" data-alt="A professional headshot of a male data scientist with glasses, set against a bright, minimalist corporate background. Crisp focus, soft lighting, projecting an aura of academic focus and computational efficiency, suitable for a scholarly hub." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAeJJbxH1KyGRFhRJk5yYwKG9MaiHWfyyzzj_7B8Bi09lq5Gi0CXPZ3qO5oK_u4pHDvLRLMPr11obH055vuI3gS4-HFggzmbBXWHGYjy6Xze5iJmG03gekwkVjdpiioKViLQ4PeoQZGMHKDwY5F0Xw1Jl3czJ3gMG6Rw20TNCKNrrDtd8rFaRClx8R9AwmKyeXsuzyKewgWmmrEm9eEypXuwlAE5UOn1suH2bawRCRJhSNR1jNQPTr2">
+</div>
+<div>
+<h3 class="font-label-md text-label-md text-on-surface">Prof. David Kim</h3>
+<p class="font-body-md text-body-md text-on-surface-variant text-xs">Updated 1 week ago</p>
+</div>
+</div>
+<button aria-label="Unsave" class="text-primary hover:bg-surface-container-low p-1.5 rounded-full transition-colors">
+<span class="material-symbols-outlined" data-icon="bookmark" style="font-variation-settings: 'FILL' 1;">bookmark</span>
+</button>
+</div>
+<h2 class="font-headline-sm text-headline-sm mb-2 text-on-background">Longitudinal Study of Quantum Coherence in Room Temperature Superconductors</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant mb-4 line-clamp-3">
+                    Phase 2 data collection is complete. Preliminary analysis of the flux pinning behavior indicates a higher stability threshold than predicted by the initial theoretical model. Preparing visual models for the upcoming symposium.
+                </p>
+<div class="flex flex-wrap gap-2 mb-4">
+<span class="px-2 py-1 rounded bg-secondary-container bg-opacity-10 text-secondary border border-secondary border-opacity-20 font-label-md text-[10px] uppercase">Quantum Physics</span>
+<span class="px-2 py-1 rounded bg-secondary-container bg-opacity-10 text-secondary border border-secondary border-opacity-20 font-label-md text-[10px] uppercase">Materials Science</span>
+</div>
+<div class="flex items-center justify-between border-t border-outline-variant pt-3">
+<div class="flex items-center gap-4 text-on-surface-variant">
+<span class="flex items-center gap-1 font-body-md text-body-md text-sm"><span class="material-symbols-outlined text-[18px]" data-icon="forum">forum</span> 34</span>
+<span class="flex items-center gap-1 font-body-md text-body-md text-sm"><span class="material-symbols-outlined text-[18px]" data-icon="monitoring">monitoring</span> Phase 3 Prep</span>
+</div>
+<button class="font-label-md text-label-md text-secondary hover:text-on-secondary-container transition-colors">View Details</button>
+</div>
+</article>
+</div>
+</main>
+<!-- BottomNavBar Semantic Shell (Visible on Mobile Only, suppressed FAB logic handled implicitly by not including it) -->
+<nav class="md:hidden bg-surface dark:bg-background font-label-md text-label-md fixed bottom-0 w-full z-50 border-t border-outline-variant dark:border-outline shadow-sm flex justify-around items-center px-container-padding pb-4 pt-2 scale-95 active:scale-90 transition-transform">
+<!-- Not actively matched to any specific destination in the JSON label array perfectly for 'Saved', defaulting to Explore as generic browsing behavior is prohibited, suppressing highlight entirely as 'Saved' isn't in JSON -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-lowest dark:hover:bg-surface-container-high rounded p-1 w-16" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="home">home</span>
+<span class="text-[10px]">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-lowest dark:hover:bg-surface-container-high rounded p-1 w-16" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="hub">hub</span>
+<span class="text-[10px]">Explore</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-lowest dark:hover:bg-surface-container-high rounded p-1 w-16" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="add_circle">add_circle</span>
+<span class="text-[10px]">Share</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-lowest dark:hover:bg-surface-container-high rounded p-1 w-16" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="notifications">notifications</span>
+<span class="text-[10px]">Alerts</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-lowest dark:hover:bg-surface-container-high rounded p-1 w-16" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="person">person</span>
+<span class="text-[10px]">Profile</span>
+</a>
+</nav>
+
+
+</body></html>

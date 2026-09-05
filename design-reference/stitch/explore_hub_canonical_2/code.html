@@ -1,0 +1,377 @@
+<!DOCTYPE html><html class="h-full" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Explore - CSE Research Hub</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+                "surface-variant": "#e2e1eb",
+                "on-tertiary-fixed-variant": "#783100",
+                "primary-fixed": "#dce1ff",
+                "error-container": "#ffdad6",
+                "secondary-fixed": "#d9e3fb",
+                "secondary-container": "#d6e0f8",
+                "on-secondary": "#ffffff",
+                "on-error": "#ffffff",
+                "outline-variant": "#c4c5d6",
+                "on-tertiary-container": "#ffd1bb",
+                "on-secondary-container": "#596377",
+                "surface-container": "#eeedf7",
+                "surface-container-low": "#f3f2fd",
+                "secondary-fixed-dim": "#bdc7de",
+                "primary-fixed-dim": "#b6c4ff",
+                "outline": "#747685",
+                "on-primary-container": "#d2d9ff",
+                "tertiary": "#7a3200",
+                "on-primary-fixed": "#00164f",
+                "surface": "#faf8ff",
+                "surface-container-highest": "#e2e1eb",
+                "surface-tint": "#2f55c6",
+                "on-surface-variant": "#444653",
+                "on-error-container": "#93000a",
+                "primary": "#0a3daf",
+                "on-primary-fixed-variant": "#063bae",
+                "background": "#faf8ff",
+                "tertiary-fixed-dim": "#ffb691",
+                "tertiary-container": "#a04400",
+                "surface-bright": "#faf8ff",
+                "on-secondary-fixed": "#111c2d",
+                "inverse-surface": "#2f3038",
+                "primary-container": "#3157c8",
+                "inverse-on-surface": "#f1f0fa",
+                "on-background": "#1a1b22",
+                "surface-container-high": "#e8e7f1",
+                "secondary": "#555f73",
+                "on-secondary-fixed-variant": "#3d475a",
+                "error": "#ba1a1a",
+                "surface-dim": "#dad9e3",
+                "on-surface": "#1a1b22",
+                "on-tertiary-fixed": "#341100",
+                "on-tertiary": "#ffffff",
+                "on-primary": "#ffffff",
+                "surface-container-lowest": "#ffffff",
+                "tertiary-fixed": "#ffdbcb",
+                "inverse-primary": "#b6c4ff"
+        },
+        "borderRadius": {
+                "DEFAULT": "0.125rem",
+                "lg": "0.25rem",
+                "xl": "0.5rem",
+                "full": "0.75rem"
+        },
+        "spacing": {
+                "gutter-mobile": "16px",
+                "stack-xl": "32px",
+                "margin-mobile": "16px",
+                "stack-sm": "8px",
+                "stack-lg": "24px",
+                "stack-md": "16px",
+                "stack-xs": "4px",
+                "unit": "8px",
+                "container-padding": "16px",
+                "stack-gap-sm": "8px",
+                "stack-gap-md": "16px"
+        },
+        "fontFamily": {
+                "display-lg": [
+                        "\"Source Serif 4\""
+                ],
+                "headline-sm": [
+                        "\"Source Serif 4\""
+                ],
+                "headline-md": [
+                        "\"Source Serif 4\""
+                ],
+                "headline-lg": [
+                        "\"Source Serif 4\""
+                ],
+                "label-md": [
+                        "Inter"
+                ],
+                "body-lg": [
+                        "Inter"
+                ],
+                "label-sm": [
+                        "Inter"
+                ],
+                "body-sm": [
+                        "Inter"
+                ],
+                "label-lg": [
+                        "Inter"
+                ],
+                "body-md": [
+                        "Inter"
+                ]
+        },
+        "fontSize": {
+                "display-lg": [
+                        "32px",
+                        {
+                                "lineHeight": "40px",
+                                "fontWeight": "700"
+                        }
+                ],
+                "headline-sm": [
+                        "18px",
+                        {
+                                "lineHeight": "24px",
+                                "fontWeight": "600"
+                        }
+                ],
+                "headline-md": [
+                        "20px",
+                        {
+                                "lineHeight": "28px",
+                                "fontWeight": "600"
+                        }
+                ],
+                "headline-lg": [
+                        "24px",
+                        {
+                                "lineHeight": "32px",
+                                "fontWeight": "600"
+                        }
+                ],
+                "label-md": [
+                        "12px",
+                        {
+                                "lineHeight": "16px",
+                                "letterSpacing": "0.02em",
+                                "fontWeight": "500"
+                        }
+                ],
+                "body-lg": [
+                        "16px",
+                        {
+                                "lineHeight": "24px",
+                                "fontWeight": "400"
+                        }
+                ],
+                "label-sm": [
+                        "10px",
+                        {
+                                "lineHeight": "12px",
+                                "letterSpacing": "0.05em",
+                                "fontWeight": "600"
+                        }
+                ],
+                "body-sm": [
+                        "12px",
+                        {
+                                "lineHeight": "18px",
+                                "fontWeight": "400"
+                        }
+                ],
+                "label-lg": [
+                        "14px",
+                        {
+                                "lineHeight": "20px",
+                                "letterSpacing": "0.01em",
+                                "fontWeight": "600"
+                        }
+                ],
+                "body-md": [
+                        "14px",
+                        {
+                                "lineHeight": "20px",
+                                "fontWeight": "400"
+                        }
+                ]
+        }
+},
+    },
+  }
+</script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background text-on-background h-full font-body-md antialiased md:pb-0 pb-[88px]">
+<!-- TopAppBar -->
+<header class="bg-surface docked full-width top-0 border-b border-outline-variant flat no shadows flex justify-between items-center w-full px-container-padding py-stack-gap-sm sticky z-40 hidden md:flex">
+<div class="flex items-center gap-4">
+<img alt="User profile photo" class="w-10 h-10 rounded-full object-cover border border-outline-variant" data-alt="A small, professional headshot avatar of a smiling individual in a neutral setting, suitable for an academic profile picture in a clean modern interface. The lighting is soft and natural." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBBBlV64aHQg2LoA5qrHSAAhOWVV4YX12Ctbg39xzGhY1qfciferNZ6E56i3SDTmiBUNgU-fDvj2xnz-IFaBls3FrsGiXTmxwZmzMsizxaXZilgMBGGBEixPViaJkAhMjVCHGGsfAprOu2SW8rUAn0x2llyqiUe9r4-exCsW5wwVB-EyeNmRLFnz1xmFcLQc9Mai599zBOg6G35Sg3oV2yGNek1i4E1mhkleQgbzKBC9dZ5v4MAyDI1">
+<h1 class="font-headline-md text-headline-md font-bold text-primary">CSE Research Hub</h1>
+</div>
+<!-- Desktop Nav Items -->
+<nav class="hidden md:flex gap-8">
+<a class="font-label-md text-label-md text-on-surface-variant hover:bg-surface-container-low transition-colors px-3 py-2 rounded-lg flex items-center gap-2" href="#">
+<span class="material-symbols-outlined">home</span>
+                Home
+             </a>
+<a class="font-label-md text-label-md text-primary font-bold hover:bg-surface-container-low transition-colors px-3 py-2 rounded-lg flex items-center gap-2" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">search</span>
+                Explore
+             </a>
+<a class="font-label-md text-label-md text-on-surface-variant hover:bg-surface-container-low transition-colors px-3 py-2 rounded-lg flex items-center gap-2" href="#">
+<span class="material-symbols-outlined">group</span>
+                Network
+             </a>
+<a class="font-label-md text-label-md text-on-surface-variant hover:bg-surface-container-low transition-colors px-3 py-2 rounded-lg flex items-center gap-2" href="#">
+<span class="material-symbols-outlined">notifications</span>
+                Alerts
+             </a>
+<a class="font-label-md text-label-md text-on-surface-variant hover:bg-surface-container-low transition-colors px-3 py-2 rounded-lg flex items-center gap-2" href="#">
+<span class="material-symbols-outlined">account_circle</span>
+                Profile
+             </a>
+</nav>
+<button class="w-10 h-10 flex items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-container-low transition-colors md:hidden">
+<span class="material-symbols-outlined">search</span>
+</button>
+</header>
+<!-- Mobile Header Replacement (Simpler for mobile explore) -->
+<header class="bg-surface w-full px-margin-mobile py-4 sticky top-0 z-30 md:hidden border-b border-outline-variant flex gap-4 items-center">
+<h1 class="font-headline-md text-headline-md font-bold text-primary">Explore</h1>
+<div class="relative w-full flex-1">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[20px]">search</span>
+<input class="w-full bg-surface-container border border-outline-variant rounded-lg py-2 pl-10 pr-4 font-body-md text-on-surface focus:outline-none focus:border-primary transition-all" placeholder="Search..." type="text">
+</div>
+</header>
+<main class="max-w-5xl mx-auto px-margin-mobile md:px-8 py-stack-lg flex flex-col gap-stack-xl">
+<!-- Research Topics -->
+<section class="flex flex-col gap-stack-sm w-full">
+<h2 class="font-headline-sm text-headline-sm text-on-surface font-bold">Research Topics</h2>
+<div class="flex gap-2 overflow-x-auto pb-2 scrollbar-hide snap-x">
+<button class="snap-start shrink-0 min-h-[36px] px-4 py-1.5 bg-primary text-on-primary rounded-lg font-label-md text-label-md border border-primary">All Topics</button>
+<button class="snap-start shrink-0 min-h-[36px] px-4 py-1.5 bg-surface-container-lowest border border-outline-variant text-on-surface-variant hover:bg-surface-container transition-colors font-label-md text-label-md rounded-lg">Machine Learning</button>
+<button class="snap-start shrink-0 min-h-[36px] px-4 py-1.5 bg-surface-container-lowest border border-outline-variant text-on-surface-variant hover:bg-surface-container transition-colors font-label-md text-label-md rounded-lg">AI</button>
+<button class="snap-start shrink-0 min-h-[36px] px-4 py-1.5 bg-surface-container-lowest border border-outline-variant text-on-surface-variant hover:bg-surface-container transition-colors font-label-md text-label-md rounded-lg">Computer Vision</button>
+<button class="snap-start shrink-0 min-h-[36px] px-4 py-1.5 bg-surface-container-lowest border border-outline-variant text-on-surface-variant hover:bg-surface-container transition-colors font-label-md text-label-md rounded-lg">NLP</button>
+<button class="snap-start shrink-0 min-h-[36px] px-4 py-1.5 bg-surface-container-lowest border border-outline-variant text-on-surface-variant hover:bg-surface-container transition-colors font-label-md text-label-md rounded-lg">Robotics</button>
+</div>
+</section>
+<!-- Suggested Researchers (Horizontal Scroll) -->
+<section class="flex flex-col gap-4">
+<div class="flex justify-between items-end">
+<h2 class="font-headline-sm text-headline-sm text-on-surface font-bold">Suggested Researchers</h2>
+<a class="font-label-md text-label-md text-primary hover:underline" href="#">View All</a>
+</div>
+<div class="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x">
+<!-- Researcher Card 1 -->
+<div class="snap-start shrink-0 w-[240px] bg-surface-container-lowest rounded-xl border border-outline-variant p-4 flex flex-col items-center text-center shadow-sm">
+<img alt="Dr. Sarah Chen" class="w-[80px] h-[80px] rounded-full object-cover border-2 border-primary-container mb-3" data-alt="A professional headshot of a female computer science researcher in a modern lab environment. Clean lighting, academic focus." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCUPyBQZCU5-4ih9ZZ1v9QK-jfi4efcUuhEiZQ0uyBhm1ADBzj9K4-JkI3dj_wPxSVcgYC8PCvoCGKQdXpG1jyee0Rvlx8FAPJb8Nj2tgOIgxbulraSVjsNtQka6CzS32TTqUqDaH4jWaky6pDzkcTtOfhXmIF87TzcyFf9zdTHPNYnzDUdxByU730GRSDXf28taccT14dQ1hhRXoMmuInHHU_MgtQT0NPQX8miwiphLukHPY8DqWM5">
+<h3 class="font-label-lg text-label-lg text-on-surface">Dr. Sarah Chen</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-3">Director, AI Ethics Lab</p>
+<button class="w-full py-2 bg-primary text-on-primary font-label-md rounded-lg hover:opacity-90 transition-all">Connect</button>
+</div>
+<!-- Researcher Card 2 -->
+<div class="snap-start shrink-0 w-[240px] bg-surface-container-lowest rounded-xl border border-outline-variant p-4 flex flex-col items-center text-center shadow-sm">
+<img alt="Prof. Marcus Reed" class="w-[80px] h-[80px] rounded-full object-cover border-2 border-outline-variant mb-3" data-alt="A professional headshot of a male computer science professor sitting in a modern office with bookshelves behind him. Bright, natural lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC4o8_cit5FX09n2MZxQ6Ht6CJmUn2HG_Gu2QhlvMamujDDnT8nenKR45jOwoY7P3gBrinKjYdaGCrZYQTuP9Fy5peKJFvfHEwWN0Q3AKMeVS88Sj92vQLQQ-PuqlcxIQGxGgWneWJs9QFfeC_fqce0dNtI_0xu34xkI5RacT4WHA_hiRPSOJeooweEap2DuxvZ9hepf6HCsjiTJOib1vtjnJeZIuqFujXDVpZ7O08r47AFCV-SwMCi">
+<h3 class="font-label-lg text-label-lg text-on-surface">Prof. Marcus Reed</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-3">Lead, Vision Systems</p>
+<button class="w-full py-2 bg-primary text-on-primary font-label-md rounded-lg hover:opacity-90 transition-all">Connect</button>
+</div>
+<!-- Researcher Card 3 -->
+<div class="snap-start shrink-0 w-[240px] bg-surface-container-lowest rounded-xl border border-outline-variant p-4 flex flex-col items-center text-center shadow-sm">
+<div class="w-[80px] h-[80px] rounded-full bg-surface-variant flex items-center justify-center text-on-surface-variant mb-3">
+<span class="material-symbols-outlined text-4xl">person</span>
+</div>
+<h3 class="font-label-lg text-label-lg text-on-surface">Dr. Elena Rostova</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-3">Robotics Engineering</p>
+<button class="w-full py-2 bg-primary text-on-primary font-label-md rounded-lg hover:opacity-90 transition-all">Connect</button>
+</div>
+</div>
+</section>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+<!-- Trending Current Work -->
+<section class="flex flex-col gap-4">
+<h2 class="font-headline-sm text-headline-sm text-on-surface font-bold">Trending Current Work</h2>
+<div class="flex flex-col gap-4">
+<!-- Current Work Card 1 -->
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant p-4 shadow-sm">
+<div class="flex gap-2 items-center mb-2">
+<span class="material-symbols-outlined text-primary text-sm">science</span>
+<span class="font-label-sm text-label-sm text-primary uppercase tracking-wider">Active Project</span>
+</div>
+<h3 class="font-label-lg text-label-lg text-on-surface mb-1">Ethical Frameworks for LLMs</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-2">Developing guidelines for fair and unbiased responses in large language models across diverse cultural contexts.</p>
+</div>
+<!-- Current Work Card 2 -->
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant p-4 shadow-sm">
+<div class="flex gap-2 items-center mb-2">
+<span class="material-symbols-outlined text-primary text-sm">science</span>
+<span class="font-label-sm text-label-sm text-primary uppercase tracking-wider">Active Project</span>
+</div>
+<h3 class="font-label-lg text-label-lg text-on-surface mb-1">Real-time Scene Understanding</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-2">Improving latency and accuracy of object detection systems for autonomous vehicles in adverse weather conditions.</p>
+</div>
+</div>
+</section>
+<!-- Previous Research (Publications) -->
+<section class="flex flex-col gap-4">
+<h2 class="font-headline-sm text-headline-sm text-on-surface font-bold">Previous Research</h2>
+<div class="flex flex-col gap-0 border border-outline-variant rounded-xl bg-surface-container-lowest overflow-hidden shadow-sm">
+<!-- Paper List Item 1 -->
+<a class="p-4 border-b border-outline-variant hover:bg-surface-container-low transition-colors group flex items-start gap-3" href="#">
+<div class="w-8 h-8 rounded bg-surface-variant flex items-center justify-center shrink-0 text-secondary">
+<span class="material-symbols-outlined text-sm">article</span>
+</div>
+<div>
+<h4 class="font-label-md text-label-md text-on-surface group-hover:text-primary transition-colors line-clamp-2">Evaluating Large Language Models on Abstract Reasoning Tasks</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Chen, S., et al. · 2023</p>
+</div>
+</a>
+<!-- Paper List Item 2 -->
+<a class="p-4 hover:bg-surface-container-low transition-colors group flex items-start gap-3" href="#">
+<div class="w-8 h-8 rounded bg-surface-variant flex items-center justify-center shrink-0 text-secondary">
+<span class="material-symbols-outlined text-sm">article</span>
+</div>
+<div>
+<h4 class="font-label-md text-label-md text-on-surface group-hover:text-primary transition-colors line-clamp-2">A Survey of Real-time Object Detection in Autonomous Vehicles</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Reed, M., Wang, J. · 2023</p>
+</div>
+</a>
+</div>
+</section>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="bg-surface-container-lowest fixed bottom-0 w-full z-50 border-t border-outline-variant shadow-sm fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-2 pb-4 pt-2 md:hidden">
+<a class="flex flex-col items-center justify-center text-on-surface-variant p-2 hover:text-secondary transition-all min-w-[44px] min-h-[44px]" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="font-label-sm text-label-sm mt-1">Home</span>
+</a>
+<!-- Active Tab: Explore -->
+<a class="flex flex-col items-center justify-center text-primary transition-all min-w-[44px] min-h-[44px]" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: &quot;FILL&quot; 1, &quot;wght&quot; 700;">search</span>
+<span class="font-label-sm text-label-sm mt-1">Explore</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant p-2 hover:text-secondary transition-all min-w-[44px] min-h-[44px]" href="#">
+<span class="material-symbols-outlined">group</span>
+<span class="font-label-sm text-label-sm mt-1">Network</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant p-2 hover:text-secondary transition-all min-w-[44px] min-h-[44px]" href="#">
+<span class="material-symbols-outlined">notifications</span>
+<span class="font-label-sm text-label-sm mt-1">Alerts</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant p-2 hover:text-secondary transition-all min-w-[44px] min-h-[44px]" href="#">
+<span class="material-symbols-outlined">account_circle</span>
+<span class="font-label-sm text-label-sm mt-1">Profile</span>
+</a>
+</nav>
+<style>
+        /* Hide scrollbar for topic chips but allow scrolling */
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+
+
+</body></html>

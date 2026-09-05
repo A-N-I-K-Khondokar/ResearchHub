@@ -1,0 +1,212 @@
+<!DOCTYPE html><html class="light" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>CSE Research Hub - Research Detail</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind Config -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-variant": "#e2e1eb",
+                        "inverse-primary": "#b6c4ff",
+                        "on-secondary": "#ffffff",
+                        "surface-container-lowest": "#ffffff",
+                        "on-tertiary": "#ffffff",
+                        "surface-container": "#eeedf7",
+                        "surface-dim": "#dad9e3",
+                        "surface-container-highest": "#e2e1eb",
+                        "tertiary": "#7a3200",
+                        "error": "#ba1a1a",
+                        "inverse-surface": "#2f3038",
+                        "tertiary-container": "#a04400",
+                        "primary-fixed-dim": "#b6c4ff",
+                        "surface-tint": "#2f55c6",
+                        "on-tertiary-fixed-variant": "#783100",
+                        "on-primary-container": "#d2d9ff",
+                        "tertiary-fixed": "#ffdbcb",
+                        "secondary-fixed-dim": "#bdc7de",
+                        "tertiary-fixed-dim": "#ffb691",
+                        "on-secondary-fixed-variant": "#3d475a",
+                        "secondary": "#555f73",
+                        "on-error-container": "#93000a",
+                        "secondary-container": "#d6e0f8",
+                        "outline": "#747685",
+                        "on-error": "#ffffff",
+                        "on-primary-fixed": "#00164f",
+                        "surface-container-high": "#e8e7f1",
+                        "primary-fixed": "#dce1ff",
+                        "on-surface": "#1a1b22",
+                        "error-container": "#ffdad6",
+                        "on-primary": "#ffffff",
+                        "on-secondary-fixed": "#111c2d",
+                        "outline-variant": "#c4c5d6",
+                        "surface": "#faf8ff",
+                        "surface-container-low": "#f3f2fd",
+                        "on-background": "#1a1b22",
+                        "primary-container": "#3157c8",
+                        "on-surface-variant": "#444653",
+                        "on-primary-fixed-variant": "#063bae",
+                        "surface-bright": "#faf8ff",
+                        "primary": "#0a3daf",
+                        "on-tertiary-container": "#ffd1bb",
+                        "background": "#faf8ff",
+                        "on-secondary-container": "#596377",
+                        "secondary-fixed": "#d9e3fb",
+                        "on-tertiary-fixed": "#341100",
+                        "inverse-on-surface": "#f1f0fa"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "stack-xs": "4px",
+                        "margin-mobile": "16px",
+                        "stack-lg": "24px",
+                        "gutter-mobile": "16px",
+                        "stack-md": "16px",
+                        "stack-sm": "8px",
+                        "unit": "8px",
+                        "stack-xl": "32px"
+                    },
+                    "fontFamily": {
+                        "label-lg": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "headline-md": ["\"Source Serif 4\""],
+                        "body-md": ["Inter"],
+                        "headline-sm": ["\"Source Serif 4\""],
+                        "headline-lg": ["\"Source Serif 4\""],
+                        "label-md": ["Inter"],
+                        "display-lg": ["\"Source Serif 4\""]
+                    },
+                    "fontSize": {
+                        "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+                        "label-sm": ["10px", { "lineHeight": "12px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "body-sm": ["12px", { "lineHeight": "18px", "fontWeight": "400" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-sm": ["18px", { "lineHeight": "24px", "fontWeight": "600" }],
+                        "headline-lg": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500" }],
+                        "display-lg": ["32px", { "lineHeight": "40px", "fontWeight": "700" }]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background antialiased min-h-screen pb-stack-xl">
+<!-- TopAppBar Semantic Implementation -->
+<header class="bg-surface sticky top-0 w-full z-50 flex items-center justify-between px-4 h-16 border-b border-outline-variant">
+<button class="text-on-surface-variant hover:bg-surface-container-low transition-colors active:scale-95 duration-100 p-2 rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<h1 class="font-headline-sm text-headline-sm font-semibold text-primary">CSE Research Hub</h1>
+<button class="text-on-surface-variant hover:bg-surface-container-low transition-colors active:scale-95 duration-100 p-2 rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</header>
+<!-- Main Content Canvas -->
+<main class="px-gutter-mobile md:px-0 md:max-w-3xl md:mx-auto pt-stack-lg flex flex-col gap-stack-lg">
+<!-- Header & Title Block -->
+<article class="flex flex-col gap-stack-sm">
+<h1 class="font-headline-lg text-headline-lg text-on-surface">Bengali Handwritten Character Recognition using Deep Learning</h1>
+<!-- Researchers -->
+<div class="flex items-center gap-2 mt-2">
+<span class="material-symbols-outlined text-primary" style="font-size: 20px;">group</span>
+<p class="font-body-md text-body-md text-primary cursor-pointer hover:underline underline-offset-4">Anik Khondokar, Mou Tusi</p>
+</div>
+<!-- Topics / Tags -->
+<div class="flex flex-wrap gap-2 mt-4">
+<span class="bg-secondary-container text-on-secondary-container font-label-md text-label-md px-3 py-1.5 rounded-full">Machine Learning</span>
+<span class="bg-secondary-container text-on-secondary-container font-label-md text-label-md px-3 py-1.5 rounded-full">Computer Vision</span>
+<span class="bg-secondary-container text-on-secondary-container font-label-md text-label-md px-3 py-1.5 rounded-full">Bengali OCR</span>
+</div>
+<!-- Metadata -->
+<div class="mt-6 flex items-center gap-2 font-body-sm text-body-sm text-on-surface-variant bg-surface-container-low p-3 rounded-lg border border-surface-container-highest">
+<span class="material-symbols-outlined" style="font-size: 16px;">history_edu</span>
+<span class="">Conference Paper • 2025 • International Conference on Machine Learning (ICML)</span>
+</div>
+</article>
+<!-- Primary Action -->
+<div class="flex flex-col sm:flex-row gap-4 mt-2 border-b border-surface-container-highest pb-stack-lg">
+<button class="bg-primary-container text-white font-label-lg text-label-lg py-3 px-6 rounded-full flex items-center justify-center gap-2 hover:bg-primary transition-colors flex-1 sm:flex-none shadow-sm active:scale-95 duration-100">
+                View on Google Scholar
+                <span class="material-symbols-outlined" style="font-size: 20px;">open_in_new</span>
+</button>
+</div>
+<!-- Overview Section -->
+<section class="flex flex-col gap-stack-sm">
+<h2 class="font-headline-sm text-headline-sm text-on-surface mb-2">Overview</h2>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+                This research addresses the significant challenges in optical character recognition (OCR) for complex scripts by introducing a novel convolutional neural network architecture specifically optimized for Bengali handwritten characters. By leveraging a custom dataset of over 50,000 distinct character variations, the model achieves state-of-the-art accuracy, mitigating common issues related to compound characters and varying stroke densities inherent in cursive Bengali handwriting.
+            </p>
+</section>
+<!-- Related Content: More from Researcher -->
+<section class="flex flex-col gap-stack-sm mt-4">
+<h2 class="font-headline-sm text-headline-sm text-on-surface mb-2">More from Anik Khondokar</h2>
+<!-- Research Card (Current Work Style with left accent) -->
+<div class="bg-surface border border-outline-variant border-l-[3px] border-l-primary-container rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer flex flex-col gap-2">
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Real-time Sign Language Translation via Edge Computing</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-2">An exploration into deploying lightweight neural networks on low-power edge devices for instantaneous translation of regional sign languages.</p>
+<div class="flex items-center gap-3 mt-2 font-label-sm text-label-sm text-on-surface-variant">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined" style="font-size: 14px;">calendar_today</span> 2024</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined" style="font-size: 14px;">description</span> Journal Article</span>
+</div>
+</div>
+<!-- Secondary Research Card (Previous Research style) -->
+<div class="bg-surface border border-outline-variant rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer flex flex-col gap-2 opacity-90">
+<h3 class="font-headline-sm text-headline-sm text-secondary">Optimizing Transformer Models for Low-Resource Languages</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-2">A methodology for fine-tuning large language models on limited datasets, focusing on South Asian linguistic structures.</p>
+<div class="flex items-center gap-3 mt-2 font-label-sm text-label-sm text-on-surface-variant">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-outline" style="font-size: 14px;">calendar_today</span> 2023</span>
+</div>
+</div>
+</section>
+<!-- Similar Researchers Bento-style Grid -->
+<section class="flex flex-col gap-stack-sm mt-4 mb-stack-lg">
+<h2 class="font-headline-sm text-headline-sm text-on-surface mb-2">Researchers working on similar topics</h2>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+<!-- Researcher 1 -->
+<div class="flex items-center gap-4 bg-surface-container-low p-4 rounded-lg border border-outline-variant hover:bg-surface-container transition-colors cursor-pointer">
+<img class="w-12 h-12 rounded-full object-cover border border-outline-variant shadow-sm" data-alt="A professional headshot of a female researcher in a brightly lit modern university environment. The aesthetic is clean, corporate, and intellectually focused with a light-mode color palette. The subject is well-lit with soft natural light, against a subtly blurred background of an academic office featuring light cool grays and pristine whites. The mood conveys rigorous academic excellence." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC5vW3exwEDtLHNIwprGGlfxprTn6w4JHipVPXB9p0K3uL9VeS5IQxeseh9Y29Nbl1t7zxOn1_UQKz3C1Cg_X3H4s8lh2D-b9I4KQgD3Wv5cCBG6fACdnCR3aZMYewE5_4iI1ynEnOn1ALMJnFrdcqY1rSg5PnaDlz8VIKxcTV0VOq30nU149KnfCesR8Jz07h_f-y0PmOfpphUKmPckPnqGWqKL7soAkR7MFJWezVbx9l8s96GDMJo">
+<div class="flex flex-col">
+<span class="font-label-lg text-label-lg text-on-surface">Dr. Sarah Rahman</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Computer Vision Lead, MIT</span>
+</div>
+</div>
+<!-- Researcher 2 -->
+<div class="flex items-center gap-4 bg-surface-container-low p-4 rounded-lg border border-outline-variant hover:bg-surface-container transition-colors cursor-pointer">
+<img class="w-12 h-12 rounded-full object-cover border border-outline-variant shadow-sm" data-alt="A professional headshot of a male researcher in a brightly lit modern university environment. The aesthetic is clean, corporate, and intellectually focused with a light-mode color palette. The subject is well-lit with soft natural light, against a subtly blurred background of an academic laboratory featuring light cool grays, pristine whites, and a glass whiteboard. The mood is authoritative and approachable." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCSU1FcwySJloAYCAsCqrv_mAeAVcF_8jyK7YwTDTb_8a-w_24yefiHev2I0G1aPBxXShb39kzTsw1C3gNjMIvT3inXhe1SjEZANYpS85Tnm_VV1HZFWYb2U3aDIZgsiYAaaANmuMSqt2il1Cr-R4pLgJ4N-wxbDOZIaichEe2vvcm3AdrU1OrJLhitUOF-hVJDolb0gOJA92qTdUOINfRO9rP1s53VfhTg1ZPbki8RSulsRX-NRg94">
+<div class="flex flex-col">
+<span class="font-label-lg text-label-lg text-on-surface">Prof. A. Karim</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">NLP Research Group</span>
+</div>
+</div>
+</div>
+</section>
+</main>
+
+
+</body></html>

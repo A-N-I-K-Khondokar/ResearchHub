@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Empty States (Canonical)</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400..700&amp;family=Inter:wght@400..600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "tertiary-fixed": "#ffdbca",
+                        "secondary": "#006a61",
+                        "surface-variant": "#d3e4fe",
+                        "surface-container": "#e5eeff",
+                        "surface-dim": "#cbdbf5",
+                        "primary-fixed-dim": "#bec6e0",
+                        "surface-bright": "#f8f9ff",
+                        "on-surface": "#0b1c30",
+                        "outline-variant": "#c6c6cd",
+                        "error": "#ba1a1a",
+                        "tertiary": "#000000",
+                        "tertiary-fixed-dim": "#ffb68e",
+                        "background": "#f8f9ff",
+                        "on-primary-fixed": "#131b2e",
+                        "surface": "#f8f9ff",
+                        "on-tertiary-fixed-variant": "#763300",
+                        "primary-fixed": "#dae2fd",
+                        "on-primary": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "surface-container-high": "#dce9ff",
+                        "on-primary-fixed-variant": "#3f465c",
+                        "primary": "#000000",
+                        "surface-tint": "#565e74",
+                        "on-background": "#0b1c30",
+                        "on-primary-container": "#7c839b",
+                        "inverse-surface": "#213145",
+                        "tertiary-container": "#331200",
+                        "on-tertiary": "#ffffff",
+                        "surface-container-highest": "#d3e4fe",
+                        "inverse-primary": "#bec6e0",
+                        "error-container": "#ffdad6",
+                        "outline": "#76777d",
+                        "on-error-container": "#93000a",
+                        "on-secondary-container": "#006f66",
+                        "secondary-fixed-dim": "#6bd8cb",
+                        "secondary-container": "#86f2e4",
+                        "on-tertiary-fixed": "#331200",
+                        "on-surface-variant": "#45464d",
+                        "surface-container-low": "#eff4ff",
+                        "on-secondary-fixed": "#00201d",
+                        "on-tertiary-container": "#cf6721",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary-fixed-variant": "#005049",
+                        "inverse-on-surface": "#eaf1ff",
+                        "on-error": "#ffffff",
+                        "primary-container": "#131b2e",
+                        "secondary-fixed": "#89f5e7"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "unit": "4px",
+                        "section-margin": "32px",
+                        "stack-gap-md": "16px",
+                        "stack-gap-sm": "8px",
+                        "container-padding": "16px",
+                        "stack-gap-lg": "24px"
+                    },
+                    "fontFamily": {
+                        "headline-sm": ["\"Source Serif 4\""],
+                        "body-md": ["Inter"],
+                        "headline-md": ["\"Source Serif 4\""],
+                        "headline-lg-mobile": ["\"Source Serif 4\""],
+                        "display-lg": ["\"Source Serif 4\""],
+                        "label-md": ["Inter"],
+                        "body-lg": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "headline-lg-mobile": ["28px", { "lineHeight": "36px", "fontWeight": "700" }],
+                        "display-lg": ["32px", { "lineHeight": "40px", "fontWeight": "700" }],
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.5px", "fontWeight": "600" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3, h4, h5, h6, .font-serif { font-family: 'Source Serif 4', serif; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background min-h-screen flex flex-col">
+<!-- Top App Bar -->
+<header class="bg-surface w-full top-0 sticky border-b border-outline-variant flat no shadows transition-colors duration-200 z-50">
+<div class="flex justify-between items-center px-container-padding py-unit w-full max-w-7xl mx-auto">
+<div class="flex items-center gap-stack-gap-sm">
+<span class="material-symbols-outlined text-primary text-2xl" data-icon="menu_book">menu_book</span>
+<span class="font-headline-md text-headline-md text-primary tracking-tight">Scholarly Core</span>
+</div>
+<!-- Desktop Nav -->
+<nav class="hidden md:flex items-center gap-stack-gap-lg">
+<a class="text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-low px-3 py-2 rounded-lg transition-colors" href="#">Home</a>
+<a class="text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-low px-3 py-2 rounded-lg transition-colors" href="#">Explore</a>
+<a class="text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-low px-3 py-2 rounded-lg transition-colors" href="#">Share</a>
+<a class="text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-low px-3 py-2 rounded-lg transition-colors" href="#">Alerts</a>
+<a class="text-on-surface-variant font-label-md text-label-md hover:bg-surface-container-low px-3 py-2 rounded-lg transition-colors" href="#">Profile</a>
+</nav>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-grow container mx-auto px-container-padding py-section-margin md:px-section-margin max-w-7xl">
+<div class="mb-section-margin">
+<h1 class="font-display-lg text-display-lg text-primary mb-stack-gap-sm">Empty States (Canonical)</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl">A collection of consistent, high-signal empty state screens designed to guide users when no content is available. Each state provides clear context and actionable next steps.</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-stack-gap-lg">
+<!-- 1. No Current Work -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-8 flex flex-col items-center justify-center text-center min-h-[320px] transition-all hover:shadow-sm">
+<div class="w-16 h-16 rounded-full bg-surface-container-low flex items-center justify-center mb-6 text-secondary">
+<span class="material-symbols-outlined text-4xl" data-icon="edit_note">edit_note</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-3">No current work yet</h3>
+<p class="font-body-md text-body-md text-on-surface-variant mb-6 max-w-[280px]">Share what you're currently working on so other researchers can discover your interests.</p>
+<button class="bg-primary text-on-primary font-label-md text-label-md px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors">
+                    Share Current Work
+                </button>
+</div>
+<!-- 2. No Research History -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-8 flex flex-col items-center justify-center text-center min-h-[320px] transition-all hover:shadow-sm">
+<div class="w-16 h-16 rounded-full bg-surface-container-low flex items-center justify-center mb-6 text-secondary">
+<span class="material-symbols-outlined text-4xl" data-icon="history_edu">history_edu</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-3">No research history yet</h3>
+<p class="font-body-md text-body-md text-on-surface-variant mb-6 max-w-[280px]">Add your previous publications to build your scholarly record.</p>
+<button class="border border-secondary text-secondary font-label-md text-label-md px-4 py-2 rounded-lg hover:bg-surface-container-low transition-colors">
+                    Add Research
+                </button>
+</div>
+<!-- 3. No Connections -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-8 flex flex-col items-center justify-center text-center min-h-[320px] transition-all hover:shadow-sm">
+<div class="w-16 h-16 rounded-full bg-surface-container-low flex items-center justify-center mb-6 text-secondary">
+<span class="material-symbols-outlined text-4xl" data-icon="diversity_3">diversity_3</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-3">No connections yet</h3>
+<p class="font-body-md text-body-md text-on-surface-variant mb-6 max-w-[280px]">Connect with other researchers in your department or batch to stay updated.</p>
+<button class="border border-secondary text-secondary font-label-md text-label-md px-4 py-2 rounded-lg hover:bg-surface-container-low transition-colors">
+                    Explore Researchers
+                </button>
+</div>
+<!-- 4. No Search Results -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-8 flex flex-col items-center justify-center text-center min-h-[320px] transition-all hover:shadow-sm md:col-span-2 lg:col-span-1">
+<div class="w-16 h-16 rounded-full bg-surface-container-low flex items-center justify-center mb-6 text-secondary">
+<span class="material-symbols-outlined text-4xl" data-icon="search_off">search_off</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-3">No results found</h3>
+<p class="font-body-md text-body-md text-on-surface-variant mb-6 max-w-[280px]">Try adjusting your search terms or exploring a broader research topic.</p>
+<button class="border border-secondary text-secondary font-label-md text-label-md px-4 py-2 rounded-lg hover:bg-surface-container-low transition-colors">
+                    Try Again
+                </button>
+</div>
+<!-- 5. No Saved Items -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-8 flex flex-col items-center justify-center text-center min-h-[320px] transition-all hover:shadow-sm md:col-span-2 lg:col-span-2">
+<div class="w-16 h-16 rounded-full bg-surface-container-low flex items-center justify-center mb-6 text-secondary">
+<span class="material-symbols-outlined text-4xl" data-icon="bookmark_border">bookmark_border</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-3">Your library is empty</h3>
+<p class="font-body-md text-body-md text-on-surface-variant mb-6 max-w-[280px]">Save interesting projects and papers to find them later.</p>
+<button class="bg-primary text-on-primary font-label-md text-label-md px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors">
+                    Explore Feed
+                </button>
+</div>
+</div>
+</main>
+<!-- Bottom Nav Bar (Mobile) -->
+<nav class="md:hidden bg-surface fixed bottom-0 w-full z-50 border-t border-outline-variant shadow-sm flex justify-around items-center px-container-padding pb-4 pt-2">
+<a class="flex flex-col items-center justify-center text-on-surface-variant scale-95 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+<span class="font-label-md text-label-md mt-1">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant scale-95 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="hub">hub</span>
+<span class="font-label-md text-label-md mt-1">Explore</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant scale-95 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="add_circle">add_circle</span>
+<span class="font-label-md text-label-md mt-1">Share</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant scale-95 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+<span class="font-label-md text-label-md mt-1">Alerts</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant scale-95 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="font-label-md text-label-md mt-1">Profile</span>
+</a>
+</nav>
+</body></html>

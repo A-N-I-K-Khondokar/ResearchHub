@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Login - CSE Research Hub</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "primary": "#0a3daf",
+                      "on-surface": "#1a1b22",
+                      "secondary-fixed-dim": "#bdc7de",
+                      "on-tertiary": "#ffffff",
+                      "on-primary-fixed-variant": "#063bae",
+                      "outline": "#747685",
+                      "on-surface-variant": "#444653",
+                      "on-secondary-fixed-variant": "#3d475a",
+                      "primary-fixed": "#dce1ff",
+                      "secondary": "#555f73",
+                      "surface-bright": "#faf8ff",
+                      "background": "#faf8ff",
+                      "inverse-surface": "#2f3038",
+                      "on-primary": "#ffffff",
+                      "secondary-container": "#d6e0f8",
+                      "on-error-container": "#93000a",
+                      "tertiary-fixed": "#ffdbcb",
+                      "on-background": "#1a1b22",
+                      "surface-container-low": "#f3f2fd",
+                      "primary-container": "#3157c8",
+                      "tertiary": "#7a3200",
+                      "on-tertiary-container": "#ffd1bb",
+                      "surface-container-lowest": "#ffffff",
+                      "inverse-primary": "#b6c4ff",
+                      "surface-tint": "#2f55c6",
+                      "on-tertiary-fixed": "#341100",
+                      "on-primary-fixed": "#00164f",
+                      "outline-variant": "#c4c5d6",
+                      "on-error": "#ffffff",
+                      "on-secondary-fixed": "#111c2d",
+                      "tertiary-fixed-dim": "#ffb691",
+                      "surface-variant": "#e2e1eb",
+                      "on-tertiary-fixed-variant": "#783100",
+                      "on-primary-container": "#d2d9ff",
+                      "secondary-fixed": "#d9e3fb",
+                      "surface-container-highest": "#e2e1eb",
+                      "surface-container-high": "#e8e7f1",
+                      "tertiary-container": "#a04400",
+                      "error-container": "#ffdad6",
+                      "surface-container": "#eeedf7",
+                      "on-secondary-container": "#596377",
+                      "surface": "#faf8ff",
+                      "on-secondary": "#ffffff",
+                      "inverse-on-surface": "#f1f0fa",
+                      "surface-dim": "#dad9e3",
+                      "primary-fixed-dim": "#b6c4ff",
+                      "error": "#ba1a1a"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "margin-mobile": "16px",
+                      "gutter-mobile": "16px",
+                      "stack-md": "16px",
+                      "stack-xl": "32px",
+                      "stack-xs": "4px",
+                      "unit": "8px",
+                      "stack-lg": "24px",
+                      "stack-sm": "8px"
+              },
+              "fontFamily": {
+                      "body-lg": [
+                              "Inter"
+                      ],
+                      "body-md": [
+                              "Inter"
+                      ],
+                      "label-sm": [
+                              "Inter"
+                      ],
+                      "label-lg": [
+                              "Inter"
+                      ],
+                      "headline-lg": [
+                              "\"Source Serif 4\""
+                      ],
+                      "headline-md": [
+                              "\"Source Serif 4\""
+                      ],
+                      "body-sm": [
+                              "Inter"
+                      ],
+                      "display-lg": [
+                              "\"Source Serif 4\""
+                      ],
+                      "label-md": [
+                              "Inter"
+                      ],
+                      "headline-sm": [
+                              "\"Source Serif 4\""
+                      ]
+              },
+              "fontSize": {
+                      "body-lg": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "label-sm": [
+                              "10px",
+                              {
+                                      "lineHeight": "12px",
+                                      "letterSpacing": "0.05em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "label-lg": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "letterSpacing": "0.01em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-lg": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-md": [
+                              "20px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-sm": [
+                              "12px",
+                              {
+                                      "lineHeight": "18px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "display-lg": [
+                              "32px",
+                              {
+                                      "lineHeight": "40px",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "label-md": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.02em",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "headline-sm": [
+                              "18px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "600"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+      </script>
+</head>
+<body class="bg-background min-h-screen flex items-center justify-center p-margin-mobile md:p-stack-xl">
+<main class="w-full max-w-md bg-surface-container-lowest rounded-xl border border-outline-variant shadow-md p-stack-xl flex flex-col gap-stack-lg">
+<!-- Header -->
+<header class="flex flex-col items-center text-center gap-stack-sm">
+<img alt="CSE Research Hub Logo" class="w-16 h-16 rounded-sm object-cover mb-stack-xs" src="https://lh3.googleusercontent.com/aida/AEtjO1XurJ3MrZRkS3DkJIY-U2CZ7pbLWxyb_LeD_NOrsQ4OlJf-aUrdQ_xFiaHs0iXl79aa1L8DOv1G5QrgMxH3EoTIFiLe3--p2otWuV3l9kOCVjDPuNukfJDJEXeYlfQD9lmJB2-NzagXLnllaLCfEZRjtjlvkGK_Bus1s8c1O3cdobryqPz0o2PVfB4uD8bLyUP117Abj7S7OCVobp8M0pz4zcka_lwrHy7Mt2qd1hDUtEljvQ1q29m-lcg"/>
+<h1 class="font-display-lg text-display-lg text-on-surface tracking-tight">CSE Research Hub</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">Sign in to access research data and networking</p>
+</header>
+<!-- Form -->
+<form class="flex flex-col gap-stack-md">
+<!-- Email Input -->
+<div class="flex flex-col gap-stack-xs">
+<label class="font-label-md text-label-md text-on-surface-variant" for="email">Email</label>
+<input class="w-full h-11 px-3 border border-outline-variant rounded bg-surface-container-lowest text-on-surface font-body-md text-body-md focus:outline-none focus:border-primary-container focus:ring-2 focus:ring-primary-container/20 transition-all duration-200" id="email" name="email" placeholder="researcher@university.edu" required="" type="email"/>
+</div>
+<!-- Password Input -->
+<div class="flex flex-col gap-stack-xs">
+<div class="flex justify-between items-center">
+<label class="font-label-md text-label-md text-on-surface-variant" for="password">Password</label>
+<a class="font-label-md text-label-md text-primary hover:text-primary-container transition-colors duration-200" href="#">Forgot Password?</a>
+</div>
+<input class="w-full h-11 px-3 border border-outline-variant rounded bg-surface-container-lowest text-on-surface font-body-md text-body-md focus:outline-none focus:border-primary-container focus:ring-2 focus:ring-primary-container/20 transition-all duration-200" id="password" name="password" placeholder="••••••••" required="" type="password"/>
+</div>
+<!-- Sign In Button -->
+<button class="w-full h-11 mt-stack-xs bg-primary-container hover:bg-primary-container/90 text-on-primary font-label-lg text-label-lg rounded flex items-center justify-center transition-colors duration-200 shadow-sm" type="submit">
+                Sign In
+            </button>
+</form>
+<!-- Divider -->
+<div class="relative flex items-center py-stack-xs">
+<div class="flex-grow border-t border-outline-variant"></div>
+<span class="flex-shrink-0 mx-4 text-on-surface-variant font-label-md text-label-md">or</span>
+<div class="flex-grow border-t border-outline-variant"></div>
+</div>
+<!-- Social Login -->
+<button class="w-full h-11 border border-outline-variant hover:bg-surface-container-low bg-transparent text-on-surface font-label-lg text-label-lg rounded flex items-center justify-center gap-2 transition-colors duration-200" type="button">
+<svg class="w-5 h-5" fill="none" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"></path>
+<path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"></path>
+<path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"></path>
+<path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"></path>
+</svg>
+            Continue with Google
+        </button>
+<!-- Footer -->
+<footer class="text-center mt-stack-xs">
+<p class="font-body-md text-body-md text-on-surface-variant">
+                Don't have an account? 
+                <a class="font-label-md text-label-md text-primary hover:text-primary-container transition-colors duration-200" href="#">Create Account</a>
+</p>
+</footer>
+</main>
+</body></html>

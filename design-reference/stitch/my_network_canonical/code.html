@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>My Network - CSE Research Hub</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400..700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "primary": "#3157C8",
+                      "secondary": "#159A9C",
+                      "background": "#F6F8FC",
+                      "surface": "#FFFFFF",
+                      "on-surface": "#172033",
+                      "on-surface-variant": "#667085",
+                      "outline-variant": "#E4E8F0",
+                      "outline": "#E4E8F0",
+                      "primary-container": "#3157C8",
+                      "on-primary": "#FFFFFF",
+                      "surface-container-lowest": "#FFFFFF",
+                      "surface-container-low": "#F6F8FC",
+                      "surface-container": "#FFFFFF",
+                      "surface-container-high": "#E4E8F0",
+                      "secondary-container": "#F6F8FC",
+                      "on-secondary-container": "#172033"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "unit": "8px",
+                      "stack-xs": "4px",
+                      "gutter-mobile": "16px",
+                      "stack-md": "16px",
+                      "margin-mobile": "16px",
+                      "stack-lg": "24px",
+                      "stack-sm": "8px",
+                      "stack-xl": "32px"
+              },
+              "fontFamily": {
+                      "display-lg": [
+                              "\"Source Serif 4\""
+                      ],
+                      "headline-sm": [
+                              "\"Source Serif 4\""
+                      ],
+                      "label-md": [
+                              "Inter"
+                      ],
+                      "label-sm": [
+                              "Inter"
+                      ],
+                      "headline-lg": [
+                              "\"Source Serif 4\""
+                      ],
+                      "label-lg": [
+                              "Inter"
+                      ],
+                      "body-sm": [
+                              "Inter"
+                      ],
+                      "body-lg": [
+                              "Inter"
+                      ],
+                      "headline-md": [
+                              "\"Source Serif 4\""
+                      ],
+                      "body-md": [
+                              "Inter"
+                      ]
+              },
+              "fontSize": {
+                      "display-lg": [
+                              "32px",
+                              {
+                                      "lineHeight": "40px",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "headline-sm": [
+                              "18px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "label-md": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.02em",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "label-sm": [
+                              "10px",
+                              {
+                                      "lineHeight": "12px",
+                                      "letterSpacing": "0.05em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-lg": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "label-lg": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "letterSpacing": "0.01em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-sm": [
+                              "12px",
+                              {
+                                      "lineHeight": "18px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-lg": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-md": [
+                              "20px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+      </script>
+<style>
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        .shadow-soft {
+            box-shadow: 0px 2px 4px rgba(23, 32, 51, 0.04);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface font-body-md min-h-screen flex flex-col pb-[72px]">
+<!-- Top App Bar -->
+<header class="bg-surface w-full top-0 sticky border-b border-outline-variant z-40">
+<div class="flex justify-between items-center px-gutter-mobile h-14 w-full">
+<div class="flex items-center gap-4">
+<img class="w-8 h-8 rounded-full object-cover" data-alt="A small, professional circular avatar portrait of a user in an academic setting, light mode, clean and crisp, high quality photographic style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDn9PsxFNWyQykriawSIU3df6f-vjQMX0VI046lRl3YmAVxb5QoygkvbzJRPqrzjHr7JMOsidJd7vgxT07oAwqvJkp389lbAisWwbBoR2nXabPgc0F-OSDd22KnZS0e9X_bFbRhYYHDZAoMAU4o5k-pNiUdKaMKQcrj2QtCgopHoPhuKLRgV8VVR7V6N5ekdltKx3nxg6xHuqFu0jPaBBB-rjvo-xiDe8PW42ZGJwwncsYbpipcShpZ"/>
+<h1 class="font-headline-md text-headline-md font-semibold text-primary">My Network</h1>
+</div>
+<button aria-label="Search" class="text-primary hover:bg-surface-container-low p-2 rounded-full transition-colors duration-200 ease-in-out">
+<span class="material-symbols-outlined" data-icon="search">search</span>
+</button>
+</div>
+</header>
+<main class="flex-1 w-full max-w-7xl mx-auto px-margin-mobile py-stack-md flex flex-col gap-stack-lg">
+<!-- Connection Requests -->
+<section>
+<div class="flex items-center justify-between mb-stack-md">
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Requests (2)</h2>
+<button class="font-label-lg text-label-lg text-primary hover:underline">Manage</button>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-stack-md">
+<!-- Request 1 -->
+<div class="bg-surface border border-outline-variant rounded-lg p-stack-md shadow-soft flex flex-col gap-stack-sm">
+<div class="flex gap-4">
+<img class="w-[60px] h-[60px] rounded-full object-cover shrink-0" data-alt="Professional headshot of a female computer science student named Mou Tusi, bright lighting, academic environment background, high-resolution photography." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDBdCSsJ-ArHggWnOmuK1tr4HtZPTLWojp-iPW1I8BYiyUiCjZllnTVlOZuZbWKCt1xMIYGn7kSQXFmXdBLBNUT2muipXFN_ujIk3YEnRBxRdAGpLkrROscu2sHUAz0BhS9ACYnm8aXrZb8BHHVqUBg4s6kk0fKLUqk0naLCC7eStO6DT5csqmoCJa-Gg1kzK_msRHh-jp4IJoafzNBPAvwOl_9bwF2Qe5tsU7-f8K8ffymPm9sh3wl"/>
+<div class="flex-1 min-w-0">
+<h3 class="font-label-lg text-label-lg text-on-surface truncate">Mou Tusi</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant truncate">CSE • Batch 14</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1 line-clamp-2">Interests: NLP, AI, Machine Learning</p>
+</div>
+</div>
+<div class="bg-background rounded p-2 flex items-start gap-2 mt-2">
+<span class="material-symbols-outlined text-primary text-[16px] mt-0.5" data-icon="lightbulb">lightbulb</span>
+<p class="font-label-sm text-label-sm text-on-surface-variant">3 shared research interests</p>
+</div>
+<div class="flex gap-stack-sm mt-2">
+<button class="flex-1 bg-primary text-on-primary h-11 rounded font-label-lg text-label-lg hover:opacity-90 transition-opacity">Accept</button>
+<button class="flex-1 border border-outline-variant text-on-surface-variant h-11 rounded font-label-lg text-label-lg hover:bg-background transition-colors">Decline</button>
+</div>
+</div>
+<!-- Request 2 -->
+<div class="bg-surface border border-outline-variant rounded-lg p-stack-md shadow-soft flex flex-col gap-stack-sm">
+<div class="flex gap-4">
+<img class="w-[60px] h-[60px] rounded-full object-cover shrink-0" data-alt="Professional portrait of male faculty member Dr. Hasan Mahmud, wearing a subtle blazer, academic office background, high resolution, clean lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAG1VqPXphLClPfFkJEvwom-_wFgnRkZKx_66PEHwtUwi2RSzJE0dm-zaqPS-BWFrc1L52WnKTFIDv39WrZAl9oxThAGSBLxn428RKG5t3ySQqnvWJbqeJDFpy0Kj0MnVo5ufvKldohUavFaaIzKbB9T7CgNaRwEwKAlGuRyidWc0ul65qwkCBsCbpvlFNOMXIqnwxGVZ3-smxBB-pm6Kna51Dxnz0O6vt5SRRNttcdd52FB03ENRC_"/>
+<div class="flex-1 min-w-0">
+<h3 class="font-label-lg text-label-lg text-on-surface truncate">Dr. Hasan Mahmud</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant truncate">Faculty</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1 line-clamp-2">Interests: Computer Vision, ML</p>
+</div>
+</div>
+<div class="bg-background rounded p-2 flex items-start gap-2 mt-2">
+<span class="material-symbols-outlined text-primary text-[16px] mt-0.5" data-icon="group">group</span>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Shared interest in Traffic Sign Recognition</p>
+</div>
+<div class="flex gap-stack-sm mt-2">
+<button class="flex-1 bg-primary text-on-primary h-11 rounded font-label-lg text-label-lg hover:opacity-90 transition-opacity">Accept</button>
+<button class="flex-1 border border-outline-variant text-on-surface-variant h-11 rounded font-label-lg text-label-lg hover:bg-background transition-colors">Decline</button>
+</div>
+</div>
+</div>
+</section>
+<hr class="border-outline-variant"/>
+<!-- People You May Know -->
+<section>
+<h2 class="font-headline-sm text-headline-sm text-on-surface mb-stack-md">People You May Know</h2>
+<div class="flex overflow-x-auto gap-stack-md pb-4 no-scrollbar -mx-margin-mobile px-margin-mobile md:mx-0 md:px-0">
+<!-- Suggestion 1 -->
+<div class="bg-surface border border-outline-variant rounded-lg p-stack-md shadow-soft w-[240px] shrink-0 flex flex-col items-center text-center">
+<img class="w-20 h-20 rounded-full object-cover mb-3" data-alt="Headshot of a male student Sojib Rahman, neutral background, smart casual attire, crisp lighting for academic profile." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCqY28MBQZuSr_YlXNP7Z7YiLr4LLLnNNWFOI_r6m69wC13_n8Vz14lqnUUBbLI2Sw04B7eoIAnvqA_gfR4fz9qme6hsbwDeo_aOVnWJEwDDNe2P2ezD4snPtttU4DSeeB7tnNavKVZifGRk6Lko0cSMq6O7fhwY_LkMN_VlMZIJze9d4NeLTsYEQKNgMH2rDlpd2bbAyMut7fkWYX-V9f13OK6nM0EFPDW5Xio6HAKF2cz9fgxVT5b"/>
+<h3 class="font-label-lg text-label-lg text-on-surface">Sojib Rahman</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">CSE • Batch 16</p>
+<div class="mt-3 flex flex-col items-center gap-1">
+<p class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">link</span> 5 mutual connections
+                        </p>
+<span class="bg-background text-on-surface px-2 py-1 rounded font-label-sm text-label-sm mt-1">Data Mining</span>
+</div>
+<button class="mt-4 w-full border border-primary text-primary h-10 rounded font-label-lg text-label-lg hover:bg-background transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]">person_add</span> Connect
+                    </button>
+</div>
+<!-- Suggestion 2 -->
+<div class="bg-surface border border-outline-variant rounded-lg p-stack-md shadow-soft w-[240px] shrink-0 flex flex-col items-center text-center">
+<img class="w-20 h-20 rounded-full object-cover mb-3" data-alt="Professional photo of Ramish Hassan, Ph.D. Candidate, wearing glasses, thoughtful expression, university campus subtly visible behind." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDvS1iHeXA3dLeejB_AwNkeO8nKd9IuR1o6PasV0JwFYPK8BG9AYZZsCoxMp-nDryYOYAhCMntO52d1aD5d72HK_pbnnBoNPlnooLRDRU-YzOI0BrGYYXFVU46LG96Ayzm__h9ZPCgN62rVmY2dPpsVUIdZTpWSwWPKP6CYkghsxBwZ9HVcwbNfOowYOpgvtJdLfPmqrDqGIKYrfkg7XZ6_TrxknGgmyu5xmdxvMoAS7THzz3PD5-4N"/>
+<h3 class="font-label-lg text-label-lg text-on-surface">Ramish Hassan</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Ph.D. Candidate</p>
+<div class="mt-3 flex flex-col items-center gap-1 w-full">
+<p class="font-body-sm text-body-sm text-on-surface-variant bg-background px-2 py-1 rounded w-full line-clamp-2">Working on: Adaptive Path Planning</p>
+</div>
+<button class="mt-4 w-full border border-primary text-primary h-10 rounded font-label-lg text-label-lg hover:bg-background transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]">person_add</span> Connect
+                    </button>
+</div>
+</div>
+</section>
+<hr class="border-outline-variant"/>
+<!-- Your Connections -->
+<section class="pb-stack-xl">
+<div class="flex items-center justify-between mb-stack-md">
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Your Connections</h2>
+<div class="flex gap-2">
+<button aria-label="Filter" class="text-on-surface-variant p-2 rounded hover:bg-background">
+<span class="material-symbols-outlined" data-icon="filter_list">filter_list</span>
+</button>
+</div>
+</div>
+<div class="flex flex-col gap-stack-sm">
+<!-- Connection Item -->
+<div class="bg-surface border-l-2 border-l-primary border-t border-b border-r border-outline-variant rounded-r-lg p-stack-md shadow-soft flex flex-col sm:flex-row sm:items-start gap-4">
+<img class="w-12 h-12 rounded-full object-cover shrink-0" data-alt="Portrait of Anik Khondokar, CSE student, confident smile, academic hub setting, clear and modern photography style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBCdmjV0aFiKyTma7iRQc2b7Wq4b2RSXmrQC-P2UDddw58QZ2MEBx9WsphcyHtWAIcCxS2qkUpEndYgrYo0m6FG-wLsuBmkZVCloanbWRHhpy3G8d9ve9MVtMgC1-TvZLgZtWp7vzIpY86yGj3xRpw0rJlhPBBa30XKa9_kKBrk_bqUWAtJeChQUcaGSl8xkDmSIyXU75ab--LM08P__L4mcha3ltAnrPp8w8OW4-FM6BPzObWVdfMI"/>
+<div class="flex-1 min-w-0 flex flex-col gap-2">
+<div>
+<h3 class="font-label-lg text-label-lg text-on-surface">Anik Khondokar</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">CSE • Batch 14</p>
+</div>
+<div class="flex flex-wrap gap-2">
+<span class="bg-background text-on-surface px-2 py-1 rounded font-label-sm text-label-sm">Computer Vision</span>
+<span class="bg-background text-on-surface px-2 py-1 rounded font-label-sm text-label-sm">CNN</span>
+</div>
+<div class="bg-background p-2 rounded mt-1">
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider mb-1">Current Work</p>
+<p class="font-body-sm text-body-sm text-on-surface">Bengali Handwritten Character Recognition</p>
+</div>
+</div>
+<button class="sm:self-center border border-outline-variant text-on-surface-variant h-10 px-4 rounded font-label-lg text-label-lg hover:bg-background transition-colors whitespace-nowrap">View Profile</button>
+</div>
+</div>
+<div class="mt-stack-md text-center">
+<button class="font-label-lg text-label-lg text-primary hover:underline">See all connections</button>
+</div>
+</section>
+</main>
+<!-- Bottom Nav Bar -->
+<nav class="bg-surface fixed bottom-0 w-full z-50 h-[72px] border-t border-outline-variant shadow-md md:hidden">
+<div class="flex justify-around items-center w-full px-2 h-full">
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-background rounded-full p-2 active:scale-95 transition-transform duration-150 w-16 h-16" href="#">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+<span class="font-label-md text-label-md mt-1">Feed</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-background rounded-full p-2 active:scale-95 transition-transform duration-150 w-16 h-16" href="#">
+<span class="material-symbols-outlined" data-icon="explore">explore</span>
+<span class="font-label-md text-label-md mt-1">Explore</span>
+</a>
+<a class="flex flex-col items-center justify-center text-primary hover:bg-background rounded-full p-2 active:scale-95 transition-transform duration-150 w-16 h-16 bg-background" href="#">
+<span class="material-symbols-outlined" data-icon="group" data-weight="fill" style="font-variation-settings: 'FILL' 1;">group</span>
+<span class="font-label-md text-label-md mt-1">Network</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-background rounded-full p-2 active:scale-95 transition-transform duration-150 w-16 h-16" href="#">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+<span class="font-label-md text-label-md mt-1">Notifications</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-background rounded-full p-2 active:scale-95 transition-transform duration-150 w-16 h-16" href="#">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="font-label-md text-label-md mt-1">Profile</span>
+</a>
+</div>
+</nav>
+</body></html>

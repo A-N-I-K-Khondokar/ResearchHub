@@ -1,0 +1,37 @@
+{
+  "expo": {
+    "name": "CSE Research Hub",
+    "slug": "cse-research-hub",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "scheme": "cseresearchhub",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#3157C8"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.cse.researchhub"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#3157C8"
+      },
+      "package": "com.cse.researchhub"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

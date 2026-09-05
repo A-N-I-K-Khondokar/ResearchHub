@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Forgot Password - ScholarNet</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Source+Serif+4:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "primary": "#0a3daf",
+                      "on-surface": "#1a1b22",
+                      "secondary-fixed-dim": "#bdc7de",
+                      "on-tertiary": "#ffffff",
+                      "on-primary-fixed-variant": "#063bae",
+                      "outline": "#747685",
+                      "on-surface-variant": "#444653",
+                      "on-secondary-fixed-variant": "#3d475a",
+                      "primary-fixed": "#dce1ff",
+                      "secondary": "#555f73",
+                      "surface-bright": "#faf8ff",
+                      "background": "#faf8ff",
+                      "inverse-surface": "#2f3038",
+                      "on-primary": "#ffffff",
+                      "secondary-container": "#d6e0f8",
+                      "on-error-container": "#93000a",
+                      "tertiary-fixed": "#ffdbcb",
+                      "on-background": "#1a1b22",
+                      "surface-container-low": "#f3f2fd",
+                      "primary-container": "#3157c8",
+                      "tertiary": "#7a3200",
+                      "on-tertiary-container": "#ffd1bb",
+                      "surface-container-lowest": "#ffffff",
+                      "inverse-primary": "#b6c4ff",
+                      "surface-tint": "#2f55c6",
+                      "on-tertiary-fixed": "#341100",
+                      "on-primary-fixed": "#00164f",
+                      "outline-variant": "#c4c5d6",
+                      "on-error": "#ffffff",
+                      "on-secondary-fixed": "#111c2d",
+                      "tertiary-fixed-dim": "#ffb691",
+                      "surface-variant": "#e2e1eb",
+                      "on-tertiary-fixed-variant": "#783100",
+                      "on-primary-container": "#d2d9ff",
+                      "secondary-fixed": "#d9e3fb",
+                      "surface-container-highest": "#e2e1eb",
+                      "surface-container-high": "#e8e7f1",
+                      "tertiary-container": "#a04400",
+                      "error-container": "#ffdad6",
+                      "surface-container": "#eeedf7",
+                      "on-secondary-container": "#596377",
+                      "surface": "#faf8ff",
+                      "on-secondary": "#ffffff",
+                      "inverse-on-surface": "#f1f0fa",
+                      "surface-dim": "#dad9e3",
+                      "primary-fixed-dim": "#b6c4ff",
+                      "error": "#ba1a1a"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "margin-mobile": "16px",
+                      "gutter-mobile": "16px",
+                      "stack-md": "16px",
+                      "stack-xl": "32px",
+                      "stack-xs": "4px",
+                      "unit": "8px",
+                      "stack-lg": "24px",
+                      "stack-sm": "8px"
+              },
+              "fontFamily": {
+                      "body-lg": [
+                              "Inter"
+                      ],
+                      "body-md": [
+                              "Inter"
+                      ],
+                      "label-sm": [
+                              "Inter"
+                      ],
+                      "label-lg": [
+                              "Inter"
+                      ],
+                      "headline-lg": [
+                              "\"Source Serif 4\""
+                      ],
+                      "headline-md": [
+                              "\"Source Serif 4\""
+                      ],
+                      "body-sm": [
+                              "Inter"
+                      ],
+                      "display-lg": [
+                              "\"Source Serif 4\""
+                      ],
+                      "label-md": [
+                              "Inter"
+                      ],
+                      "headline-sm": [
+                              "\"Source Serif 4\""
+                      ]
+              },
+              "fontSize": {
+                      "body-lg": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "label-sm": [
+                              "10px",
+                              {
+                                      "lineHeight": "12px",
+                                      "letterSpacing": "0.05em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "label-lg": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "letterSpacing": "0.01em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-lg": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-lg-mobile": [
+                              "20px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-md": [
+                              "20px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-sm": [
+                              "12px",
+                              {
+                                      "lineHeight": "18px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "display-lg": [
+                              "32px",
+                              {
+                                      "lineHeight": "40px",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "label-md": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.02em",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "headline-sm": [
+                              "18px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "600"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+      </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background min-h-screen flex items-center justify-center p-margin-mobile">
+<div class="w-full max-w-[400px] bg-surface rounded-xl border border-outline-variant shadow-[0px_4px_12px_rgba(23,32,51,0.08)] p-stack-xl relative overflow-hidden">
+<!-- Decorative Header -->
+<div class="absolute top-0 left-0 w-full h-2 bg-primary"></div>
+<div class="mb-stack-lg text-center">
+<h1 class="font-headline-lg text-headline-lg md:font-headline-lg md:text-headline-lg text-on-surface mb-stack-xs">Reset Password</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">Enter your email address and we'll send you a link to reset your password.</p>
+</div>
+<form action="#" class="space-y-stack-md" method="POST">
+<!-- Email Field -->
+<div>
+<label class="block font-label-md text-label-md text-on-surface mb-stack-xs" for="email">Email</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">mail</span>
+<input class="w-full h-[44px] pl-10 pr-3 rounded bg-surface border border-outline-variant text-on-surface font-body-md text-body-md placeholder:text-outline focus:border-primary focus:ring-2 focus:ring-primary/20 transition-shadow outline-none" id="email" name="email" placeholder="researcher@university.edu" required="" type="email"/>
+</div>
+</div>
+<!-- Submit Button -->
+<button class="w-full h-[44px] bg-primary text-on-primary font-label-lg text-label-lg rounded flex items-center justify-center hover:bg-surface-tint transition-colors mt-stack-lg" type="submit">
+                Send Reset Link
+            </button>
+</form>
+<div class="mt-stack-lg text-center border-t border-outline-variant pt-stack-md">
+<a class="inline-flex items-center gap-1 font-label-md text-label-md text-primary hover:text-surface-tint transition-colors" href="#">
+<span class="material-symbols-outlined text-[16px]">arrow_back</span>
+                Back to Login
+            </a>
+</div>
+</div>
+</body></html>

@@ -1,0 +1,287 @@
+<!DOCTYPE html><html class="light" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Share Current Work</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-primary": "#ffffff",
+                      "secondary-container": "#d6e0f8",
+                      "on-error-container": "#93000a",
+                      "outline-variant": "#c4c5d6",
+                      "on-secondary-fixed-variant": "#3d475a",
+                      "on-secondary-fixed": "#111c2d",
+                      "secondary-fixed": "#d9e3fb",
+                      "surface-container-highest": "#e2e1eb",
+                      "error": "#ba1a1a",
+                      "on-tertiary-fixed": "#341100",
+                      "on-tertiary-container": "#ffd1bb",
+                      "outline": "#747685",
+                      "inverse-primary": "#b6c4ff",
+                      "tertiary": "#7a3200",
+                      "tertiary-fixed": "#ffdbcb",
+                      "on-surface-variant": "#444653",
+                      "on-primary-fixed": "#00164f",
+                      "surface-container-high": "#e8e7f1",
+                      "on-background": "#1a1b22",
+                      "secondary-fixed-dim": "#bdc7de",
+                      "inverse-on-surface": "#f1f0fa",
+                      "surface-container": "#eeedf7",
+                      "on-error": "#ffffff",
+                      "secondary": "#555f73",
+                      "error-container": "#ffdad6",
+                      "surface": "#faf8ff",
+                      "on-primary-fixed-variant": "#063bae",
+                      "surface-tint": "#2f55c6",
+                      "tertiary-fixed-dim": "#ffb691",
+                      "on-tertiary": "#ffffff",
+                      "on-surface": "#1a1b22",
+                      "on-tertiary-fixed-variant": "#783100",
+                      "on-secondary": "#ffffff",
+                      "primary-container": "#3157c8",
+                      "on-secondary-container": "#596377",
+                      "primary-fixed-dim": "#b6c4ff",
+                      "on-primary-container": "#d2d9ff",
+                      "tertiary-container": "#a04400",
+                      "surface-variant": "#e2e1eb",
+                      "surface-bright": "#faf8ff",
+                      "background": "#faf8ff",
+                      "inverse-surface": "#2f3038",
+                      "surface-dim": "#dad9e3",
+                      "surface-container-lowest": "#ffffff",
+                      "primary-fixed": "#dce1ff",
+                      "primary": "#0a3daf",
+                      "surface-container-low": "#f3f2fd"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "margin-mobile": "16px",
+                      "stack-lg": "24px",
+                      "stack-xs": "4px",
+                      "unit": "8px",
+                      "stack-sm": "8px",
+                      "stack-xl": "32px",
+                      "stack-md": "16px",
+                      "gutter-mobile": "16px"
+              },
+              "fontFamily": {
+                      "headline-lg": [
+                              "\"Source Serif 4\""
+                      ],
+                      "label-md": [
+                              "Inter"
+                      ],
+                      "body-lg": [
+                              "Inter"
+                      ],
+                      "body-md": [
+                              "Inter"
+                      ],
+                      "headline-sm": [
+                              "\"Source Serif 4\""
+                      ],
+                      "headline-md": [
+                              "\"Source Serif 4\""
+                      ],
+                      "label-sm": [
+                              "Inter"
+                      ],
+                      "body-sm": [
+                              "Inter"
+                      ],
+                      "label-lg": [
+                              "Inter"
+                      ],
+                      "display-lg": [
+                              "\"Source Serif 4\""
+                      ]
+              },
+              "fontSize": {
+                      "headline-lg": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "label-md": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.02em",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "body-lg": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-sm": [
+                              "18px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-md": [
+                              "20px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "label-sm": [
+                              "10px",
+                              {
+                                      "lineHeight": "12px",
+                                      "letterSpacing": "0.05em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-sm": [
+                              "12px",
+                              {
+                                      "lineHeight": "18px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "label-lg": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "letterSpacing": "0.01em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "display-lg": [
+                              "32px",
+                              {
+                                      "lineHeight": "40px",
+                                      "fontWeight": "700"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+      </script>
+</head>
+<body class="bg-background text-on-background antialiased min-h-screen flex flex-col pt-14 pb-24 md:pb-8">
+<!-- TopAppBar -->
+<header class="bg-surface dark:bg-inverse-surface fixed top-0 w-full border-b border-outline-variant dark:border-on-surface-variant shadow-sm flex justify-between items-center px-gutter-mobile h-14 w-full z-50">
+<button class="text-primary dark:text-primary-fixed-dim hover:bg-surface-container-low dark:hover:bg-on-secondary-fixed-variant transition-colors active:scale-95 duration-150 p-2 -ml-2 rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+</button>
+<h1 class="text-headline-sm font-headline-sm text-primary dark:text-primary-fixed-dim">Share Update</h1>
+<button class="text-primary dark:text-primary-fixed-dim font-label-lg text-label-lg hover:bg-surface-container-low dark:hover:bg-on-secondary-fixed-variant transition-colors active:scale-95 duration-150 px-3 py-1.5 rounded-md flex items-center justify-center">
+            Share
+        </button>
+</header>
+<!-- Main Content -->
+<main class="flex-grow container mx-auto px-margin-mobile max-w-2xl mt-stack-lg">
+<div class="mb-stack-lg">
+<h2 class="font-headline-md text-headline-md mb-stack-xs text-on-surface font-bold">What are you currently working on?</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">Share your research momentum with the community.</p>
+</div>
+<form class="space-y-stack-lg flex flex-col">
+<!-- Title Input -->
+<div>
+<label class="block font-label-lg text-label-lg text-on-surface mb-stack-xs" for="research-title">Research / Project Title</label>
+<input class="w-full h-11 px-3 border border-outline-variant rounded bg-surface focus:outline-none focus:border-primary-container focus:ring-2 focus:ring-primary-container/20 font-body-md text-body-md text-on-surface" id="research-title" placeholder="e.g., Bangla Question Answering System" type="text">
+</div>
+<!-- Description Input -->
+<div>
+<label class="block font-label-lg text-label-lg text-on-surface mb-stack-xs" for="research-desc">Short Description</label>
+<textarea class="w-full px-3 py-2 border border-outline-variant rounded bg-surface focus:outline-none focus:border-primary-container focus:ring-2 focus:ring-primary-container/20 font-body-md text-body-md text-on-surface resize-y min-h-[100px]" id="research-desc" placeholder="e.g., Currently exploring transformer-based approaches for low-resource languages..." rows="4"></textarea>
+</div>
+<!-- Topic Selection -->
+<div>
+<label class="block font-label-lg text-label-lg text-on-surface mb-stack-sm">Research Topics</label>
+<div class="flex flex-wrap gap-2">
+<button class="px-4 h-[44px] rounded-full border border-outline-variant bg-surface text-secondary font-label-md text-label-md hover:bg-surface-container-low focus:outline-none focus:ring-2 focus:ring-primary-container/50 transition-colors" type="button">NLP</button>
+<button class="px-4 h-[44px] rounded-full border border-primary-container bg-secondary-container text-on-primary-fixed-variant font-label-md text-label-md focus:outline-none focus:ring-2 focus:ring-primary-container/50 transition-colors flex items-center gap-1" type="button">
+<span class="material-symbols-outlined text-[16px]" data-icon="check" data-weight="fill" style="font-variation-settings: 'FILL' 1;">check</span>
+                        Machine Learning
+                    </button>
+<button class="px-4 h-[44px] rounded-full border border-outline-variant bg-surface text-secondary font-label-md text-label-md hover:bg-surface-container-low focus:outline-none focus:ring-2 focus:ring-primary-container/50 transition-colors" type="button">Computer Vision</button>
+<button class="px-4 h-[44px] rounded-full border border-outline-variant bg-surface text-secondary font-label-md text-label-md hover:bg-surface-container-low focus:outline-none focus:ring-2 focus:ring-primary-container/50 transition-colors" type="button">AI</button>
+<button class="px-4 h-[44px] rounded-full border border-outline-variant bg-surface text-secondary font-label-md text-label-md hover:bg-surface-container-low focus:outline-none focus:ring-2 focus:ring-primary-container/50 transition-colors" type="button">Data Science</button>
+<button class="px-4 h-[44px] rounded-full border border-outline-variant bg-surface text-secondary font-label-md text-label-md hover:bg-surface-container-low focus:outline-none focus:ring-2 focus:ring-primary-container/50 transition-colors border-dashed flex items-center gap-1" type="button">
+<span class="material-symbols-outlined text-[16px]" data-icon="add">add</span>
+                        Add Topic
+                    </button>
+</div>
+</div>
+<!-- Optional Details Section (Progressive) -->
+<div class="pt-stack-md border-t border-outline-variant/30 space-y-stack-md">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-stack-md">
+<div>
+<label class="block font-label-lg text-label-lg text-on-surface mb-stack-xs" for="research-type">Expected Research Type</label>
+<select class="w-full h-11 px-3 border border-outline-variant rounded bg-surface focus:outline-none focus:border-primary-container focus:ring-2 focus:ring-primary-container/20 font-body-md text-body-md text-on-surface appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23747685%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:24px_24px] bg-[position:right_12px_center] bg-no-repeat" id="research-type">
+<option disabled="" selected="" value="">Select type</option>
+<option value="journal">Journal Article</option>
+<option value="conference">Conference Paper</option>
+<option value="poster">Poster Presentation</option>
+<option value="thesis">Thesis Chapter</option>
+</select>
+</div>
+<div>
+<label class="block font-label-lg text-label-lg text-on-surface mb-stack-xs" for="research-stage">Current Stage</label>
+<select class="w-full h-11 px-3 border border-outline-variant rounded bg-surface focus:outline-none focus:border-primary-container focus:ring-2 focus:ring-primary-container/20 font-body-md text-body-md text-on-surface appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23747685%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-[length:24px_24px] bg-[position:right_12px_center] bg-no-repeat" id="research-stage">
+<option disabled="" selected="" value="">Select stage</option>
+<option value="lit-review">Literature Review</option>
+<option value="data-collection">Data Collection</option>
+<option value="experimentation">Experimentation</option>
+<option value="drafting">Drafting</option>
+</select>
+</div>
+</div>
+<div>
+<label class="block font-label-lg text-label-lg text-on-surface mb-stack-xs" for="external-link">External Link <span class="text-on-surface-variant font-normal">(Optional)</span></label>
+<div class="relative">
+<span class="absolute left-3 top-1/2 -translate-y-1/2 text-outline material-symbols-outlined text-[20px]" data-icon="link">link</span>
+<input class="w-full h-11 pl-10 pr-3 border border-outline-variant rounded bg-surface focus:outline-none focus:border-primary-container focus:ring-2 focus:ring-primary-container/20 font-body-md text-body-md text-on-surface" id="external-link" placeholder="https://github.com/username/repo" type="url">
+</div>
+</div>
+</div>
+<!-- Actions area spacer -->
+<div class="h-24 md:h-8"></div>
+</form>
+</main>
+<!-- Bottom Actions (Fixed on Mobile, Flow on Desktop) -->
+<div class="fixed bottom-0 left-0 right-0 p-margin-mobile bg-surface/95 backdrop-blur-sm border-t border-outline-variant/30 md:static md:bg-transparent md:border-transparent md:p-0 mt-auto md:max-w-2xl md:mx-auto md:w-full z-40">
+<div class="flex flex-col-reverse md:flex-row gap-stack-sm md:justify-end">
+<button class="w-full md:w-auto h-11 px-6 rounded-full bg-secondary-container text-on-secondary-container font-label-lg text-label-lg hover:bg-secondary-container/80 focus:outline-none focus:ring-2 focus:ring-primary-container/50 transition-colors min-h-[44px]" type="button">
+                Save Draft
+            </button>
+<button class="w-full md:w-auto h-11 px-8 rounded-full bg-primary-container text-on-primary font-label-lg text-label-lg shadow-md hover:bg-primary-container/90 focus:outline-none focus:ring-2 focus:ring-primary-container focus:ring-offset-2 transition-all min-h-[44px] flex items-center justify-center gap-2" type="submit">
+<span class="material-symbols-outlined text-[20px]" data-icon="send" data-weight="fill" style="font-variation-settings: 'FILL' 1;">send</span>
+                Share Current Work
+            </button>
+</div>
+</div>
+
+
+</body></html>

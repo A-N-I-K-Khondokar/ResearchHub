@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Loading States (Canonical)</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&amp;family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "tertiary-fixed": "#ffdbca",
+                        "secondary": "#006a61",
+                        "surface-variant": "#d3e4fe",
+                        "surface-container": "#e5eeff",
+                        "surface-dim": "#cbdbf5",
+                        "primary-fixed-dim": "#bec6e0",
+                        "surface-bright": "#f8f9ff",
+                        "on-surface": "#0b1c30",
+                        "outline-variant": "#c6c6cd",
+                        "error": "#ba1a1a",
+                        "tertiary": "#000000",
+                        "tertiary-fixed-dim": "#ffb68e",
+                        "background": "#f8f9ff",
+                        "on-primary-fixed": "#131b2e",
+                        "surface": "#f8f9ff",
+                        "on-tertiary-fixed-variant": "#763300",
+                        "primary-fixed": "#dae2fd",
+                        "on-primary": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "surface-container-high": "#dce9ff",
+                        "on-primary-fixed-variant": "#3f465c",
+                        "primary": "#000000",
+                        "surface-tint": "#565e74",
+                        "on-background": "#0b1c30",
+                        "on-primary-container": "#7c839b",
+                        "inverse-surface": "#213145",
+                        "tertiary-container": "#331200",
+                        "on-tertiary": "#ffffff",
+                        "surface-container-highest": "#d3e4fe",
+                        "inverse-primary": "#bec6e0",
+                        "error-container": "#ffdad6",
+                        "outline": "#76777d",
+                        "on-error-container": "#93000a",
+                        "on-secondary-container": "#006f66",
+                        "secondary-fixed-dim": "#6bd8cb",
+                        "secondary-container": "#86f2e4",
+                        "on-tertiary-fixed": "#331200",
+                        "on-surface-variant": "#45464d",
+                        "surface-container-low": "#eff4ff",
+                        "on-secondary-fixed": "#00201d",
+                        "on-tertiary-container": "#cf6721",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary-fixed-variant": "#005049",
+                        "inverse-on-surface": "#eaf1ff",
+                        "on-error": "#ffffff",
+                        "primary-container": "#131b2e",
+                        "secondary-fixed": "#89f5e7"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "unit": "4px",
+                        "section-margin": "32px",
+                        "stack-gap-md": "16px",
+                        "stack-gap-sm": "8px",
+                        "container-padding": "16px",
+                        "stack-gap-lg": "24px"
+                    },
+                    "fontFamily": {
+                        "headline-sm": ["\"Source Serif 4\""],
+                        "body-md": ["Inter"],
+                        "headline-md": ["\"Source Serif 4\""],
+                        "headline-lg-mobile": ["\"Source Serif 4\""],
+                        "display-lg": ["\"Source Serif 4\""],
+                        "label-md": ["Inter"],
+                        "body-lg": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "headline-lg-mobile": ["28px", { "lineHeight": "36px", "fontWeight": "700" }],
+                        "display-lg": ["32px", { "lineHeight": "40px", "fontWeight": "700" }],
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.5px", "fontWeight": "600" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .skeleton {
+            background: linear-gradient(90deg, #eff4ff 25%, #dce9ff 50%, #eff4ff 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+            border-radius: 4px;
+        }
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        body { font-family: 'Inter', sans-serif; }
+        .font-serif { font-family: 'Source Serif 4', serif; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background min-h-screen">
+<!-- TopAppBar -->
+<header class="bg-surface dark:bg-background text-primary dark:text-primary-fixed w-full top-0 sticky border-b border-outline-variant dark:border-outline flat no shadows z-50">
+<div class="flex justify-between items-center px-container-padding py-unit w-full h-16">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-primary dark:text-primary-fixed cursor-pointer">menu_book</span>
+<h1 class="font-headline-sm text-headline-sm dark:text-inverse-on-surface">Scholarly Core</h1>
+</div>
+<div class="flex items-center gap-4">
+<div class="w-8 h-8 rounded-full skeleton"></div>
+</div>
+</div>
+</header>
+<main class="max-w-7xl mx-auto px-container-padding py-stack-gap-lg pb-32">
+<header class="mb-section-margin">
+<h1 class="font-display-lg text-display-lg mb-2">Loading States (Canonical)</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant">Skeleton screens for the CSE Research Hub.</p>
+</header>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-stack-gap-lg">
+<!-- 1. Home Feed Skeletons -->
+<section class="flex flex-col gap-stack-gap-md col-span-1">
+<h2 class="font-headline-sm text-headline-sm border-b border-outline-variant pb-2">1. Home Feed</h2>
+<!-- Skeleton Card 1 -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-container-padding flex flex-col gap-stack-gap-sm">
+<div class="flex items-center gap-2 mb-2">
+<div class="w-10 h-10 rounded-full skeleton"></div>
+<div class="flex flex-col gap-1 w-full">
+<div class="h-4 w-3/4 skeleton"></div>
+<div class="h-3 w-1/2 skeleton"></div>
+</div>
+</div>
+<div class="h-6 w-full skeleton mb-2"></div>
+<div class="h-4 w-full skeleton"></div>
+<div class="h-4 w-5/6 skeleton"></div>
+<div class="h-4 w-4/6 skeleton mb-2"></div>
+<div class="w-full h-40 skeleton rounded-md"></div>
+</div>
+<!-- Skeleton Card 2 -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-container-padding flex flex-col gap-stack-gap-sm">
+<div class="flex items-center gap-2 mb-2">
+<div class="w-10 h-10 rounded-full skeleton"></div>
+<div class="flex flex-col gap-1 w-full">
+<div class="h-4 w-2/3 skeleton"></div>
+<div class="h-3 w-1/3 skeleton"></div>
+</div>
+</div>
+<div class="h-6 w-11/12 skeleton mb-2"></div>
+<div class="h-4 w-full skeleton"></div>
+<div class="h-4 w-full skeleton"></div>
+<div class="h-4 w-3/4 skeleton"></div>
+</div>
+</section>
+<!-- 2. Explore Hub Skeletons -->
+<section class="flex flex-col gap-stack-gap-md col-span-1">
+<h2 class="font-headline-sm text-headline-sm border-b border-outline-variant pb-2">2. Explore Hub</h2>
+<!-- Topic Chips -->
+<div class="flex flex-wrap gap-2 mb-4">
+<div class="h-8 w-24 skeleton rounded-full"></div>
+<div class="h-8 w-32 skeleton rounded-full"></div>
+<div class="h-8 w-20 skeleton rounded-full"></div>
+<div class="h-8 w-28 skeleton rounded-full"></div>
+</div>
+<!-- Researcher Cards Grid -->
+<div class="grid grid-cols-2 gap-stack-gap-md">
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-container-padding flex flex-col items-center gap-2 text-center">
+<div class="w-16 h-16 rounded-full skeleton mb-2"></div>
+<div class="h-4 w-full skeleton"></div>
+<div class="h-3 w-3/4 skeleton"></div>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-container-padding flex flex-col items-center gap-2 text-center">
+<div class="w-16 h-16 rounded-full skeleton mb-2"></div>
+<div class="h-4 w-11/12 skeleton"></div>
+<div class="h-3 w-2/3 skeleton"></div>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-container-padding flex flex-col items-center gap-2 text-center">
+<div class="w-16 h-16 rounded-full skeleton mb-2"></div>
+<div class="h-4 w-5/6 skeleton"></div>
+<div class="h-3 w-4/5 skeleton"></div>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-container-padding flex flex-col items-center gap-2 text-center">
+<div class="w-16 h-16 rounded-full skeleton mb-2"></div>
+<div class="h-4 w-full skeleton"></div>
+<div class="h-3 w-1/2 skeleton"></div>
+</div>
+</div>
+</section>
+<!-- 3. Researcher Profile Skeletons -->
+<section class="flex flex-col gap-stack-gap-md col-span-1 md:col-span-2 lg:col-span-1">
+<h2 class="font-headline-sm text-headline-sm border-b border-outline-variant pb-2">3. Researcher Profile</h2>
+<!-- Profile Header -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-container-padding flex flex-col md:flex-row items-center md:items-start gap-4">
+<div class="w-24 h-24 rounded-full skeleton shrink-0"></div>
+<div class="flex flex-col gap-2 w-full items-center md:items-start">
+<div class="h-6 w-3/4 skeleton"></div>
+<div class="h-4 w-1/2 skeleton"></div>
+<div class="h-4 w-2/3 skeleton"></div>
+<div class="flex gap-2 mt-2">
+<div class="h-8 w-24 skeleton rounded-md"></div>
+<div class="h-8 w-24 skeleton rounded-md"></div>
+</div>
+</div>
+</div>
+<!-- Projects List -->
+<div class="flex flex-col gap-stack-gap-sm mt-4">
+<div class="h-5 w-1/3 skeleton mb-2"></div>
+<div class="border-b border-outline-variant pb-4 flex gap-4">
+<div class="w-16 h-16 skeleton rounded-md shrink-0"></div>
+<div class="flex flex-col gap-2 w-full">
+<div class="h-5 w-full skeleton"></div>
+<div class="h-4 w-5/6 skeleton"></div>
+</div>
+</div>
+<div class="border-b border-outline-variant pb-4 flex gap-4">
+<div class="w-16 h-16 skeleton rounded-md shrink-0"></div>
+<div class="flex flex-col gap-2 w-full">
+<div class="h-5 w-11/12 skeleton"></div>
+<div class="h-4 w-3/4 skeleton"></div>
+</div>
+</div>
+</div>
+</section>
+<!-- 4. Research Detail Skeletons -->
+<section class="flex flex-col gap-stack-gap-md col-span-1 md:col-span-1 lg:col-span-2">
+<h2 class="font-headline-sm text-headline-sm border-b border-outline-variant pb-2">4. Research Detail</h2>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-container-padding flex flex-col gap-4">
+<div class="h-8 w-full skeleton mb-2"></div>
+<div class="h-8 w-3/4 skeleton mb-4"></div>
+<div class="flex items-center gap-4 mb-6 border-y border-outline-variant py-2">
+<div class="h-4 w-1/4 skeleton"></div>
+<div class="h-4 w-1/4 skeleton"></div>
+<div class="h-4 w-1/5 skeleton"></div>
+</div>
+<div class="flex flex-col gap-2 mb-6">
+<div class="h-4 w-full skeleton"></div>
+<div class="h-4 w-full skeleton"></div>
+<div class="h-4 w-11/12 skeleton"></div>
+<div class="h-4 w-full skeleton"></div>
+<div class="h-4 w-5/6 skeleton"></div>
+<div class="h-4 w-4/5 skeleton mt-2"></div>
+<div class="h-4 w-full skeleton"></div>
+</div>
+<div class="flex gap-4">
+<div class="h-10 w-32 skeleton rounded-md"></div>
+<div class="h-10 w-32 skeleton rounded-md"></div>
+</div>
+</div>
+</section>
+<!-- 5. Search List Skeletons -->
+<section class="flex flex-col gap-stack-gap-md col-span-1 md:col-span-2 lg:col-span-1">
+<h2 class="font-headline-sm text-headline-sm border-b border-outline-variant pb-2">5. Search Results</h2>
+<div class="h-12 w-full skeleton rounded-md mb-4"></div>
+<div class="flex flex-col gap-0 border border-outline-variant rounded-lg overflow-hidden bg-surface-container-lowest">
+<!-- Search Item 1 -->
+<div class="p-container-padding border-b border-outline-variant flex flex-col gap-2">
+<div class="flex justify-between">
+<div class="h-3 w-1/4 skeleton"></div>
+<div class="h-3 w-1/6 skeleton"></div>
+</div>
+<div class="h-5 w-full skeleton"></div>
+<div class="h-4 w-3/4 skeleton"></div>
+</div>
+<!-- Search Item 2 -->
+<div class="p-container-padding border-b border-outline-variant flex flex-col gap-2">
+<div class="flex justify-between">
+<div class="h-3 w-1/5 skeleton"></div>
+<div class="h-3 w-1/4 skeleton"></div>
+</div>
+<div class="h-5 w-11/12 skeleton"></div>
+<div class="h-4 w-2/3 skeleton"></div>
+</div>
+<!-- Search Item 3 -->
+<div class="p-container-padding flex flex-col gap-2">
+<div class="flex justify-between">
+<div class="h-3 w-1/3 skeleton"></div>
+<div class="h-3 w-1/5 skeleton"></div>
+</div>
+<div class="h-5 w-4/5 skeleton"></div>
+<div class="h-4 w-full skeleton"></div>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="bg-surface dark:bg-background text-primary dark:text-primary-fixed fixed bottom-0 w-full z-50 border-t border-outline-variant dark:border-outline shadow-sm md:hidden">
+<div class="flex justify-around items-center w-full px-container-padding pb-4 pt-2">
+<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-lowest dark:hover:bg-surface-container-high scale-95 active:scale-90 transition-transform w-16 h-12 rounded-lg">
+<span class="material-symbols-outlined mb-1">home</span>
+<span class="font-label-md text-label-md">Home</span>
+</button>
+<button class="flex flex-col items-center justify-center text-secondary dark:text-secondary-fixed-dim font-bold hover:bg-surface-container-lowest dark:hover:bg-surface-container-high scale-95 active:scale-90 transition-transform w-16 h-12 rounded-lg">
+<span class="material-symbols-outlined mb-1 font-bold">hub</span>
+<span class="font-label-md text-label-md">Explore</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-lowest dark:hover:bg-surface-container-high scale-95 active:scale-90 transition-transform w-16 h-12 rounded-lg">
+<span class="material-symbols-outlined mb-1">add_circle</span>
+<span class="font-label-md text-label-md">Share</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-lowest dark:hover:bg-surface-container-high scale-95 active:scale-90 transition-transform w-16 h-12 rounded-lg">
+<span class="material-symbols-outlined mb-1">notifications</span>
+<span class="font-label-md text-label-md">Alerts</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-lowest dark:hover:bg-surface-container-high scale-95 active:scale-90 transition-transform w-16 h-12 rounded-lg">
+<span class="material-symbols-outlined mb-1">person</span>
+<span class="font-label-md text-label-md">Profile</span>
+</button>
+</div>
+</nav>
+</body></html>

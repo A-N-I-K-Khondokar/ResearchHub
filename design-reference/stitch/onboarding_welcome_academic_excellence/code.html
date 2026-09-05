@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Welcome - CSE Research Hub</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind Config from Brand Anchors -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-highest": "#e2e1eb",
+                        "on-primary-fixed": "#00164f",
+                        "tertiary-fixed-dim": "#ffb691",
+                        "on-surface-variant": "#444653",
+                        "background": "#f8f9ff",
+                        "on-secondary-fixed-variant": "#3d475a",
+                        "on-tertiary-container": "#ffd1bb",
+                        "secondary-fixed": "#d9e3fb",
+                        "on-primary-container": "#d2d9ff",
+                        "on-primary": "#ffffff",
+                        "secondary-container": "#d6e0f8",
+                        "secondary": "#555f73",
+                        "outline-variant": "#c4c5d6",
+                        "tertiary": "#7a3200",
+                        "on-tertiary": "#ffffff",
+                        "on-surface": "#1a1b22",
+                        "surface-container": "#eeedf7",
+                        "on-error": "#ffffff",
+                        "surface-tint": "#2f55c6",
+                        "on-background": "#1a1b22",
+                        "tertiary-fixed": "#ffdbcb",
+                        "on-secondary": "#ffffff",
+                        "on-error-container": "#93000a",
+                        "inverse-primary": "#b6c4ff",
+                        "surface-variant": "#e2e1eb",
+                        "inverse-surface": "#2f3038",
+                        "on-secondary-fixed": "#111c2d",
+                        "on-tertiary-fixed": "#341100",
+                        "inverse-on-surface": "#f1f0fa",
+                        "tertiary-container": "#a04400",
+                        "surface-container-high": "#e8e7f1",
+                        "surface-container-low": "#f3f2fd",
+                        "primary-container": "#3157c8",
+                        "error-container": "#ffdad6",
+                        "on-secondary-container": "#596377",
+                        "surface-dim": "#dad9e3",
+                        "error": "#ba1a1a",
+                        "on-primary-fixed-variant": "#063bae",
+                        "primary-fixed": "#dce1ff",
+                        "surface-container-lowest": "#ffffff",
+                        "surface": "#f8f9ff",
+                        "secondary-fixed-dim": "#bdc7de",
+                        "outline": "#747685",
+                        "on-tertiary-fixed-variant": "#783100",
+                        "surface-bright": "#faf8ff",
+                        "primary": "#0a3daf",
+                        "primary-fixed-dim": "#b6c4ff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "gutter-mobile": "16px",
+                        "stack-sm": "8px",
+                        "stack-md": "16px",
+                        "margin-mobile": "16px",
+                        "unit": "8px",
+                        "stack-lg": "24px",
+                        "stack-xs": "4px",
+                        "stack-xl": "32px"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Inter"],
+                        "headline-sm": ["\"Source Serif 4\""],
+                        "body-lg": ["Inter"],
+                        "label-md": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "label-lg": ["Inter"],
+                        "display-lg": ["\"Source Serif 4\""],
+                        "headline-md": ["\"Source Serif 4\""],
+                        "headline-lg": ["\"Source Serif 4\""]
+                    },
+                    "fontSize": {
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-sm": ["18px", { "lineHeight": "24px", "fontWeight": "600" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500" }],
+                        "label-sm": ["10px", { "lineHeight": "12px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "body-sm": ["12px", { "lineHeight": "18px", "fontWeight": "400" }],
+                        "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+                        "display-lg": ["32px", { "lineHeight": "40px", "fontWeight": "700" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "headline-lg": ["24px", { "lineHeight": "32px", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        /* Base styles */
+        body {
+            background-color: theme('colors.background');
+            color: theme('colors.on-background');
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        /* Grid background pattern */
+        .bg-grid-pattern {
+            background-image: linear-gradient(to right, #e2e1eb 1px, transparent 1px),
+                              linear-gradient(to bottom, #e2e1eb 1px, transparent 1px);
+            background-size: 40px 40px;
+            background-position: center top;
+        }
+
+        /* Material Symbols Fill override */
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined[data-weight="fill"] {
+            font-variation-settings: 'FILL' 1;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col relative overflow-hidden bg-[#f8f9ff]">
+<!-- Top Navigation (Linear Onboarding Header) -->
+<header class="w-full pt-6 pb-2 px-margin-mobile flex justify-center items-center">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-widest">Step 1 of 5</span>
+</header>
+<!-- Nav logic: Linear/Transactional screen -> Hide shell -->
+<!-- Main Content Canvas -->
+<main class="flex-grow flex flex-col items-center justify-center relative z-10 px-margin-mobile py-stack-md md:py-16">
+<!-- Center Container -->
+<div class="w-full max-w-lg flex flex-col items-center text-center space-y-stack-lg animate-[fadeIn_0.5s_ease-out]">
+<!-- Visual Element -->
+<div class="relative w-full max-w-sm aspect-square mb-stack-md flex items-center justify-center">
+<!-- Abstract Academic Illustration Placeholder -->
+<div class="absolute inset-0 bg-surface rounded-full shadow-[0px_4px_24px_rgba(23,32,51,0.06)] border border-outline-variant flex items-center justify-center p-8 overflow-hidden">
+<img class="w-full h-full object-cover rounded-full opacity-90 transition-transform duration-700 hover:scale-105" data-alt="A clean, minimalist 3D rendering representing academic research and global connectivity. The scene features intertwined networks of glowing indigo nodes and clean white geometric structures resembling abstract books or data nodes. The aesthetic is extremely modern, well-lit with high-key studio lighting, set against a pristine cool white background. The overall mood is intelligent, structured, and expansive." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBJFHm4hVHms-ArBxnakntGDiVvwoZmdfXXOLe1pQkXUPsPTNmldaz2dybFqsB_Mc9ee3LVqMWMRCcKfVmqrA5ms9fFTomk92Kmg9rejKa0JUfvmUhtsDH668wD1NucFxpJnAESSkp0x86rWUVkp3oNi_97xLjzBdQ1HfsDOd03N1PJmGJawX_A9xYQlvr3MnPSjb2nYdTJAoam90A4J9bwIuQ5c0p21KePvfmE2oX5XeEUD_HT-jLl"/>
+</div>
+<!-- Floating Icons -->
+<div class="absolute -top-4 right-1/4 bg-surface rounded-full p-3 shadow-md border border-outline-variant animate-[bounce_3s_infinite_ease-in-out]">
+<span class="material-symbols-outlined text-primary-container" data-icon="science">science</span>
+</div>
+<div class="absolute bottom-1/4 -left-4 bg-surface rounded-full p-3 shadow-md border border-outline-variant animate-[bounce_4s_infinite_ease-in-out_0.5s]">
+<span class="material-symbols-outlined text-primary-container" data-icon="hub">hub</span>
+</div>
+<div class="absolute top-1/4 -right-2 bg-surface rounded-full p-2 shadow-sm border border-outline-variant animate-[bounce_3.5s_infinite_ease-in-out_1s]">
+<span class="material-symbols-outlined text-outline text-sm" data-icon="menu_book">menu_book</span>
+</div>
+</div>
+<!-- Text Content -->
+<div class="space-y-stack-sm w-full max-w-md px-4">
+<h2 class="font-label-md text-label-md text-primary tracking-widest uppercase">Welcome to CSE Research Hub</h2>
+<h1 class="font-display-lg text-display-lg text-on-surface">
+                    Discover what your CSE research community is working on.
+                </h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant mt-stack-md">
+                    Connect with peers, access latest publications, and collaborate with people who share your intellectual interests.
+                </p>
+</div>
+<!-- Actions -->
+<div class="w-full max-w-xs mt-stack-xl flex flex-col gap-stack-sm pt-stack-md">
+<button class="w-full h-12 flex items-center justify-center gap-2 bg-primary-container text-on-primary font-label-lg text-label-lg rounded-full hover:bg-primary-fixed-variant hover:shadow-md transition-all active:scale-95">
+                    Get Started
+                    <span class="material-symbols-outlined text-[18px]" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+<!-- Progress Indicator -->
+<div class="flex items-center gap-2 mt-stack-lg">
+<div class="w-8 h-1.5 bg-primary-container rounded-full"></div>
+<div class="w-2 h-1.5 bg-surface-variant rounded-full"></div>
+<div class="w-2 h-1.5 bg-surface-variant rounded-full"></div>
+</div>
+</div>
+</main>
+<!-- Bottom Navigation (Suppressed - This is a linear onboarding screen) -->
+<!-- Nav logic: Linear/Transactional screen -> Hide shell -->
+<script>
+        // Simple animation logic if needed for later states
+        document.addEventListener('DOMContentLoaded', () => {
+            const btn = document.querySelector('button');
+            if(btn) {
+                btn.addEventListener('click', () => {
+                    btn.classList.add('opacity-80', 'scale-95');
+                    setTimeout(() => {
+                        btn.classList.remove('opacity-80', 'scale-95');
+                        // In a real app, transition to Step 2
+                    }, 150);
+                });
+            }
+        });
+    </script>
+</body></html>

@@ -1,0 +1,275 @@
+<!DOCTYPE html><html class="light" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>CSE Research Hub - Notifications</title>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "background": "#F6F8FC",
+                        "surface": "#FFFFFF",
+                        "primary": "#3157C8",
+                        "secondary": "#159A9C",
+                        "on-surface": "#172033",
+                        "on-surface-variant": "#667085",
+                        "outline-variant": "#E4E8F0",
+                        "surface-container-highest": "#e2e1eb",
+                        "on-primary-fixed": "#00164f",
+                        "tertiary": "#7a3200",
+                        "inverse-primary": "#b6c4ff",
+                        "on-tertiary": "#ffffff",
+                        "on-primary": "#ffffff",
+                        "on-primary-container": "#ffffff",
+                        "tertiary-fixed-dim": "#ffb691",
+                        "tertiary-container": "#a04400",
+                        "on-secondary-fixed": "#111c2d",
+                        "on-tertiary-container": "#ffd1bb",
+                        "surface-container-lowest": "#ffffff",
+                        "tertiary-fixed": "#ffdbcb",
+                        "error-container": "#ffdad6",
+                        "surface-container-low": "#f3f2fd",
+                        "surface-tint": "#2f55c6",
+                        "surface-container": "#eeedf7",
+                        "surface-variant": "#e2e1eb",
+                        "inverse-on-surface": "#f1f0fa",
+                        "on-secondary-fixed-variant": "#3d475a",
+                        "error": "#ba1a1a",
+                        "on-error": "#ffffff",
+                        "secondary-fixed": "#d9e3fb",
+                        "surface-container-high": "#e8e7f1",
+                        "surface-bright": "#faf8ff",
+                        "on-background": "#172033",
+                        "primary-fixed-dim": "#b6c4ff",
+                        "primary-fixed": "#dce1ff",
+                        "on-secondary-container": "#596377",
+                        "on-tertiary-fixed-variant": "#783100",
+                        "surface-dim": "#dad9e3",
+                        "primary-container": "#3157c8",
+                        "outline": "#747685",
+                        "on-primary-fixed-variant": "#063bae",
+                        "on-secondary": "#ffffff",
+                        "secondary-container": "#159A9C",
+                        "secondary-fixed-dim": "#bdc7de",
+                        "inverse-surface": "#2f3038",
+                        "on-error-container": "#93000a",
+                        "on-tertiary-fixed": "#341100"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "stack-xs": "4px",
+                        "margin-mobile": "16px",
+                        "stack-sm": "8px",
+                        "stack-xl": "32px",
+                        "stack-lg": "24px",
+                        "unit": "8px",
+                        "gutter-mobile": "16px",
+                        "stack-md": "16px"
+                    },
+                    "fontFamily": {
+                        "body-sm": ["Inter"],
+                        "body-md": ["Inter"],
+                        "headline-sm": ["\"Source Serif 4\""],
+                        "headline-lg": ["\"Source Serif 4\""],
+                        "label-sm": ["Inter"],
+                        "display-lg": ["\"Source Serif 4\""],
+                        "label-lg": ["Inter"],
+                        "headline-md": ["\"Source Serif 4\""],
+                        "label-md": ["Inter"],
+                        "body-lg": ["Inter"]
+                    },
+                    "fontSize": {
+                        "body-sm": ["12px", { "lineHeight": "18px", "fontWeight": "400" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-sm": ["18px", { "lineHeight": "24px", "fontWeight": "600" }],
+                        "headline-lg": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "label-sm": ["10px", { "lineHeight": "12px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "display-lg": ["32px", { "lineHeight": "40px", "fontWeight": "700" }],
+                        "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&amp;display=swap" rel="stylesheet">
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<style>
+        .material-symbols-outlined {
+            font-family: 'Material Symbols Outlined';
+            font-weight: normal;
+            font-style: normal;
+            font-size: 24px;
+            line-height: 1;
+            letter-spacing: normal;
+            text-transform: none;
+            display: inline-block;
+            white-space: nowrap;
+            word-wrap: normal;
+            direction: ltr;
+            -webkit-font-feature-settings: 'liga';
+            -webkit-font-smoothing: antialiased;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface font-body-md antialiased min-h-screen flex flex-col">
+<!-- Top App Bar -->
+<header class="bg-surface dark:bg-surface-dim border-b border-outline-variant dark:border-outline flex justify-between items-center px-margin-mobile h-14 w-full sticky top-0 z-40 flat no shadows">
+<div class="flex items-center gap-4">
+<button aria-label="Go back" class="text-primary dark:text-inverse-primary hover:bg-background transition-colors active:opacity-70 transition-opacity p-2 -ml-2 rounded-full">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+</button>
+<h1 class="font-headline-md text-headline-md text-primary dark:text-inverse-primary">Notifications</h1>
+</div>
+<button class="font-label-lg text-label-lg text-primary dark:text-inverse-primary hover:bg-background transition-colors active:opacity-70 transition-opacity px-3 py-2 rounded-md">
+            Mark all as read
+        </button>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-grow pb-24 md:pb-8 pt-6 px-margin-mobile md:px-8 max-w-4xl mx-auto w-full flex flex-col gap-stack-lg">
+<!-- Notifications List -->
+<div class="bg-surface rounded-xl border border-outline-variant shadow-sm overflow-hidden flex flex-col">
+<!-- Unread Notification 1 -->
+<div class="relative flex items-start gap-4 p-4 border-b border-outline-variant bg-surface hover:bg-background transition-colors cursor-pointer group">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-primary"></div>
+<div class="relative flex-shrink-0">
+<img alt="Ramish's profile photo" class="w-10 h-10 rounded-full object-cover border border-outline-variant" data-alt="A highly detailed professional portrait of a male researcher in a modern, well-lit academic laboratory setting. The lighting is crisp and cool-toned, emphasizing a clean corporate academic aesthetic. He wears a subtle collared shirt. The background features slightly blurred high-tech lab equipment. The mood is focused and intelligent, captured in a photorealistic style suitable for a high-end academic networking platform avatar." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAD7CXH_YYDpzMa4eJnk5XlqDLT_biS-tzh9Kj5fcVnFd2Uh89RvzDNSvCfnahwIolWYjIry9Vspd-grTCz8l3nS8Knepqnr6nZqh0FPnyFSUbX1EHUrTntN3woIPyT-bZDdmmpM-TNMdocIEvYJVyhp-4049vfj88WtRLw5cm6Z4f03zclhoQIIqehmMuwOvgevVM2Nbz2Zkv2nll9uT79US7evgaJJc_larKLL0Rcj-3gvhV6hXf7">
+<div class="absolute -bottom-1 -right-1 bg-primary text-on-primary rounded-full p-0.5 border-2 border-surface shadow-sm">
+<span class="material-symbols-outlined text-[12px]" data-icon="person_add" data-weight="fill" style="font-variation-settings: 'FILL' 1;">person_add</span>
+</div>
+</div>
+<div class="flex-grow min-w-0 flex flex-col gap-1">
+<p class="font-body-md text-on-surface">
+<span class="font-label-lg text-on-surface">Ramish</span> wants to connect with you.
+                    </p>
+<div class="flex items-center gap-2 mt-2">
+<button class="bg-primary text-on-primary rounded-md px-4 py-1.5 font-label-md hover:opacity-90 transition-opacity">Accept</button>
+<button class="border border-outline-variant text-on-surface rounded-md px-4 py-1.5 font-label-md hover:bg-background transition-colors">Decline</button>
+</div>
+<span class="font-label-sm text-on-surface-variant mt-1">2m ago</span>
+</div>
+<div class="w-2 h-2 rounded-full bg-primary flex-shrink-0 mt-2"></div>
+</div>
+<!-- Unread Notification 2 -->
+<div class="relative flex items-start gap-4 p-4 border-b border-outline-variant bg-surface hover:bg-background transition-colors cursor-pointer group">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-primary"></div>
+<div class="relative flex-shrink-0">
+<img alt="Mou Tusi's profile photo" class="w-10 h-10 rounded-full object-cover border border-outline-variant" data-alt="A crisp, professional headshot of a female academic researcher with a serene expression, situated in a brightly lit, modern university library. The lighting is soft and diffused, highlighting a sophisticated academic aesthetic with cool grays and crisp whites. She wears professional attire suitable for academia. The image is highly detailed, photorealistic, and framed specifically for a circular avatar on a professional network." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCsI2QIC1LolFZi7xUHP8xo1O9ffkBjXpr-WyznLYJjsrjhwq4ujqCvbOOVnJHoMf1nOI8PK0pi952OKjZwRIsZv0-sOuf6ahW2Xspex1uWzltnvEvq4QeDEkJL848qYVLfMfm2NpCCTX1P6R4iY1LLFiuK4daqbGoWuzbZQFsmHOPFJ5jwQpjE01YafoPqiYBQN1-DauIH4JrRKBtIh8RvwOcj-eBEAi8cBb2Q-Egh8NiAisrhT9Y6">
+<div class="absolute -bottom-1 -right-1 bg-secondary text-white rounded-full p-0.5 border-2 border-surface shadow-sm">
+<span class="material-symbols-outlined text-[12px]" data-icon="check_circle" data-weight="fill" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+</div>
+<div class="flex-grow min-w-0 flex flex-col gap-1">
+<p class="font-body-md text-on-surface">
+<span class="font-label-lg text-on-surface">Mou Tusi</span> accepted your connection request.
+                    </p>
+<span class="font-label-sm text-on-surface-variant">1h ago</span>
+</div>
+<div class="w-2 h-2 rounded-full bg-primary flex-shrink-0 mt-2"></div>
+</div>
+<!-- Read Notification 3 -->
+<div class="relative flex items-start gap-4 p-4 border-b border-outline-variant hover:bg-background transition-colors cursor-pointer group bg-surface">
+<div class="relative flex-shrink-0">
+<img alt="Sojib's profile photo" class="w-10 h-10 rounded-full object-cover border border-outline-variant opacity-80" data-alt="A professional close-up portrait of a male data scientist in a minimalist, modern office environment. The scene is brightly lit with natural light casting soft shadows, creating a pristine, light-mode corporate aesthetic. The background is a clean, out-of-focus white wall with subtle architectural details. The overall mood is approachable yet authoritative, rendered in a high-fidelity photographic style perfect for a professional profile picture." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD9xVvS4nYPRyrVFgT6lnCXCyfcL_wUxVR2YtzZSCGXkeiLEj0-cE3IxESRezEVoMwQo36gE2iXgJ9JaT_D__OTGTxLww4nR_vlqEsELyjZ8X9NDkG4bpIFTcd3QlN7BBpztikU9jTj__bgGUdTNQ4RsimXQkeImAB4J1YyGSUxwrOK4uW7LjFqj3InNGKMJ6FL4gAIjqHV5LIBWJakmnSkKQ2h_i3A6waEkC8yxtQezMOsZ8XqHePK">
+<div class="absolute -bottom-1 -right-1 bg-on-surface-variant text-white rounded-full p-0.5 border-2 border-surface shadow-sm opacity-90">
+<span class="material-symbols-outlined text-[12px]" data-icon="chat_bubble" data-weight="fill" style="font-variation-settings: 'FILL' 1;">chat_bubble</span>
+</div>
+</div>
+<div class="flex-grow min-w-0 flex flex-col gap-1">
+<p class="font-body-md text-on-surface">
+<span class="font-label-lg text-on-surface">Sojib</span> commented on your current work: 
+                    </p>
+<div class="bg-background rounded-lg p-3 mt-1 border border-outline-variant">
+<p class="font-body-sm text-on-surface-variant italic">"Great approach on the data preprocessing!"</p>
+</div>
+<span class="font-label-sm text-on-surface-variant mt-1">3h ago</span>
+</div>
+</div>
+<!-- Read Notification 4 -->
+<div class="relative flex items-start gap-4 p-4 border-b border-outline-variant hover:bg-background transition-colors cursor-pointer group bg-surface">
+<div class="relative flex-shrink-0">
+<img alt="Atik's profile photo" class="w-10 h-10 rounded-full object-cover border border-outline-variant opacity-80" data-alt="A high-quality professional portrait of a male computer science doctoral candidate presenting in a bright, modern seminar room. The lighting is even and cool-toned, adhering to a sophisticated academic visual language. He looks engaged and thoughtful. The background features a faint, blurred whiteboard with complex diagrams. The image is hyper-realistic and cropped cleanly for an avatar." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD-PEOALhhe1lCwjsryi0c5L8jTY9bs8gVF8Z-EwemUlunXTvJOtM4l8_RdP_A32EJGcgVNAXbFBjRwkicjk5Mh6DQfFTvPBm_-ITEmplimQPBQ5YTBoxMh3U5N7tLgw21qY7qWtdVA6o4rCfpg0aBERylFEDAC8xyiho-EPstYM0vQS7Y6wlw36518OCC9d3QHvRn_sI46nwyfwERJaJZO1eyR4SYkg1P2OcY3ff_kibSkG1mWyOfR">
+<div class="absolute -bottom-1 -right-1 bg-tertiary-container text-white rounded-full p-0.5 border-2 border-surface shadow-sm opacity-90">
+<span class="material-symbols-outlined text-[12px]" data-icon="alternate_email" data-weight="fill" style="font-variation-settings: 'FILL' 1;">alternate_email</span>
+</div>
+</div>
+<div class="flex-grow min-w-0 flex flex-col gap-1">
+<p class="font-body-md text-on-surface">
+<span class="font-label-lg text-on-surface">Atik</span> mentioned you in a research discussion on '<span class="font-medium text-primary">Deep Learning Optimization</span>'.
+                    </p>
+<span class="font-label-sm text-on-surface-variant">Yesterday</span>
+</div>
+</div>
+<!-- Read Notification 5 -->
+<div class="relative flex items-start gap-4 p-4 hover:bg-background transition-colors cursor-pointer group bg-surface">
+<div class="relative flex-shrink-0">
+<img alt="Anik's profile photo" class="w-10 h-10 rounded-full object-cover border border-outline-variant opacity-80" data-alt="An immaculate professional headshot of a male AI researcher standing in front of a subtly glowing server rack in a brightly lit, sterile data center environment. The aesthetic is highly modern and tech-focused, utilizing a cool light-mode color palette with crisp whites and light grays. The portrait is sharply focused and professionally lit, designed specifically as a high-end profile avatar for an academic network." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA5vCQPDIkev7lWDAz0Xe4H8VRqF-C4-npc3JYi2MtHP2Tf__sTAj2eUXgAecHyNAzRhddACg1Tfnb7hbUpolpfcShSEBaZxUyMCINLnrfkJcKQrjWk8ESKaJJra_FP9qYnQEg3Bg-PVX-D_Ma-OkXhd6JbD9beKlwVd2LYAUviev2DbDBGpmwKgh39ruERGx_QHTwqooKxkB1Ml8b3YuDf3S7UZn2TzR4Zl8pd-_zxund5TtbFaGWt">
+<div class="absolute -bottom-1 -right-1 bg-primary text-white rounded-full p-0.5 border-2 border-surface shadow-sm opacity-90">
+<span class="material-symbols-outlined text-[12px]" data-icon="dynamic_feed" data-weight="fill" style="font-variation-settings: 'FILL' 1;">dynamic_feed</span>
+</div>
+</div>
+<div class="flex-grow min-w-0 flex flex-col gap-1">
+<p class="font-body-md text-on-surface">
+<span class="font-label-lg text-on-surface">Anik</span> shared a new Current Work update: 
+                    </p>
+<p class="font-body-sm text-on-surface font-medium border-l-2 border-primary pl-3 mt-1 py-1 text-primary">
+                        'Scaling Neural Networks for Mobile Devices'
+                    </p>
+<span class="font-label-sm text-on-surface-variant mt-1">Yesterday</span>
+</div>
+</div>
+</div>
+</main>
+<!-- Bottom Navigation Bar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 w-full z-50 flex justify-around items-center h-16 bg-surface dark:bg-inverse-surface px-gutter-mobile border-t border-outline-variant dark:border-outline shadow-md"><!-- Home -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant hover:bg-background active:scale-95 transition-transform duration-200 p-2 rounded-lg w-16" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="home">home</span>
+<span class="font-label-sm text-label-sm">Home</span>
+</a>
+<!-- Explore -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant hover:bg-background active:scale-95 transition-transform duration-200 p-2 rounded-lg w-16" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="search">search</span>
+<span class="font-label-sm text-label-sm">Explore</span>
+</a>
+<!-- Share -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant hover:bg-background active:scale-95 transition-transform duration-200 p-2 rounded-lg w-16" href="#">
+<span class="material-symbols-outlined mb-1 text-primary" data-icon="add_circle">add_circle</span>
+<span class="font-label-sm text-label-sm">Share</span>
+</a>
+<!-- Notifications (Active) -->
+<a class="flex flex-col items-center justify-center text-primary dark:text-inverse-primary hover:bg-background active:scale-95 transition-transform duration-200 p-2 rounded-lg w-16 bg-background" href="#">
+<div class="relative">
+<span class="material-symbols-outlined mb-1" data-icon="notifications" data-weight="fill" style="font-variation-settings: 'FILL' 1;">notifications</span>
+<div class="absolute top-0 right-0 w-2 h-2 bg-error rounded-full border border-surface"></div>
+</div>
+<span class="font-label-sm text-label-sm font-semibold">Notifications</span>
+</a>
+<!-- Profile -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant hover:bg-background active:scale-95 transition-transform duration-200 p-2 rounded-lg w-16" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="person">person</span>
+<span class="font-label-sm text-label-sm">Profile</span>
+</a></nav>
+
+
+</body></html>

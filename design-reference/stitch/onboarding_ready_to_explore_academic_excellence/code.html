@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>All Set! - CSE Research Hub</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Source+Serif+4:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+                "surface-dim": "#dad9e3",
+                "inverse-surface": "#2f3038",
+                "surface-bright": "#faf8ff",
+                "on-secondary-fixed": "#111c2d",
+                "on-tertiary": "#ffffff",
+                "error-container": "#ffdad6",
+                "surface-container-high": "#e8e7f1",
+                "on-tertiary-container": "#ffd1bb",
+                "on-secondary-fixed-variant": "#3d475a",
+                "tertiary-container": "#a04400",
+                "primary-container": "#3157c8",
+                "on-secondary-container": "#596377",
+                "outline-variant": "#c4c5d6",
+                "on-primary-fixed-variant": "#063bae",
+                "tertiary": "#7a3200",
+                "on-background": "#1a1b22",
+                "surface-container": "#eeedf7",
+                "on-primary": "#ffffff",
+                "on-secondary": "#ffffff",
+                "primary-fixed-dim": "#b6c4ff",
+                "secondary-container": "#d6e0f8",
+                "surface-tint": "#2f55c6",
+                "on-error-container": "#93000a",
+                "surface-container-low": "#f3f2fd",
+                "inverse-on-surface": "#f1f0fa",
+                "on-tertiary-fixed": "#341100",
+                "on-error": "#ffffff",
+                "primary-fixed": "#dce1ff",
+                "primary": "#0a3daf",
+                "outline": "#747685",
+                "secondary": "#555f73",
+                "error": "#ba1a1a",
+                "on-tertiary-fixed-variant": "#783100",
+                "surface": "#faf8ff",
+                "secondary-fixed-dim": "#bdc7de",
+                "secondary-fixed": "#d9e3fb",
+                "surface-container-highest": "#e2e1eb",
+                "surface-container-lowest": "#ffffff",
+                "on-primary-container": "#d2d9ff",
+                "surface-variant": "#e2e1eb",
+                "on-surface-variant": "#444653",
+                "on-surface": "#1a1b22",
+                "tertiary-fixed-dim": "#ffb691",
+                "background": "#faf8ff",
+                "inverse-primary": "#b6c4ff",
+                "tertiary-fixed": "#ffdbcb",
+                "on-primary-fixed": "#00164f"
+        },
+        "borderRadius": {
+                "DEFAULT": "0.125rem",
+                "lg": "0.25rem",
+                "xl": "0.5rem",
+                "full": "0.75rem"
+        },
+        "spacing": {
+                "stack-md": "16px",
+                "stack-xl": "32px",
+                "stack-xs": "4px",
+                "unit": "8px",
+                "stack-sm": "8px",
+                "margin-mobile": "16px",
+                "stack-lg": "24px",
+                "gutter-mobile": "16px"
+        },
+        "fontFamily": {
+                "body-md": [
+                        "Inter"
+                ],
+                "body-sm": [
+                        "Inter"
+                ],
+                "label-sm": [
+                        "Inter"
+                ],
+                "headline-lg": [
+                        "\"Source Serif 4\""
+                ],
+                "headline-sm": [
+                        "\"Source Serif 4\""
+                ],
+                "body-lg": [
+                        "Inter"
+                ],
+                "display-lg": [
+                        "\"Source Serif 4\""
+                ],
+                "label-lg": [
+                        "Inter"
+                ],
+                "headline-md": [
+                        "\"Source Serif 4\""
+                ],
+                "label-md": [
+                        "Inter"
+                ]
+        },
+        "fontSize": {
+                "body-md": [
+                        "14px",
+                        {
+                                "lineHeight": "20px",
+                                "fontWeight": "400"
+                        }
+                ],
+                "body-sm": [
+                        "12px",
+                        {
+                                "lineHeight": "18px",
+                                "fontWeight": "400"
+                        }
+                ],
+                "label-sm": [
+                        "10px",
+                        {
+                                "lineHeight": "12px",
+                                "letterSpacing": "0.05em",
+                                "fontWeight": "600"
+                        }
+                ],
+                "headline-lg": [
+                        "24px",
+                        {
+                                "lineHeight": "32px",
+                                "fontWeight": "600"
+                        }
+                ],
+                "headline-sm": [
+                        "18px",
+                        {
+                                "lineHeight": "24px",
+                                "fontWeight": "600"
+                        }
+                ],
+                "body-lg": [
+                        "16px",
+                        {
+                                "lineHeight": "24px",
+                                "fontWeight": "400"
+                        }
+                ],
+                "display-lg": [
+                        "32px",
+                        {
+                                "lineHeight": "40px",
+                                "fontWeight": "700"
+                        }
+                ],
+                "label-lg": [
+                        "14px",
+                        {
+                                "lineHeight": "20px",
+                                "letterSpacing": "0.01em",
+                                "fontWeight": "600"
+                        }
+                ],
+                "headline-md": [
+                        "20px",
+                        {
+                                "lineHeight": "28px",
+                                "fontWeight": "600"
+                        }
+                ],
+                "label-md": [
+                        "12px",
+                        {
+                                "lineHeight": "16px",
+                                "letterSpacing": "0.02em",
+                                "fontWeight": "500"
+                        }
+                ]
+        }
+},
+    },
+  }
+</script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background text-on-background min-h-screen flex flex-col font-body-md relative overflow-hidden">
+<!-- Header -->
+<header class="w-full flex items-center justify-center py-stack-md bg-surface border-b border-outline-variant/50 relative z-20">
+<div class="font-label-lg text-on-surface">Step 5 of 5</div>
+</header>
+<!-- Decorative background elements for a subtle academic feel -->
+<div class="absolute inset-0 pointer-events-none opacity-5">
+<svg height="100%" width="100%" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<pattern height="40" id="grid" patternunits="userSpaceOnUse" width="40">
+<path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" stroke-width="1"></path>
+</pattern>
+</defs>
+<rect fill="url(#grid)" height="100%" width="100%"></rect>
+</svg>
+</div>
+<div class="absolute top-1/4 left-1/4 w-96 h-96 bg-primary-container rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-blob"></div>
+<div class="absolute top-1/3 right-1/4 w-96 h-96 bg-secondary-container rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-blob animation-delay-2000"></div>
+<main class="w-full max-w-md mx-auto px-margin-mobile flex-1 flex flex-col items-center justify-center text-center relative z-10">
+<!-- Visual/Icon Container -->
+<div class="w-24 h-24 mb-stack-lg rounded-full bg-surface-container border border-outline-variant flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined text-primary text-[48px]" style="font-variation-settings: 'FILL' 1;">
+                task_alt
+            </span>
+</div>
+<!-- Text Content -->
+<h1 class="font-display-lg text-display-lg text-on-surface mb-stack-sm">
+            You're ready to explore.
+        </h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant mb-stack-xl max-w-[280px]">
+            Start discovering researchers and projects within the CSE community.
+        </p>
+<!-- Primary Action Button -->
+<button class="w-full h-[44px] bg-primary-container text-on-primary font-label-lg text-label-lg rounded-lg shadow-sm hover:shadow-md transition-all active:scale-95 flex items-center justify-center gap-2">
+            Explore CSE Research Hub
+            <span class="material-symbols-outlined text-[18px]">
+                arrow_forward
+            </span>
+</button>
+<!-- Step Indicator (Optional, to show it's step 5 of 5) -->
+<div class="mt-stack-lg flex gap-2">
+<div class="w-2 h-2 rounded-full bg-outline-variant"></div>
+<div class="w-2 h-2 rounded-full bg-outline-variant"></div>
+<div class="w-2 h-2 rounded-full bg-outline-variant"></div>
+<div class="w-2 h-2 rounded-full bg-outline-variant"></div>
+<div class="w-8 h-2 rounded-full bg-primary-container"></div>
+</div>
+</main>
+<style>
+        @keyframes blob {
+            0% { transform: translate(0px, 0px) scale(1); }
+            33% { transform: translate(30px, -50px) scale(1.1); }
+            66% { transform: translate(-20px, 20px) scale(0.9); }
+            100% { transform: translate(0px, 0px) scale(1); }
+        }
+        .animate-blob {
+            animation: blob 7s infinite;
+        }
+        .animation-delay-2000 {
+            animation-delay: 2s;
+        }
+    </style>
+</body></html>

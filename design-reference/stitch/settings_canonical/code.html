@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CSE Research Hub - Settings</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&amp;family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-error": "#ffffff",
+                        "surface-bright": "#f8f9ff",
+                        "on-secondary-container": "#006f66",
+                        "background": "#f8f9ff",
+                        "surface-tint": "#565e74",
+                        "secondary-fixed-dim": "#6bd8cb",
+                        "tertiary": "#000000",
+                        "on-primary-container": "#7c839b",
+                        "on-surface": "#0b1c30",
+                        "surface-container-high": "#dce9ff",
+                        "surface-variant": "#d3e4fe",
+                        "surface-container": "#e5eeff",
+                        "tertiary-fixed": "#ffdbca",
+                        "inverse-surface": "#213145",
+                        "outline": "#76777d",
+                        "inverse-on-surface": "#eaf1ff",
+                        "on-background": "#0b1c30",
+                        "primary-fixed": "#dae2fd",
+                        "primary-fixed-dim": "#bec6e0",
+                        "tertiary-container": "#331200",
+                        "inverse-primary": "#bec6e0",
+                        "on-secondary-fixed": "#00201d",
+                        "on-primary-fixed-variant": "#3f465c",
+                        "on-tertiary-container": "#cf6721",
+                        "on-surface-variant": "#45464d",
+                        "primary-container": "#131b2e",
+                        "on-secondary": "#ffffff",
+                        "on-secondary-fixed-variant": "#005049",
+                        "secondary-container": "#86f2e4",
+                        "surface-dim": "#cbdbf5",
+                        "on-error-container": "#93000a",
+                        "error": "#ba1a1a",
+                        "surface": "#f8f9ff",
+                        "on-tertiary": "#ffffff",
+                        "secondary": "#006a61",
+                        "on-tertiary-fixed": "#331200",
+                        "on-primary": "#ffffff",
+                        "surface-container-low": "#eff4ff",
+                        "outline-variant": "#c6c6cd",
+                        "on-tertiary-fixed-variant": "#763300",
+                        "tertiary-fixed-dim": "#ffb68e",
+                        "secondary-fixed": "#89f5e7",
+                        "surface-container-highest": "#d3e4fe",
+                        "primary": "#000000",
+                        "error-container": "#ffdad6",
+                        "on-primary-fixed": "#131b2e",
+                        "surface-container-lowest": "#ffffff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "section-margin": "32px",
+                        "container-padding": "16px",
+                        "stack-gap-lg": "24px",
+                        "stack-gap-md": "16px",
+                        "unit": "4px",
+                        "stack-gap-sm": "8px"
+                    },
+                    "fontFamily": {
+                        "label-md": ["Inter"],
+                        "display-lg": ["\"Source Serif 4\""],
+                        "headline-md": ["\"Source Serif 4\""],
+                        "headline-sm": ["\"Source Serif 4\""],
+                        "body-lg": ["Inter"],
+                        "headline-lg-mobile": ["\"Source Serif 4\""],
+                        "body-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.5px", "fontWeight": "600" }],
+                        "display-lg": ["32px", { "lineHeight": "40px", "fontWeight": "700" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "headline-lg-mobile": ["28px", { "lineHeight": "36px", "fontWeight": "700" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        
+        .list-item-hover:hover {
+            background-color: theme('colors.surface-container-low');
+        }
+        
+        .divider {
+            border-bottom: 1px solid theme('colors.outline-variant');
+            opacity: 0.5;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface min-h-screen flex flex-col antialiased">
+<!-- TopAppBar -->
+<header class="bg-surface dark:bg-background w-full top-0 sticky border-b border-outline-variant dark:border-outline transition-colors duration-200 flex justify-between items-center px-container-padding py-unit w-full z-10">
+<div class="flex items-center gap-stack-gap-sm hover:bg-surface-container-low dark:hover:bg-surface-container-high rounded p-1 cursor-pointer transition-colors">
+<span aria-hidden="true" class="material-symbols-outlined text-primary dark:text-primary-fixed">menu_book</span>
+<span class="font-headline-md text-headline-md text-primary dark:text-primary-fixed">Scholarly Core</span>
+</div>
+<div class="flex items-center gap-stack-gap-sm md:hidden">
+<span class="font-headline-sm text-headline-sm dark:text-inverse-on-surface">Settings</span>
+</div>
+<!-- Web Nav Cluster -->
+<nav class="hidden md:flex items-center gap-stack-gap-lg">
+<a class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors hover:bg-surface-container-low px-3 py-2 rounded" href="#">Home</a>
+<a class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors hover:bg-surface-container-low px-3 py-2 rounded" href="#">Explore</a>
+<a class="font-label-md text-label-md text-primary dark:text-primary-fixed font-bold border-b-2 border-primary" href="#">Profile</a>
+</nav>
+</header>
+<!-- Main Content -->
+<main class="flex-grow w-full max-w-3xl mx-auto px-container-padding md:px-section-margin py-section-margin pb-[88px] md:pb-section-margin">
+<div class="mb-stack-gap-lg hidden md:block">
+<h1 class="font-display-lg text-display-lg text-on-surface mb-unit">Settings</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">Manage your scholarly profile and preferences.</p>
+</div>
+<div class="flex flex-col gap-stack-gap-lg">
+<!-- Section 1: Account -->
+<section>
+<h2 class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider mb-stack-gap-sm ml-unit">Account</h2>
+<div class="bg-surface border border-outline-variant rounded-lg overflow-hidden shadow-sm shadow-primary/5">
+<button class="w-full flex items-center justify-between p-stack-gap-md list-item-hover transition-colors text-left group">
+<div class="flex flex-col">
+<span class="font-body-lg text-body-lg text-on-surface">Email Address</span>
+<span class="font-body-md text-body-md text-on-surface-variant">dr.researcher@university.edu</span>
+</div>
+<span class="material-symbols-outlined text-outline-variant group-hover:text-primary transition-colors">chevron_right</span>
+</button>
+<div class="divider mx-stack-gap-md"></div>
+<button class="w-full flex items-center justify-between p-stack-gap-md list-item-hover transition-colors text-left group">
+<div class="flex flex-col">
+<span class="font-body-lg text-body-lg text-on-surface">Password</span>
+<span class="font-body-md text-body-md text-on-surface-variant">Last updated 3 months ago</span>
+</div>
+<span class="material-symbols-outlined text-outline-variant group-hover:text-primary transition-colors">chevron_right</span>
+</button>
+<div class="divider mx-stack-gap-md"></div>
+<button class="w-full flex items-center justify-between p-stack-gap-md list-item-hover transition-colors text-left group">
+<div class="flex flex-col">
+<span class="font-body-lg text-body-lg text-on-surface">Security &amp; 2FA</span>
+<span class="font-body-md text-body-md text-on-surface-variant">Enabled</span>
+</div>
+<span class="material-symbols-outlined text-outline-variant group-hover:text-primary transition-colors">chevron_right</span>
+</button>
+</div>
+</section>
+<!-- Section 2: Notifications -->
+<section>
+<h2 class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider mb-stack-gap-sm ml-unit">Notifications</h2>
+<div class="bg-surface border border-outline-variant rounded-lg overflow-hidden shadow-sm shadow-primary/5">
+<button class="w-full flex items-center justify-between p-stack-gap-md list-item-hover transition-colors text-left group">
+<span class="font-body-lg text-body-lg text-on-surface">Push Notifications</span>
+<span class="material-symbols-outlined text-outline-variant group-hover:text-primary transition-colors">chevron_right</span>
+</button>
+<div class="divider mx-stack-gap-md"></div>
+<button class="w-full flex items-center justify-between p-stack-gap-md list-item-hover transition-colors text-left group">
+<span class="font-body-lg text-body-lg text-on-surface">Email Preferences</span>
+<span class="material-symbols-outlined text-outline-variant group-hover:text-primary transition-colors">chevron_right</span>
+</button>
+</div>
+</section>
+<!-- Section 3: Privacy -->
+<section>
+<h2 class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider mb-stack-gap-sm ml-unit">Privacy</h2>
+<div class="bg-surface border border-outline-variant rounded-lg overflow-hidden shadow-sm shadow-primary/5">
+<button class="w-full flex items-center justify-between p-stack-gap-md list-item-hover transition-colors text-left group">
+<div class="flex flex-col">
+<span class="font-body-lg text-body-lg text-on-surface">Profile Visibility</span>
+<span class="font-body-md text-body-md text-on-surface-variant">Public to academic network</span>
+</div>
+<span class="material-symbols-outlined text-outline-variant group-hover:text-primary transition-colors">chevron_right</span>
+</button>
+<div class="divider mx-stack-gap-md"></div>
+<button class="w-full flex items-center justify-between p-stack-gap-md list-item-hover transition-colors text-left group">
+<span class="font-body-lg text-body-lg text-on-surface">Data Management</span>
+<span class="material-symbols-outlined text-outline-variant group-hover:text-primary transition-colors">chevron_right</span>
+</button>
+</div>
+</section>
+<!-- Section 4: About -->
+<section>
+<h2 class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider mb-stack-gap-sm ml-unit">About</h2>
+<div class="bg-surface border border-outline-variant rounded-lg overflow-hidden shadow-sm shadow-primary/5">
+<button class="w-full flex items-center justify-between p-stack-gap-md list-item-hover transition-colors text-left group">
+<span class="font-body-lg text-body-lg text-on-surface">Terms of Service</span>
+<span class="material-symbols-outlined text-outline-variant group-hover:text-primary transition-colors">chevron_right</span>
+</button>
+<div class="divider mx-stack-gap-md"></div>
+<button class="w-full flex items-center justify-between p-stack-gap-md list-item-hover transition-colors text-left group">
+<span class="font-body-lg text-body-lg text-on-surface">Privacy Policy</span>
+<span class="material-symbols-outlined text-outline-variant group-hover:text-primary transition-colors">chevron_right</span>
+</button>
+<div class="divider mx-stack-gap-md"></div>
+<div class="w-full flex items-center justify-between p-stack-gap-md bg-surface-bright text-left">
+<span class="font-body-lg text-body-lg text-on-surface">Version</span>
+<span class="font-body-md text-body-md text-on-surface-variant">v2.4.1 (Build 890)</span>
+</div>
+</div>
+</section>
+<!-- Section 5: Actions -->
+<section class="mt-stack-gap-sm">
+<div class="bg-surface border border-outline-variant rounded-lg overflow-hidden shadow-sm shadow-primary/5">
+<button class="w-full flex items-center justify-center p-stack-gap-md hover:bg-error-container transition-colors text-center">
+<span class="font-label-md text-label-md text-error uppercase tracking-wider">Log Out</span>
+</button>
+</div>
+<div class="mt-stack-gap-md text-center">
+<button class="font-body-md text-body-md text-outline hover:text-error transition-colors underline-offset-4 hover:underline">
+                        Delete Account
+                    </button>
+</div>
+</section>
+</div>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 w-full z-50 bg-surface dark:bg-background border-t border-outline-variant dark:border-outline shadow-sm flex justify-around items-center w-full px-container-padding pb-4 pt-2">
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-lowest dark:hover:bg-surface-container-high scale-95 active:scale-90 transition-transform p-2 rounded w-16" href="#">
+<span aria-hidden="true" class="material-symbols-outlined mb-1">home</span>
+<span class="font-label-md text-label-md">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-lowest dark:hover:bg-surface-container-high scale-95 active:scale-90 transition-transform p-2 rounded w-16" href="#">
+<span aria-hidden="true" class="material-symbols-outlined mb-1">hub</span>
+<span class="font-label-md text-label-md">Explore</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-lowest dark:hover:bg-surface-container-high scale-95 active:scale-90 transition-transform p-2 rounded w-16" href="#">
+<span aria-hidden="true" class="material-symbols-outlined mb-1">add_circle</span>
+<span class="font-label-md text-label-md">Share</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-lowest dark:hover:bg-surface-container-high scale-95 active:scale-90 transition-transform p-2 rounded w-16" href="#">
+<span aria-hidden="true" class="material-symbols-outlined mb-1">notifications</span>
+<span class="font-label-md text-label-md">Alerts</span>
+</a>
+<a class="flex flex-col items-center justify-center text-secondary dark:text-secondary-fixed-dim font-bold hover:bg-surface-container-lowest dark:hover:bg-surface-container-high scale-95 active:scale-90 transition-transform p-2 rounded w-16" href="#">
+<span aria-hidden="true" class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 1;">person</span>
+<span class="font-label-md text-label-md">Profile</span>
+</a>
+</nav>
+</body></html>

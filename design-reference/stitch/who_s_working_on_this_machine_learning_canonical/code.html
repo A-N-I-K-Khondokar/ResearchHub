@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Who's Working On This? - Machine Learning</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "outline-variant": "#c4c5d6",
+                        "on-primary-fixed": "#00164f",
+                        "on-surface": "#1a1b22",
+                        "on-error-container": "#93000a",
+                        "error-container": "#ffdad6",
+                        "secondary-fixed": "#d9e3fb",
+                        "on-primary": "#ffffff",
+                        "on-surface-variant": "#444653",
+                        "secondary": "#555f73",
+                        "tertiary-fixed": "#ffdbcb",
+                        "surface-variant": "#e2e1eb",
+                        "surface-container-high": "#e8e7f1",
+                        "surface-container-highest": "#e2e1eb",
+                        "on-tertiary-fixed-variant": "#783100",
+                        "background": "#faf8ff",
+                        "on-tertiary-container": "#ffd1bb",
+                        "error": "#ba1a1a",
+                        "surface-bright": "#faf8ff",
+                        "outline": "#747685",
+                        "surface-container-low": "#f3f2fd",
+                        "surface-container": "#eeedf7",
+                        "surface-dim": "#dad9e3",
+                        "on-primary-fixed-variant": "#063bae",
+                        "primary-fixed-dim": "#b6c4ff",
+                        "on-tertiary": "#ffffff",
+                        "surface": "#faf8ff",
+                        "primary-fixed": "#dce1ff",
+                        "primary": "#0a3daf",
+                        "surface-tint": "#2f55c6",
+                        "on-secondary-fixed-variant": "#3d475a",
+                        "secondary-container": "#d6e0f8",
+                        "inverse-surface": "#2f3038",
+                        "on-primary-container": "#d2d9ff",
+                        "tertiary": "#7a3200",
+                        "primary-container": "#3157c8",
+                        "on-secondary-container": "#596377",
+                        "surface-container-lowest": "#ffffff",
+                        "on-background": "#1a1b22",
+                        "tertiary-container": "#a04400",
+                        "tertiary-fixed-dim": "#ffb691",
+                        "inverse-primary": "#b6c4ff",
+                        "on-error": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "secondary-fixed-dim": "#bdc7de",
+                        "on-tertiary-fixed": "#341100",
+                        "inverse-on-surface": "#f1f0fa",
+                        "on-secondary-fixed": "#111c2d"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "stack-xl": "32px",
+                        "stack-sm": "8px",
+                        "stack-lg": "24px",
+                        "unit": "8px",
+                        "stack-md": "16px",
+                        "stack-xs": "4px",
+                        "margin-mobile": "16px",
+                        "gutter-mobile": "16px"
+                    },
+                    "fontFamily": {
+                        "display-lg": ["\"Source Serif 4\""],
+                        "label-sm": ["Inter"],
+                        "headline-sm": ["\"Source Serif 4\""],
+                        "headline-lg": ["\"Source Serif 4\""],
+                        "headline-md": ["\"Source Serif 4\""],
+                        "body-sm": ["Inter"],
+                        "label-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "label-md": ["Inter"],
+                        "body-lg": ["Inter"]
+                    },
+                    "fontSize": {
+                        "display-lg": ["32px", { "lineHeight": "40px", "fontWeight": "700" }],
+                        "label-sm": ["10px", { "lineHeight": "12px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "headline-sm": ["18px", { "lineHeight": "24px", "fontWeight": "600" }],
+                        "headline-lg": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "body-sm": ["12px", { "lineHeight": "18px", "fontWeight": "400" }],
+                        "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background text-on-background antialiased min-h-screen pb-24 md:pb-0 pt-[72px]">
+<!-- TopAppBar -->
+<header class="fixed top-0 left-0 right-0 z-50 bg-surface dark:bg-background border-b border-outline-variant dark:border-on-surface-variant w-full px-4 py-3 flex justify-between items-center h-[72px]">
+<div class="flex items-center gap-4">
+<button class="h-11 w-11 flex items-center justify-center rounded-full hover:bg-surface-container-low dark:hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-primary dark:text-primary-fixed" data-icon="menu">menu</span>
+</button>
+<div class="h-10 w-10 rounded-full overflow-hidden flex-shrink-0 bg-surface-variant">
+<img class="w-full h-full object-cover" data-alt="A professional headshot of an academic researcher with a neutral background, conveying intelligence and authority. The lighting is soft and even, highlighting their features clearly against a light backdrop." src="https://lh3.googleusercontent.com/aida-public/AB6AXuABgKxrZQbfpHqLwg3UcbAkiM7kZb6cdMLUHeCER20jbFKio8yBNIIAw7FYwrdTsJex-xkHPwQppPzUPHrkgzI_pM9Lm5OybLVsmWxI5NrBsorhgIOpoFaj2OIene7c_z2XTiFgKh1uP3klR1qxRKCbBxM8nwEo-H7D2SOwjNz6PbD0zV7W5p2oBfAtXRenW_xzwblOOUHihgha0Dlr1Gb0jFAQkQI8-7zBWLcrv8jo5zZxlBVMI1s8"/>
+</div>
+</div>
+<h1 class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed text-center flex-1 truncate px-4">
+            CSE Research Hub
+        </h1>
+<button class="h-11 w-11 flex items-center justify-center rounded-full hover:bg-surface-container-low dark:hover:bg-surface-container-high transition-colors active:scale-95 duration-100">
+<span class="material-symbols-outlined text-primary dark:text-on-primary-container" data-icon="search">search</span>
+</button>
+<!-- Desktop Nav Cluster (Hidden on Mobile) -->
+<nav class="hidden md:flex items-center gap-6 pr-4 ml-4">
+<a class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors flex items-center gap-2 py-2" href="#">
+<span class="material-symbols-outlined" data-icon="dynamic_feed">dynamic_feed</span>
+                Feed
+            </a>
+<a class="font-label-md text-label-md text-primary font-bold hover:text-primary transition-colors flex items-center gap-2 py-2 border-b-2 border-primary" href="#">
+<span class="material-symbols-outlined" data-icon="search" style="font-variation-settings: 'FILL' 1;">search</span>
+                Explore
+            </a>
+<a class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors flex items-center gap-2 py-2" href="#">
+<span class="material-symbols-outlined" data-icon="group">group</span>
+                Network
+            </a>
+<a class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors flex items-center gap-2 py-2" href="#">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+                Profile
+            </a>
+</nav>
+</header>
+<main class="max-w-5xl mx-auto px-4 md:px-8 py-8">
+<!-- Page Header -->
+<div class="mb-stack-lg">
+<div class="flex items-center gap-2 text-primary mb-2">
+<span class="material-symbols-outlined text-[20px]" data-icon="arrow_back">arrow_back</span>
+<span class="font-label-md text-label-md cursor-pointer hover:underline">Back to Explore</span>
+</div>
+<h2 class="font-display-lg text-display-lg text-on-surface mb-2">Machine Learning</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant">Researchers in your department exploring algorithms and statistical models.</p>
+</div>
+<!-- Filter / Utility Bar -->
+<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-stack-lg gap-4">
+<div class="flex gap-2 overflow-x-auto pb-2 sm:pb-0 w-full sm:w-auto">
+<button class="px-4 h-10 rounded-full border border-primary text-primary font-label-md text-label-md whitespace-nowrap bg-surface transition-colors flex items-center justify-center">
+                    All
+                </button>
+<button class="px-4 h-10 rounded-full bg-surface-container-low text-on-surface-variant font-label-md text-label-md whitespace-nowrap border border-outline-variant hover:border-primary transition-colors flex items-center justify-center">
+                    Faculty
+                </button>
+<button class="px-4 h-10 rounded-full bg-surface-container-low text-on-surface-variant font-label-md text-label-md whitespace-nowrap border border-outline-variant hover:border-primary transition-colors flex items-center justify-center">
+                    Students
+                </button>
+</div>
+<div class="relative w-full sm:w-64">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline" data-icon="filter_list">filter_list</span>
+<select class="w-full h-10 pl-10 pr-8 py-2 rounded-lg border border-outline-variant bg-surface text-on-surface font-body-sm text-body-sm appearance-none focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary">
+<option>Sort by: Most Relevant</option>
+<option>Sort by: Name (A-Z)</option>
+<option>Sort by: Recent Activity</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none" data-icon="expand_more">expand_more</span>
+</div>
+</div>
+<!-- Researcher Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-stack-md">
+<!-- Card 1 -->
+<article class="bg-surface rounded-xl border border-outline-variant p-6 shadow-[0px_2px_4px_rgba(23,32,51,0.04)] hover:shadow-[0px_4px_12px_rgba(23,32,51,0.08)] transition-shadow duration-200 flex flex-col relative overflow-hidden group">
+<div class="absolute top-0 left-0 w-1 h-full bg-primary transform origin-bottom scale-y-0 group-hover:scale-y-100 transition-transform duration-300 ease-out"></div>
+<div class="flex items-start gap-4 mb-4">
+<div class="w-20 h-20 rounded-full overflow-hidden border border-outline-variant flex-shrink-0">
+<img class="w-full h-full object-cover" data-alt="A portrait of a male computer science researcher in his late twenties, looking thoughtfully at the camera. He is wearing glasses and a casual collared shirt. The background is slightly blurred, showing a modern laboratory setting with soft, cool lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAIX-1PhWMdVAJ5-BxB9la8UI1IAeHQO1-u9cPp6YqatvyplRCtQ8vssi_YXco2yDi4-3cI6teH61KIRC5yd9Ub1Io3G55cpl0phCxbmEpkoHKjlvDidfSewB287NLQj8ZxR01_lLF_fIIQM8FKtQqyftm-PTXE-r3j9BJt71WJZ1nvPU3qH90VcGsibb1xdqG4bAsUBLhWnq8xHcgFFESnn44fMaUjKQTqntWEOuIOajrr5sxw90y9"/>
+</div>
+<div class="flex-1">
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Anik Khondokar</h3>
+<p class="font-body-sm text-body-sm text-secondary mb-2">CSE • Batch 14 • M.Sc. Candidate</p>
+<div class="flex flex-wrap gap-2">
+<span class="px-2 py-1 rounded bg-secondary-container text-on-secondary-container font-label-sm text-label-sm">Machine Learning</span>
+<span class="px-2 py-1 rounded bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm">Computer Vision</span>
+</div>
+</div>
+</div>
+<div class="flex-1 bg-surface-container-low rounded-lg p-4 mb-4 border-l-2 border-primary-container">
+<p class="font-label-sm text-label-sm text-primary uppercase mb-1 tracking-wider">Currently Working On</p>
+<h4 class="font-body-md text-body-md text-on-surface font-semibold">Traffic Sign Recognition for Autonomous Vehicles in South Asia</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1 line-clamp-2">Developing robust CNN models to identify degraded and non-standard traffic signs in challenging lighting conditions.</p>
+</div>
+<div class="flex items-center gap-3 mt-auto pt-4 border-t border-outline-variant">
+<button class="flex-1 h-11 rounded-lg bg-primary-container text-on-primary font-label-md text-label-md hover:bg-primary transition-colors flex items-center justify-center gap-2">
+                        View Profile
+                    </button>
+<button class="flex-1 h-11 rounded-lg border border-outline-variant text-primary font-label-md text-label-md hover:bg-surface-container-low transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]" data-icon="person_add">person_add</span>
+                        Connect
+                    </button>
+</div>
+</article>
+<!-- Card 2 -->
+<article class="bg-surface rounded-xl border border-outline-variant p-6 shadow-[0px_2px_4px_rgba(23,32,51,0.04)] hover:shadow-[0px_4px_12px_rgba(23,32,51,0.08)] transition-shadow duration-200 flex flex-col relative overflow-hidden group">
+<div class="absolute top-0 left-0 w-1 h-full bg-primary transform origin-bottom scale-y-0 group-hover:scale-y-100 transition-transform duration-300 ease-out"></div>
+<div class="flex items-start gap-4 mb-4">
+<div class="w-20 h-20 rounded-full overflow-hidden border border-outline-variant flex-shrink-0">
+<img class="w-full h-full object-cover" data-alt="A portrait of a female academic researcher in her early thirties, smiling warmly. She is wearing a professional blazer. The background is a well-lit modern office environment with a whiteboard and academic posters out of focus, indicating a scholarly atmosphere." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBxlEm6P7ftJW0iGlYmAcf2OUP4N_M4OEAvHdT_HHxKCUz_dFFEOARNyQooEf6G1YRPx6JdgcXsgqON-Nh30-pc0zwa9MHEpPs2b5BN4ePakdyEokeLq_EMquJ9KCselskSI7zWFPrDYDWDpzDwAFvG5UWWrOHr0snZQ5x-gsrFLMk_9_Yh_teEo0jVwZMmga63LZz4_4IsZWRGVa1XtGuGivvaQ4Bt4axTCJ6OKpL4wtdjwiSclX5x"/>
+</div>
+<div class="flex-1">
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Mou Tusi</h3>
+<p class="font-body-sm text-body-sm text-secondary mb-2">CSE • Faculty • Assistant Professor</p>
+<div class="flex flex-wrap gap-2">
+<span class="px-2 py-1 rounded bg-secondary-container text-on-secondary-container font-label-sm text-label-sm">Machine Learning</span>
+<span class="px-2 py-1 rounded bg-tertiary-container text-on-tertiary-container font-label-sm text-label-sm opacity-80">NLP</span>
+<span class="px-2 py-1 rounded bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm">AI Ethics</span>
+</div>
+</div>
+</div>
+<div class="flex-1 bg-surface-container-low rounded-lg p-4 mb-4 border-l-2 border-primary-container">
+<p class="font-label-sm text-label-sm text-primary uppercase mb-1 tracking-wider">Currently Working On</p>
+<h4 class="font-body-md text-body-md text-on-surface font-semibold">Bangla Question Answering Systems via Large Language Models</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1 line-clamp-2">Fine-tuning transformer models on diverse regional dialects to improve accessibility for non-English speakers.</p>
+</div>
+<div class="flex items-center gap-3 mt-auto pt-4 border-t border-outline-variant">
+<button class="flex-1 h-11 rounded-lg bg-primary-container text-on-primary font-label-md text-label-md hover:bg-primary transition-colors flex items-center justify-center gap-2">
+                        View Profile
+                    </button>
+<button class="flex-1 h-11 rounded-lg border border-outline-variant text-primary font-label-md text-label-md hover:bg-surface-container-low transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]" data-icon="person_add">person_add</span>
+                        Connect
+                    </button>
+</div>
+</article>
+<!-- Card 3 -->
+<article class="bg-surface rounded-xl border border-outline-variant p-6 shadow-[0px_2px_4px_rgba(23,32,51,0.04)] hover:shadow-[0px_4px_12px_rgba(23,32,51,0.08)] transition-shadow duration-200 flex flex-col relative overflow-hidden group">
+<div class="absolute top-0 left-0 w-1 h-full bg-primary transform origin-bottom scale-y-0 group-hover:scale-y-100 transition-transform duration-300 ease-out"></div>
+<div class="flex items-start gap-4 mb-4">
+<div class="w-20 h-20 rounded-full overflow-hidden border border-outline-variant flex-shrink-0">
+<img class="w-full h-full object-cover" data-alt="A candid portrait of a young male university student in his early twenties, looking engaged and focused. He has dark hair and is wearing a dark, simple t-shirt. The setting is a campus library with natural light streaming through a window, creating a studious mood." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD63QjBeHgKu4ixwBm9ssmf1ISqFnGpATKDx1TCb1nGL0T2W48QyI434GnjKcUdAiO387PkR3aTStTlbIKsMRufde3wAPMzuIDZafPWPukToFFxKf1OVJsZcpBq__YyDocxy-Lco54DAmunUckhzt69jYJ4qLgWotHl3Q4M9sEtdSI5Y9CzFgMxRgtBa5YdbbMnZubLDII7CUdSLESyprR3blTJxgYIa_RPi3gtfJflZlh8M35X6W1S"/>
+</div>
+<div class="flex-1">
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Sojib Rahman</h3>
+<p class="font-body-sm text-body-sm text-secondary mb-2">CSE • Batch 16 • Undergraduate Researcher</p>
+<div class="flex flex-wrap gap-2">
+<span class="px-2 py-1 rounded bg-secondary-container text-on-secondary-container font-label-sm text-label-sm">Machine Learning</span>
+<span class="px-2 py-1 rounded bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm">Data Mining</span>
+</div>
+</div>
+</div>
+<div class="flex-1 bg-surface-container-low rounded-lg p-4 mb-4 border-l-2 border-primary-container">
+<p class="font-label-sm text-label-sm text-primary uppercase mb-1 tracking-wider">Currently Working On</p>
+<h4 class="font-body-md text-body-md text-on-surface font-semibold">Predictive Models for Student Dropout Rates</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1 line-clamp-2">Analyzing early semester performance metrics using random forest algorithms to identify at-risk students for intervention.</p>
+</div>
+<div class="flex items-center gap-3 mt-auto pt-4 border-t border-outline-variant">
+<button class="flex-1 h-11 rounded-lg bg-primary-container text-on-primary font-label-md text-label-md hover:bg-primary transition-colors flex items-center justify-center gap-2">
+                        View Profile
+                    </button>
+<button class="flex-1 h-11 rounded-lg border border-outline-variant text-primary font-label-md text-label-md hover:bg-surface-container-low transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]" data-icon="person_add">person_add</span>
+                        Connect
+                    </button>
+</div>
+</article>
+<!-- Card 4 -->
+<article class="bg-surface rounded-xl border border-outline-variant p-6 shadow-[0px_2px_4px_rgba(23,32,51,0.04)] hover:shadow-[0px_4px_12px_rgba(23,32,51,0.08)] transition-shadow duration-200 flex flex-col relative overflow-hidden group">
+<div class="absolute top-0 left-0 w-1 h-full bg-primary transform origin-bottom scale-y-0 group-hover:scale-y-100 transition-transform duration-300 ease-out"></div>
+<div class="flex items-start gap-4 mb-4">
+<div class="w-20 h-20 rounded-full overflow-hidden border border-outline-variant flex-shrink-0">
+<img class="w-full h-full object-cover" data-alt="A portrait of a male researcher in his mid-thirties with a neatly trimmed beard, looking directly at the viewer with a confident expression. The lighting is high-key and professional. The background implies a corporate or high-tech university research lab with clean lines and white tones." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBz870bbAi1vYia7daEemz37hqO_szqhdUi1venBFhkt1rL4Ds4GcI03N0FLhSs0CzcXN5Cmgkwdm7XEVQZSAMlYIOyCJPcaRzgYq43hw_ugY4CPM7imGFeaClhIES8NnlQ8B9wIGmxrK9cuVZKovYqRGPAZEN3X_d4icg8OGQ_L_Docw7d2dRg_nXUYMqk-4Y8l7zaZfQAE-3iP46dYtF9Q4cD4iPtSr0x4eAM_ZE0dsgHzNGhM98O"/>
+</div>
+<div class="flex-1">
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Ramish Hassan</h3>
+<p class="font-body-sm text-body-sm text-secondary mb-2">CSE • Batch 12 • Ph.D. Candidate</p>
+<div class="flex flex-wrap gap-2">
+<span class="px-2 py-1 rounded bg-secondary-container text-on-secondary-container font-label-sm text-label-sm">Machine Learning</span>
+<span class="px-2 py-1 rounded bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm">Reinforcement Learning</span>
+<span class="px-2 py-1 rounded bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm">Robotics</span>
+</div>
+</div>
+</div>
+<div class="flex-1 bg-surface-container-low rounded-lg p-4 mb-4 border-l-2 border-primary-container">
+<p class="font-label-sm text-label-sm text-primary uppercase mb-1 tracking-wider">Currently Working On</p>
+<h4 class="font-body-md text-body-md text-on-surface font-semibold">Adaptive Path Planning in Dynamic Environments</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1 line-clamp-2">Utilizing deep reinforcement learning to allow robotic agents to navigate unpredictable and unstructured terrains efficiently.</p>
+</div>
+<div class="flex items-center gap-3 mt-auto pt-4 border-t border-outline-variant">
+<button class="flex-1 h-11 rounded-lg bg-primary-container text-on-primary font-label-md text-label-md hover:bg-primary transition-colors flex items-center justify-center gap-2">
+                        View Profile
+                    </button>
+<button class="flex-1 h-11 rounded-lg border border-outline-variant text-primary font-label-md text-label-md hover:bg-surface-container-low transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]" data-icon="person_add">person_add</span>
+                        Connect
+                    </button>
+</div>
+</article>
+</div>
+<!-- Pagination -->
+<div class="mt-stack-lg flex justify-center items-center gap-2">
+<button class="w-10 h-10 rounded-lg border border-outline-variant flex items-center justify-center text-on-surface-variant hover:bg-surface-container-low disabled:opacity-50" disabled="">
+<span class="material-symbols-outlined" data-icon="chevron_left">chevron_left</span>
+</button>
+<button class="w-10 h-10 rounded-lg bg-primary text-on-primary font-label-md text-label-md flex items-center justify-center">1</button>
+<button class="w-10 h-10 rounded-lg border border-outline-variant text-on-surface hover:bg-surface-container-low font-label-md text-label-md flex items-center justify-center">2</button>
+<button class="w-10 h-10 rounded-lg border border-outline-variant text-on-surface hover:bg-surface-container-low font-label-md text-label-md flex items-center justify-center">3</button>
+<span class="text-on-surface-variant px-2">...</span>
+<button class="w-10 h-10 rounded-lg border border-outline-variant flex items-center justify-center text-on-surface hover:bg-surface-container-low">
+<span class="material-symbols-outlined" data-icon="chevron_right">chevron_right</span>
+</button>
+</div>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-4 pt-2 bg-surface-container-lowest dark:bg-surface-container border-t border-outline-variant dark:border-on-surface-variant shadow-sm">
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant p-2 hover:text-secondary dark:hover:text-secondary-fixed w-16" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="dynamic_feed">dynamic_feed</span>
+<span class="font-label-md text-label-md text-[10px]">Feed</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-secondary-container dark:bg-secondary text-on-secondary-container dark:text-on-secondary rounded-xl px-4 py-1 opacity-80 transition-all w-16" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="search" style="font-variation-settings: 'FILL' 1;">search</span>
+<span class="font-label-md text-label-md text-[10px] font-bold">Explore</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant p-2 hover:text-secondary dark:hover:text-secondary-fixed w-16" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="group">group</span>
+<span class="font-label-md text-label-md text-[10px]">Network</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant p-2 hover:text-secondary dark:hover:text-secondary-fixed w-16" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="mail">mail</span>
+<span class="font-label-md text-label-md text-[10px]">Messages</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant p-2 hover:text-secondary dark:hover:text-secondary-fixed w-16" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="account_circle">account_circle</span>
+<span class="font-label-md text-label-md text-[10px]">Profile</span>
+</a>
+</nav>
+</body></html>
