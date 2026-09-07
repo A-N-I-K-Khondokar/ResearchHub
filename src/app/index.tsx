@@ -32,6 +32,14 @@ export default function EntryScreen() {
     { name: 'Step 5: Ready to Explore', path: '/(onboarding)/ready' },
   ];
 
+  const tabRoutes = [
+    { name: 'Home Feed (Canonical Phase 2B)', path: '/(tabs)' },
+    { name: 'Explore (Placeholder)', path: '/(tabs)/explore' },
+    { name: 'Share (Placeholder)', path: '/(tabs)/share' },
+    { name: 'Notifications (Placeholder)', path: '/(tabs)/notifications' },
+    { name: 'Profile (Placeholder)', path: '/(tabs)/profile' },
+  ];
+
   return (
     <ScreenContainer scrollable>
       <View style={styles.container}>
@@ -42,7 +50,7 @@ export default function EntryScreen() {
           </View>
           <Text style={styles.appTitle}>CSE Research Hub</Text>
           <Text style={styles.subtitle}>
-            Phase 2A — Authentication & Onboarding Flow
+            Phase 2B — Main Shell, Home Feed & Mock Data
           </Text>
         </View>
 
@@ -50,21 +58,45 @@ export default function EntryScreen() {
         <View style={styles.heroCard}>
           <View style={styles.heroHeader}>
             <Sparkles size={20} color={colors.primary} />
-            <Text style={styles.heroBadgeText}>Canonical User Flow</Text>
+            <Text style={styles.heroBadgeText}>Phase 2B Experience</Text>
           </View>
-          <Text style={styles.heroTitle}>Start Full Authentication Journey</Text>
+          <Text style={styles.heroTitle}>Launch Main Research Hub</Text>
           <Text style={styles.heroDescription}>
-            Experience the complete linear flow from Splash &rarr; Login &rarr; Verify &rarr; 5-Step Onboarding.
+            Explore the 5-Tab Navigation shell with the high-fidelity Home Feed and local mock research data.
           </Text>
           <Button
-            label="Launch Splash & Auth Flow"
-            onPress={() => router.push('/(auth)/splash' as any)}
+            label="Open Home Feed & 5 Tabs"
+            onPress={() => router.push('/(tabs)' as any)}
             variant="primary"
             size="lg"
             icon={<Play size={18} color={colors.textInverse} fill={colors.textInverse} />}
             fullWidth
             style={styles.heroButton}
           />
+        </View>
+
+        {/* 5 Tabs Direct Jump */}
+        <View style={styles.section}>
+          <View style={styles.sectionTitleRow}>
+            <Compass size={18} color={colors.primary} />
+            <Text style={styles.sectionTitle}>Main Tab Shell (5 Tabs)</Text>
+          </View>
+          <View style={styles.cardList}>
+            {tabRoutes.map((route, idx) => (
+              <TouchableOpacity
+                key={route.path}
+                activeOpacity={0.7}
+                onPress={() => router.push(route.path as any)}
+                style={[
+                  styles.navItem,
+                  idx === tabRoutes.length - 1 && styles.navItemLast,
+                ]}
+              >
+                <Text style={styles.navItemText}>{route.name}</Text>
+                <ArrowRight size={16} color={colors.textSecondary} />
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
 
         {/* Auth Screens Direct Jump */}

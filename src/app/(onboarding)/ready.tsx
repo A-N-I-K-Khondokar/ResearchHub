@@ -9,16 +9,7 @@ export default function ReadyToExploreScreen() {
   const router = useRouter();
 
   const handleFinish = () => {
-    Alert.alert(
-      'Onboarding Complete 🎉',
-      'Your CSE Research Hub profile has been set up successfully. Ready for Phase 2B (Home & Exploration).',
-      [
-        {
-          text: 'Return to Hub Entry',
-          onPress: () => router.replace('/' as any),
-        },
-      ]
-    );
+    router.replace('/(tabs)' as any);
   };
 
   return (

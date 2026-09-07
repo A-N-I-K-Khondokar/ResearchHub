@@ -1,3 +1,16 @@
+export interface Topic {
+  id: string;
+  name: string;
+  slug: string;
+  category: string;
+  icon?: string;
+  iconName?: string;
+  researchersCount: number;
+  currentWorkCount: number;
+  activeCount?: number;
+  description?: string;
+}
+
 export interface UserProfile {
   id: string;
   name: string;
@@ -7,7 +20,11 @@ export interface UserProfile {
   designation?: string;
   bio?: string;
   photoURL?: string | null;
+  avatar?: string | null;
   interests: string[];
+  researchInterests?: string[];
+  currentWorkIds?: string[];
+  publicationIds?: string[];
   googleScholarURL?: string;
   researchGateURL?: string;
   githubURL?: string;
@@ -15,19 +32,31 @@ export interface UserProfile {
   connectionsCount?: number;
   currentWorkCount?: number;
   publicationsCount?: number;
+  sharedInterestsCount?: number;
+  isConnected?: boolean;
+  connectionStatus?: 'none' | 'pending' | 'connected';
 }
 
 export interface CurrentWork {
   id: string;
   userId: string;
+  researcherId?: string;
   authorName: string;
-  authorDepartment: string;
+  authorDepartment?: string;
+  authorBatch?: string;
+  authorDesignation?: string;
   authorPhotoURL?: string | null;
+  authorAvatar?: string | null;
   title: string;
   description: string;
+  shortDescription?: string;
   topics: string[];
-  stage?: 'Ideation' | 'Data Collection' | 'Experimentation' | 'Drafting' | 'Pre-print' | 'In Review';
+  stage?: 'Ideation' | 'Data Collection' | 'Experimentation' | 'Drafting' | 'Pre-print' | 'In Review' | 'Model Training' | 'Paper Drafting' | 'System Building' | string;
   externalURL?: string;
+  likesCount?: number;
+  commentsCount?: number;
+  isBookmarked?: boolean;
+  isLiked?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -36,18 +65,23 @@ export interface ResearchPublication {
   id: string;
   userId: string;
   authorName: string;
-  authorDepartment: string;
+  authors?: string[];
+  authorDepartment?: string;
+  authorBatch?: string;
   authorPhotoURL?: string | null;
   coAuthors?: string[];
   title: string;
   overview: string;
-  type: 'Conference' | 'Journal' | 'Workshop' | 'Thesis' | 'Preprint';
+  abstract?: string;
+  type: 'Conference' | 'Journal' | 'Workshop' | 'Thesis' | 'Preprint' | string;
   venue: string;
   year: number;
-  externalURL: string;
+  externalURL?: string;
+  externalUrl?: string;
   doi?: string;
   topics: string[];
-  createdAt: string;
+  isBookmarked?: boolean;
+  createdAt?: string;
 }
 
 export interface ConnectionRequest {
