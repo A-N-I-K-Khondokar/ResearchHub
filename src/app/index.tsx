@@ -1,139 +1,117 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Alert } from 'react-native';
-import { Sparkles, CheckCircle2 } from 'lucide-react-native';
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { useRouter } from 'expo-router';
 import {
-  ScreenContainer,
-  Avatar,
-  Button,
-  TopicChip,
-  SearchBar,
-  SectionHeader,
-} from '@/components';
-import { colors, spacing, radius, typography, shadows } from '@/constants';
+  Play,
+  ShieldCheck,
+  Compass,
+  ArrowRight,
+  GraduationCap,
+  Sparkles,
+} from 'lucide-react-native';
+import { ScreenContainer, Button } from '@/components';
+import { colors, radius, spacing, typography, shadows } from '@/constants';
 
-export default function FoundationVerificationScreen() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedTopic, setSelectedTopic] = useState('Machine Learning');
-  const [btnLoading, setBtnLoading] = useState(false);
+export default function EntryScreen() {
+  const router = useRouter();
 
-  const handleButtonPress = () => {
-    setBtnLoading(true);
-    setTimeout(() => {
-      setBtnLoading(false);
-      Alert.alert(
-        'Phase 1 Verified',
-        'Foundation architecture, design tokens, and reusable components are working properly.'
-      );
-    }, 600);
-  };
+  const authRoutes = [
+    { name: 'Splash (Brand Entry)', path: '/(auth)/splash' },
+    { name: 'Login Screen', path: '/(auth)/login' },
+    { name: 'Create Account / Sign Up', path: '/(auth)/sign-up' },
+    { name: 'Verify Email', path: '/(auth)/verify-email' },
+    { name: 'Forgot Password', path: '/(auth)/forgot-password' },
+    { name: 'Password Reset Success', path: '/(auth)/forgot-password-success' },
+  ];
+
+  const onboardingRoutes = [
+    { name: 'Step 1: Welcome', path: '/(onboarding)/welcome' },
+    { name: 'Step 2: Research Interests', path: '/(onboarding)/interests' },
+    { name: 'Step 3: Current Work', path: '/(onboarding)/current-work' },
+    { name: 'Step 4: External Profiles', path: '/(onboarding)/external-profiles' },
+    { name: 'Step 5: Ready to Explore', path: '/(onboarding)/ready' },
+  ];
 
   return (
     <ScreenContainer scrollable>
-      {/* Header Banner */}
-      <View style={styles.header}>
-        <View style={styles.badgeRow}>
-          <View style={styles.statusPill}>
-            <CheckCircle2 size={12} color={colors.secondaryDark} />
-            <Text style={styles.statusPillText}>Phase 1 — Foundation Initialized</Text>
+      <View style={styles.container}>
+        {/* Header Banner */}
+        <View style={styles.header}>
+          <View style={styles.logoBadge}>
+            <GraduationCap size={28} color={colors.primary} />
           </View>
+          <Text style={styles.appTitle}>CSE Research Hub</Text>
+          <Text style={styles.subtitle}>
+            Phase 2A — Authentication & Onboarding Flow
+          </Text>
         </View>
-        <Text style={styles.appTitle}>CSE Research Hub</Text>
-        <Text style={styles.subtitle}>
-          Technical verification of base components, design tokens, and Expo Router.
-        </Text>
-      </View>
 
-      {/* Component Verification Card */}
-      <View style={styles.card}>
-        <SectionHeader
-          title="Base Components"
-          subtitle="Tokens & Component Library Verification"
-        />
-
-        {/* Search Bar */}
-        <View style={styles.section}>
-          <Text style={styles.componentLabel}>1. Search Bar</Text>
-          <SearchBar
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholder="Search researchers, topics, papers..."
-            onFilterPress={() => Alert.alert('Filter', 'Filter modal trigger works.')}
+        {/* Primary Interactive Flow Launcher */}
+        <View style={styles.heroCard}>
+          <View style={styles.heroHeader}>
+            <Sparkles size={20} color={colors.primary} />
+            <Text style={styles.heroBadgeText}>Canonical User Flow</Text>
+          </View>
+          <Text style={styles.heroTitle}>Start Full Authentication Journey</Text>
+          <Text style={styles.heroDescription}>
+            Experience the complete linear flow from Splash &rarr; Login &rarr; Verify &rarr; 5-Step Onboarding.
+          </Text>
+          <Button
+            label="Launch Splash & Auth Flow"
+            onPress={() => router.push('/(auth)/splash' as any)}
+            variant="primary"
+            size="lg"
+            icon={<Play size={18} color={colors.textInverse} fill={colors.textInverse} />}
+            fullWidth
+            style={styles.heroButton}
           />
         </View>
 
-        {/* Topic Chips */}
+        {/* Auth Screens Direct Jump */}
         <View style={styles.section}>
-          <Text style={styles.componentLabel}>2. Topic Chips (Categorical)</Text>
-          <View style={styles.chipRow}>
-            {['Machine Learning', 'Bangla NLP', 'Computer Vision', 'Security'].map((topic) => (
-              <TopicChip
-                key={topic}
-                label={topic}
-                selected={selectedTopic === topic}
-                onPress={() => setSelectedTopic(topic)}
-                variant={topic === 'Bangla NLP' ? 'teal' : 'default'}
-              />
+          <View style={styles.sectionTitleRow}>
+            <ShieldCheck size={18} color={colors.primary} />
+            <Text style={styles.sectionTitle}>Authentication Screens (6)</Text>
+          </View>
+          <View style={styles.cardList}>
+            {authRoutes.map((route, idx) => (
+              <TouchableOpacity
+                key={route.path}
+                activeOpacity={0.7}
+                onPress={() => router.push(route.path as any)}
+                style={[
+                  styles.navItem,
+                  idx === authRoutes.length - 1 && styles.navItemLast,
+                ]}
+              >
+                <Text style={styles.navItemText}>{route.name}</Text>
+                <ArrowRight size={16} color={colors.textSecondary} />
+              </TouchableOpacity>
             ))}
           </View>
         </View>
 
-        {/* Avatars */}
+        {/* Onboarding Screens Direct Jump */}
         <View style={styles.section}>
-          <Text style={styles.componentLabel}>3. Researcher Avatars</Text>
-          <View style={styles.avatarRow}>
-            <Avatar name="Anik Khondokar" size="lg" badge />
-            <Avatar name="Dr. Elena Rostova" size="md" />
-            <Avatar name="Mou Tusi" size="sm" />
-            <Avatar name="Tahmid Hasan" size="xs" />
+          <View style={styles.sectionTitleRow}>
+            <Compass size={18} color={colors.secondaryDark} />
+            <Text style={styles.sectionTitle}>Onboarding Wizard Screens (5)</Text>
           </View>
-        </View>
-
-        {/* Buttons */}
-        <View style={styles.section}>
-          <Text style={styles.componentLabel}>4. Button Variants</Text>
-          <View style={styles.buttonStack}>
-            <Button
-              label="Test Primary Action"
-              onPress={handleButtonPress}
-              variant="primary"
-              loading={btnLoading}
-              icon={<Sparkles size={16} color={colors.textInverse} />}
-              fullWidth
-            />
-            <Button
-              label="Secondary Outline Action"
-              onPress={() => Alert.alert('Secondary', 'Secondary button clicked')}
-              variant="outline"
-              fullWidth
-              style={styles.btnSecondary}
-            />
-          </View>
-        </View>
-      </View>
-
-      {/* Design Tokens Reference Card */}
-      <View style={[styles.card, styles.tokenCard]}>
-        <SectionHeader title="Active Design Tokens" />
-        <View style={styles.tokenGrid}>
-          <View style={styles.tokenItem}>
-            <View style={[styles.colorSwatch, { backgroundColor: colors.primary }]} />
-            <Text style={styles.tokenText}>Primary</Text>
-            <Text style={styles.tokenHex}>#3157C8</Text>
-          </View>
-          <View style={styles.tokenItem}>
-            <View style={[styles.colorSwatch, { backgroundColor: colors.secondary }]} />
-            <Text style={styles.tokenText}>Secondary</Text>
-            <Text style={styles.tokenHex}>#159A9C</Text>
-          </View>
-          <View style={styles.tokenItem}>
-            <View style={[styles.colorSwatch, { backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border }]} />
-            <Text style={styles.tokenText}>Background</Text>
-            <Text style={styles.tokenHex}>#F6F8FC</Text>
-          </View>
-          <View style={styles.tokenItem}>
-            <View style={[styles.colorSwatch, { backgroundColor: colors.textPrimary }]} />
-            <Text style={styles.tokenText}>Text</Text>
-            <Text style={styles.tokenHex}>#172033</Text>
+          <View style={styles.cardList}>
+            {onboardingRoutes.map((route, idx) => (
+              <TouchableOpacity
+                key={route.path}
+                activeOpacity={0.7}
+                onPress={() => router.push(route.path as any)}
+                style={[
+                  styles.navItem,
+                  idx === onboardingRoutes.length - 1 && styles.navItemLast,
+                ]}
+              >
+                <Text style={styles.navItemText}>{route.name}</Text>
+                <ArrowRight size={16} color={colors.textSecondary} />
+              </TouchableOpacity>
+            ))}
           </View>
         </View>
       </View>
@@ -142,96 +120,107 @@ export default function FoundationVerificationScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: {
+  container: {
     paddingVertical: spacing.lg,
   },
-  badgeRow: {
-    flexDirection: 'row',
-    marginBottom: spacing.sm,
-  },
-  statusPill: {
-    flexDirection: 'row',
+  header: {
     alignItems: 'center',
-    backgroundColor: colors.secondaryLight,
-    paddingHorizontal: spacing.sm + 2,
-    paddingVertical: spacing.xs,
-    borderRadius: radius.full,
-    gap: 4,
+    marginBottom: spacing.lg,
   },
-  statusPillText: {
-    ...typography.caption,
-    color: colors.secondaryDark,
-    fontWeight: '600',
+  logoBadge: {
+    width: 54,
+    height: 54,
+    borderRadius: radius.md,
+    backgroundColor: colors.primaryMuted,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.sm,
   },
   appTitle: {
     ...typography.display,
+    fontSize: 26,
+    lineHeight: 34,
     color: colors.textPrimary,
   },
   subtitle: {
     ...typography.subhead,
     color: colors.textSecondary,
+    marginTop: 2,
+  },
+  heroCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+    borderColor: colors.primaryLight,
+    padding: spacing.cardPadding,
+    marginBottom: spacing.xl,
+    ...shadows.elevated,
+  },
+  heroHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginBottom: spacing.xs,
+  },
+  heroBadgeText: {
+    ...typography.caption,
+    color: colors.primary,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  heroTitle: {
+    ...typography.headline,
+    color: colors.textPrimary,
+    marginBottom: spacing.xs,
+  },
+  heroDescription: {
+    ...typography.body,
+    color: colors.textSecondary,
+    marginBottom: spacing.md,
+    lineHeight: 20,
+  },
+  heroButton: {
     marginTop: spacing.xs,
   },
-  card: {
+  section: {
+    marginBottom: spacing.lg,
+  },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs + 2,
+    marginBottom: spacing.sm,
+  },
+  sectionTitle: {
+    ...typography.title,
+    fontSize: 16,
+    color: colors.textPrimary,
+  },
+  cardList: {
     backgroundColor: colors.surface,
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.border,
-    padding: spacing.cardPadding,
-    marginBottom: spacing.md,
+    overflow: 'hidden',
     ...shadows.card,
   },
-  tokenCard: {
-    marginTop: spacing.xs,
-  },
-  section: {
-    marginTop: spacing.md,
-  },
-  componentLabel: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: spacing.sm,
-  },
-  chipRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  avatarRow: {
+  navItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
-  },
-  buttonStack: {
-    gap: spacing.sm,
-  },
-  btnSecondary: {
-    marginTop: spacing.xs,
-  },
-  tokenGrid: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md - 2,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
-  tokenItem: {
-    alignItems: 'center',
+  navItemLast: {
+    borderBottomWidth: 0,
   },
-  colorSwatch: {
-    width: 36,
-    height: 36,
-    borderRadius: radius.sm,
-    marginBottom: spacing.xs,
-  },
-  tokenText: {
-    ...typography.caption,
+  navItemText: {
+    ...typography.bodyMedium,
     color: colors.textPrimary,
-    fontWeight: '600',
-  },
-  tokenHex: {
-    ...typography.caption,
-    fontSize: 10,
-    color: colors.textSecondary,
   },
 });
