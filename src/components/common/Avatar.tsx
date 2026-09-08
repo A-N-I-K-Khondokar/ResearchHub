@@ -37,6 +37,15 @@ export const Avatar: React.FC<AvatarProps> = ({
   style,
 }) => {
   const { dimension, fontSize, radius: borderRadius } = sizeMap[size];
+  const [hasError, setHasError] = React.useState(false);
+
+  const imageSource = React.useMemo(() => {
+    if (!uri || hasError) return null;
+    if (typeof uri === 'string') {
+      return { uri };
+    }
+    return uri;
+  }, [uri, hasError]);
 
   const containerStyle = [
     styles.container,
@@ -50,11 +59,12 @@ export const Avatar: React.FC<AvatarProps> = ({
 
   return (
     <View style={containerStyle}>
-      {uri ? (
+      {imageSource ? (
         <Image
-          source={{ uri }}
+          source={imageSource}
           style={[styles.image, { width: dimension, height: dimension, borderRadius }]}
           resizeMode="cover"
+          onError={() => setHasError(true)}
         />
       ) : (
         <View style={[styles.fallback, { width: dimension, height: dimension, borderRadius }]}>

@@ -1,4 +1,12 @@
 import { CurrentWork } from '@/types';
+import {
+  ANIK_PHOTO_URI,
+  MOU_PHOTO_URI,
+  RAFIQ_PHOTO_URI,
+  SARAH_PHOTO_URI,
+  TANVIR_PHOTO_URI,
+  NADIA_PHOTO_URI,
+} from './avatars';
 
 export const mockCurrentWorks: CurrentWork[] = [
   {
@@ -7,7 +15,7 @@ export const mockCurrentWorks: CurrentWork[] = [
     authorName: 'Mou Tusi',
     authorDepartment: 'CSE',
     authorBatch: 'Batch 14',
-    authorPhotoURL: null,
+    authorPhotoURL: MOU_PHOTO_URI,
     title: 'Optimizing Large Language Models for Low-Resource Bengali Dialects',
     description:
       'Currently running fine-tuning experiments on a curated dataset of Sylheti and Chittagonian texts. Seeing promising early results in cross-lingual transfer from standard Bengali models. Looking for collaborators interested in dialectal evaluation metrics.',
@@ -26,7 +34,7 @@ export const mockCurrentWorks: CurrentWork[] = [
     authorName: 'Dr. Rafiqul Islam',
     authorDepartment: 'CSE',
     authorBatch: 'Faculty',
-    authorPhotoURL: null,
+    authorPhotoURL: RAFIQ_PHOTO_URI,
     title: 'Real-time Anomaly Detection in IoT Edge Devices',
     description:
       'Developing lightweight quantization pipelines for anomaly detection algorithms on resource-constrained ARM Cortex microcontrollers. Achieved a 40% reduction in inference latency without dropping classification accuracy on smart grid benchmarks.',
@@ -45,7 +53,7 @@ export const mockCurrentWorks: CurrentWork[] = [
     authorName: 'Sarah Rahman',
     authorDepartment: 'CSE',
     authorBatch: 'Batch 13',
-    authorPhotoURL: null,
+    authorPhotoURL: SARAH_PHOTO_URI,
     title: 'Audio-Tactile Navigation Interfaces for Visually Impaired Students',
     description:
       'Designing a non-intrusive haptic feedback wearable paired with smartphone camera spatial cues to assist navigation within complex multi-storey academic buildings.',
@@ -64,7 +72,7 @@ export const mockCurrentWorks: CurrentWork[] = [
     authorName: 'Tanvir Ahmed',
     authorDepartment: 'CSE',
     authorBatch: 'Batch 15',
-    authorPhotoURL: null,
+    authorPhotoURL: TANVIR_PHOTO_URI,
     title: 'Explainable Heatmap Visualizations for Chest X-Ray Vision Transformers',
     description:
       'Benchmarking Grad-CAM versus Attention Rollout on Vision Transformer (ViT) backbones trained for pulmonary condition detection, with a focus on clinical radiologist trust.',
@@ -83,7 +91,7 @@ export const mockCurrentWorks: CurrentWork[] = [
     authorName: 'Anik Khondokar',
     authorDepartment: 'CSE',
     authorBatch: 'Batch 14',
-    authorPhotoURL: null,
+    authorPhotoURL: ANIK_PHOTO_URI,
     title: 'Bengali Handwritten Character Recognition using Hybrid CNN-Transformer Models',
     description:
       'Evaluating tokenized stroke sequence representations alongside standard 2D convolution feature extractors on the BanglaLekha-Isolated dataset.',
@@ -102,7 +110,7 @@ export const mockCurrentWorks: CurrentWork[] = [
     authorName: 'Nadia Ali',
     authorDepartment: 'CSE',
     authorBatch: 'Batch 14',
-    authorPhotoURL: null,
+    authorPhotoURL: NADIA_PHOTO_URI,
     title: 'Fast Neural Radiance Fields (NeRF) on Mobile GPUs for Campus Heritage VR',
     description:
       'Investigating instant-NGP voxel hash grids for rendering photorealistic university historic architecture on standalone VR headsets without tethering.',
