@@ -15,7 +15,7 @@ import {
 } from '@expo-google-fonts/source-serif-4';
 import { colors } from '@/constants';
 
-// Keep the splash screen visible while fonts load
+// Keep the native splash screen visible while fonts load
 SplashScreen.preventAutoHideAsync().catch(() => {
   /* ignore */
 });
@@ -54,6 +54,10 @@ export default function RootLayout() {
         <Stack.Screen name="index" />
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(onboarding)" />
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="(research)" />
+        <Stack.Screen name="(profile)" />
+        <Stack.Screen name="(explore)" />
       </Stack>
     </SafeAreaProvider>
   );

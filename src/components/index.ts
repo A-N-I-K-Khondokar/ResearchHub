@@ -4,3 +4,4 @@ export * from './auth';
 export * from './onboarding';
 export * from './cards';
 export * from './home';
+export * from './feedback';

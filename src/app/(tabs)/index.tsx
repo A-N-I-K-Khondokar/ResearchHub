@@ -14,6 +14,8 @@ import { colors, spacing, radius, typography, fontFamilies, shadows } from '../.
 import {
   currentUser,
   mockTopics,
+  mockResearchers,
+  mockCurrentWorks,
   getActiveCurrentWork,
   getFeaturedResearchers,
   getRecentPublications,
@@ -33,16 +35,29 @@ export default function HomeFeedScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
 
-  // Local state for interaction counts and connection states
-  const [likedWorkIds, setLikedWorkIds] = useState<Set<string>>(new Set());
-  const [bookmarkedWorkIds, setBookmarkedWorkIds] = useState<Set<string>>(new Set());
-  const [connectionStates, setConnectionStates] = useState<Record<string, 'none' | 'pending' | 'connected'>>({
-    'user-002': 'none',
-    'user-003': 'connected',
-    'user-004': 'none',
-    'user-005': 'pending',
-    'user-006': 'none',
-    'user-007': 'none',
+  // Initialize local states accurately from mock data
+  const [likedWorkIds, setLikedWorkIds] = useState<Set<string>>(() => {
+    const set = new Set<string>();
+    mockCurrentWorks.forEach((w) => {
+      if (w.isLiked) set.add(w.id);
+    });
+    return set;
+  });
+
+  const [bookmarkedWorkIds, setBookmarkedWorkIds] = useState<Set<string>>(() => {
+    const set = new Set<string>();
+    mockCurrentWorks.forEach((w) => {
+      if (w.isBookmarked) set.add(w.id);
+    });
+    return set;
+  });
+
+  const [connectionStates, setConnectionStates] = useState<Record<string, 'none' | 'pending' | 'connected'>>(() => {
+    const initial: Record<string, 'none' | 'pending' | 'connected'> = {};
+    mockResearchers.forEach((r) => {
+      initial[r.id] = r.connectionStatus || 'none';
+    });
+    return initial;
   });
 
   const allCurrentWork = useMemo(() => getActiveCurrentWork(), []);
@@ -110,7 +125,7 @@ export default function HomeFeedScreen() {
 
   const handleTopicSelect = (topic: Topic) => {
     if (selectedTopic?.id === topic.id) {
-      setSelectedTopic(null); // Deselect
+      setSelectedTopic(null); // Deselect filter
     } else {
       setSelectedTopic(topic);
     }
@@ -185,13 +200,14 @@ export default function HomeFeedScreen() {
               const authorBatch = author ? author.batch || author.designation : work.authorBatch || 'CSE';
               const isLiked = likedWorkIds.has(work.id);
               const isBookmarked = bookmarkedWorkIds.has(work.id);
+              const likeDelta = isLiked && !work.isLiked ? 1 : !isLiked && work.isLiked ? -1 : 0;
 
               return (
                 <CurrentWorkCard
                   key={work.id}
                   work={{
                     ...work,
-                    likesCount: (work.likesCount || 0) + (isLiked ? 1 : 0),
+                    likesCount: Math.max(0, (work.likesCount || 0) + likeDelta),
                   }}
                   authorName={authorName}
                   authorBatch={authorBatch}
@@ -236,7 +252,7 @@ export default function HomeFeedScreen() {
             renderItem={({ item }) => (
               <ResearcherCard
                 researcher={item}
-                connectionStatus={connectionStates[item.id] || 'none'}
+                connectionStatus={connectionStates[item.id] || item.connectionStatus || 'none'}
                 onPress={() => router.push(`/(profile)/${item.id}` as any)}
                 onConnectPress={() => handleToggleConnect(item.id)}
               />
@@ -258,13 +274,14 @@ export default function HomeFeedScreen() {
               const authorBatch = author ? author.batch || author.designation : work.authorBatch || 'CSE';
               const isLiked = likedWorkIds.has(work.id);
               const isBookmarked = bookmarkedWorkIds.has(work.id);
+              const likeDelta = isLiked && !work.isLiked ? 1 : !isLiked && work.isLiked ? -1 : 0;
 
               return (
                 <CurrentWorkCard
                   key={work.id}
                   work={{
                     ...work,
-                    likesCount: (work.likesCount || 0) + (isLiked ? 1 : 0),
+                    likesCount: Math.max(0, (work.likesCount || 0) + likeDelta),
                   }}
                   authorName={authorName}
                   authorBatch={authorBatch}

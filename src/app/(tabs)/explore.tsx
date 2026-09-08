@@ -1,24 +1,268 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useState, useMemo } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  RefreshControl,
+  TouchableOpacity,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Compass } from 'lucide-react-native';
-import { colors, spacing, radius, typography } from '../../constants';
+import { useRouter } from 'expo-router';
+import { Compass, Sparkles, Filter, X } from 'lucide-react-native';
+import { colors, spacing, radius, typography, fontFamilies, shadows } from '@/constants';
+import {
+  mockTopics,
+  mockResearchers,
+  getActiveCurrentWork,
+  getPublications,
+  getResearcherById,
+  getCurrentWorkById,
+} from '@/data';
+import { Topic, UserProfile } from '@/types';
+import { SearchBar } from '@/components/common/SearchBar';
+import { TopicChip } from '@/components/common/TopicChip';
+import { SectionHeader } from '@/components/common/SectionHeader';
+import { ResearcherDiscoveryCard } from '@/components/cards/ResearcherDiscoveryCard';
+import { CurrentWorkCard } from '@/components/cards/CurrentWorkCard';
+import { PublicationCard } from '@/components/cards/PublicationCard';
 
-export default function ExploreTab() {
+export default function ExploreScreen() {
+  const router = useRouter();
+  const [refreshing, setRefreshing] = useState(false);
+  const [selectedTypeFilter, setSelectedTypeFilter] = useState<'all' | 'people' | 'work' | 'papers'>('all');
+
+  const [connectionStates, setConnectionStates] = useState<Record<string, 'none' | 'pending' | 'connected'>>(() => {
+    const initial: Record<string, 'none' | 'pending' | 'connected'> = {};
+    mockResearchers.forEach((r) => {
+      initial[r.id] = r.connectionStatus || 'none';
+    });
+    return initial;
+  });
+
+  const featuredResearchers = useMemo(() => mockResearchers.slice(0, 3), []);
+  const allCurrentWork = useMemo(() => getActiveCurrentWork(), []);
+  const allPublications = useMemo(() => getPublications(), []);
+
+  const handleRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 600);
+  }, []);
+
+  const handleToggleConnect = (researcherId: string) => {
+    setConnectionStates((prev) => {
+      const current = prev[researcherId] || 'none';
+      let nextState: 'none' | 'pending' | 'connected' = 'pending';
+      if (current === 'none') nextState = 'pending';
+      else if (current === 'pending') nextState = 'connected';
+      else nextState = 'none';
+
+      return {
+        ...prev,
+        [researcherId]: nextState,
+      };
+    });
+  };
+
+  const handleTopicPress = (topic: Topic | string) => {
+    const topicName = typeof topic === 'string' ? topic : topic.name;
+    router.push({
+      pathname: '/(explore)/topic-researchers' as any,
+      params: { topic: topicName },
+    });
+  };
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <View style={styles.container}>
-        <View style={styles.iconContainer}>
-          <Compass size={40} color={colors.primary} />
+      {/* Search Header Container */}
+      <View style={styles.headerContainer}>
+        <View style={styles.titleRow}>
+          <Text style={styles.headerTitle}>Explore</Text>
         </View>
-        <Text style={styles.title}>Explore Research</Text>
-        <Text style={styles.subtitle}>
-          Topic discovery, researcher directory, and "Who's Working On This?" discovery will be available here.
-        </Text>
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>Phase 2C Feature</Text>
+
+        <TouchableOpacity
+          activeOpacity={0.9}
+          onPress={() => router.push('/(explore)/search' as any)}
+        >
+          <View pointerEvents="none">
+            <SearchBar
+              value=""
+              onChangeText={() => {}}
+              placeholder="Search researchers, topics, or research"
+              onFilterPress={() => router.push('/(explore)/search' as any)}
+            />
+          </View>
+        </TouchableOpacity>
+
+        {/* Quick Category Filter Pills */}
+        <View style={styles.filterRow}>
+          <TouchableOpacity
+            onPress={() => setSelectedTypeFilter('all')}
+            style={[styles.filterPill, selectedTypeFilter === 'all' && styles.filterPillActive]}
+          >
+            <Text style={[styles.filterPillText, selectedTypeFilter === 'all' && styles.filterPillTextActive]}>
+              All
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setSelectedTypeFilter('people')}
+            style={[styles.filterPill, selectedTypeFilter === 'people' && styles.filterPillActive]}
+          >
+            <Text style={[styles.filterPillText, selectedTypeFilter === 'people' && styles.filterPillTextActive]}>
+              People
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setSelectedTypeFilter('work')}
+            style={[styles.filterPill, selectedTypeFilter === 'work' && styles.filterPillActive]}
+          >
+            <Text style={[styles.filterPillText, selectedTypeFilter === 'work' && styles.filterPillTextActive]}>
+              Current Work
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setSelectedTypeFilter('papers')}
+            style={[styles.filterPill, selectedTypeFilter === 'papers' && styles.filterPillActive]}
+          >
+            <Text style={[styles.filterPillText, selectedTypeFilter === 'papers' && styles.filterPillTextActive]}>
+              Previous Research
+            </Text>
+          </TouchableOpacity>
         </View>
       </View>
+
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+          />
+        }
+      >
+        {/* 1. RESEARCH TOPICS (Grid of Topic Chips) */}
+        {(selectedTypeFilter === 'all' || selectedTypeFilter === 'people') && (
+          <View style={styles.sectionContainer}>
+            <View style={styles.sectionCard}>
+              <View style={styles.sectionCardHeader}>
+                <Sparkles size={18} color={colors.primary} />
+                <Text style={styles.sectionCardTitle}>Research Topics</Text>
+              </View>
+              <Text style={styles.sectionCardSubtitle}>
+                Select a topic to find researchers currently working in that area
+              </Text>
+              <View style={styles.topicsGrid}>
+                {mockTopics.map((t) => (
+                  <TopicChip
+                    key={t.id}
+                    label={t.name}
+                    variant="teal"
+                    onPress={() => handleTopicPress(t)}
+                    count={t.researchersCount}
+                    style={styles.topicChipItem}
+                  />
+                ))}
+              </View>
+            </View>
+          </View>
+        )}
+
+        {/* 2. FEATURED RESEARCHERS (People) */}
+        {(selectedTypeFilter === 'all' || selectedTypeFilter === 'people') && (
+          <View style={styles.sectionContainer}>
+            <SectionHeader
+              title="Featured Researchers"
+              subtitle="Scholars and active researchers in CSE"
+              actionLabel="View All"
+              onActionPress={() => router.push({
+                pathname: '/(explore)/search' as any,
+                params: { category: 'people' },
+              })}
+            />
+
+            {featuredResearchers.map((researcher) => {
+              const primaryWorkId = researcher.currentWorkIds?.[0];
+              const primaryWork = primaryWorkId ? getCurrentWorkById(primaryWorkId) : null;
+
+              return (
+                <ResearcherDiscoveryCard
+                  key={researcher.id}
+                  researcher={researcher}
+                  currentWork={primaryWork}
+                  connectionStatus={connectionStates[researcher.id] || 'none'}
+                  onPress={() => router.push(`/(profile)/${researcher.id}` as any)}
+                  onConnectPress={() => handleToggleConnect(researcher.id)}
+                  onTopicPress={(topic) => handleTopicPress(topic)}
+                />
+              );
+            })}
+          </View>
+        )}
+
+        {/* 3. TRENDING CURRENT WORK */}
+        {(selectedTypeFilter === 'all' || selectedTypeFilter === 'work') && (
+          <View style={styles.sectionContainer}>
+            <SectionHeader
+              title="Trending Current Work"
+              subtitle="Active experiments and ongoing thesis projects"
+              actionLabel="View All"
+              onActionPress={() => router.push({
+                pathname: '/(explore)/search' as any,
+                params: { category: 'currentWork' },
+              })}
+            />
+
+            {allCurrentWork.slice(0, 3).map((work) => {
+              const author = getResearcherById(work.userId || work.researcherId || '');
+              return (
+                <CurrentWorkCard
+                  key={work.id}
+                  work={work}
+                  authorName={author ? author.name : work.authorName}
+                  authorBatch={author ? author.batch || author.designation : work.authorBatch}
+                  authorAvatar={author?.photoURL || author?.avatar}
+                  onPress={() => router.push(`/(research)/${work.id}` as any)}
+                  onAuthorPress={() => router.push(`/(profile)/${work.userId || work.researcherId}` as any)}
+                  onTopicPress={(topic) => handleTopicPress(topic)}
+                />
+              );
+            })}
+          </View>
+        )}
+
+        {/* 4. PREVIOUS RESEARCH (Completed Papers) */}
+        {(selectedTypeFilter === 'all' || selectedTypeFilter === 'papers') && (
+          <View style={styles.sectionContainer}>
+            <SectionHeader
+              title="Explore Previous Research"
+              subtitle="Peer-reviewed publications and conference proceedings"
+              actionLabel="Browse Archive"
+              onActionPress={() => router.push({
+                pathname: '/(explore)/search' as any,
+                params: { category: 'publications' },
+              })}
+            />
+
+            {allPublications.map((pub) => (
+              <PublicationCard
+                key={pub.id}
+                publication={pub}
+                onPress={() => router.push(`/(research)/${pub.id}` as any)}
+                onExternalPress={() => {}}
+                onTopicPress={(topic) => handleTopicPress(topic)}
+              />
+            ))}
+          </View>
+        )}
+
+        <View style={styles.bottomSpacer} />
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -26,46 +270,95 @@ export default function ExploreTab() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.surface,
   },
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.xl,
-  },
-  iconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: radius.full,
-    backgroundColor: colors.primaryMuted,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.md,
-  },
-  title: {
-    ...typography.headline,
-    color: colors.textPrimary,
-    marginBottom: spacing.xs,
-    textAlign: 'center',
-  },
-  subtitle: {
-    ...typography.body,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: spacing.lg,
-  },
-  badge: {
-    backgroundColor: colors.surfaceSubtle,
+  headerContainer: {
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.sm,
+    backgroundColor: colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderSubtle,
+  },
+  titleRow: {
+    marginBottom: spacing.sm,
+  },
+  headerTitle: {
+    ...typography.display,
+    fontSize: 28,
+    lineHeight: 34,
+    color: colors.textPrimary,
+  },
+  filterRow: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+    marginTop: spacing.sm,
+  },
+  filterPill: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: 6,
     borderRadius: radius.full,
     borderWidth: 1,
     borderColor: colors.border,
+    backgroundColor: colors.surface,
   },
-  badgeText: {
+  filterPillActive: {
+    backgroundColor: colors.primaryMuted,
+    borderColor: colors.primary,
+  },
+  filterPillText: {
     ...typography.caption,
     color: colors.textSecondary,
+    fontFamily: fontFamilies.sansMedium,
+  },
+  filterPillTextActive: {
+    color: colors.primary,
+    fontFamily: fontFamilies.sansSemiBold,
+  },
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  scrollContent: {
+    paddingVertical: spacing.md,
+  },
+  sectionContainer: {
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.md,
+  },
+  sectionCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.md,
+    marginBottom: spacing.xs,
+    ...shadows.card,
+  },
+  sectionCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs + 2,
+    marginBottom: 4,
+  },
+  sectionCardTitle: {
+    ...typography.title,
+    color: colors.textPrimary,
+  },
+  sectionCardSubtitle: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    marginBottom: spacing.md,
+  },
+  topicsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs + 2,
+  },
+  topicChipItem: {
+    marginBottom: spacing.xs,
+  },
+  bottomSpacer: {
+    height: 48,
   },
 });
