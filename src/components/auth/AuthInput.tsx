@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { Eye, EyeOff } from 'lucide-react-native';
 import { radius, spacing, typography } from '@/constants';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/context/ThemeContext';
 
 export interface AuthInputProps extends Omit<TextInputProps, 'style'> {
   label: string;
@@ -62,10 +62,9 @@ export const AuthInput: React.FC<AuthInputProps> = ({
         style={[
           styles.inputWrapper,
           {
-            backgroundColor: colors.surface,
-            borderColor: colors.border,
+            backgroundColor: isFocused ? colors.surface : colors.surfaceSubtle,
+            borderColor: isFocused ? colors.primary : colors.borderSubtle,
           },
-          isFocused && { borderColor: colors.primary, borderWidth: 1.5 },
           Boolean(error) && { borderColor: colors.error },
         ]}
       >
@@ -108,7 +107,7 @@ export const AuthInput: React.FC<AuthInputProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: spacing.md,
+    marginBottom: spacing.lg,
   },
   labelRow: {
     flexDirection: 'row',
@@ -125,21 +124,23 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   inputWrapper: {
-    height: 46,
-    borderWidth: 1,
-    borderRadius: radius.sm,
+    height: 52, // Modern, slightly taller input field
+    borderWidth: 1.5,
+    borderRadius: radius.md,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.md,
   },
   leftIconContainer: {
     marginRight: spacing.sm,
+    opacity: 0.8,
   },
   input: {
     flex: 1,
     height: '100%',
     ...typography.body,
     paddingVertical: 0,
+    fontSize: 15, // slightly cleaner size
   },
   passwordToggle: {
     padding: spacing.xs,

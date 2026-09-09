@@ -9,7 +9,8 @@ import {
   OnboardingHeader,
   OnboardingProgress,
 } from '@/components';
-import { colors, radius, spacing, typography, shadows } from '@/constants';
+import { radius, spacing, typography } from '@/constants';
+import { useTheme } from '@/context/ThemeContext';
 
 const TOPIC_OPTIONS = [
   'Machine Learning',
@@ -30,6 +31,7 @@ const TOPIC_OPTIONS = [
 
 export default function ResearchInterestsScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
   const [selectedTopics, setSelectedTopics] = useState<string[]>([
     'Machine Learning',
     'Bangla NLP',
@@ -55,17 +57,25 @@ export default function ResearchInterestsScreen() {
 
         {/* Title Block */}
         <View style={styles.titleBlock}>
-          <Text style={styles.title}>Research Interests</Text>
-          <Text style={styles.subtitle}>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>Research Interests</Text>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
             Select topics that interest you to personalize your research feed and suggested collaborators.
           </Text>
         </View>
 
         {/* Topic Grid Card */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+            },
+          ]}
+        >
+          <View style={[styles.cardHeader, { borderBottomColor: colors.border }]}>
             <Sparkles size={16} color={colors.primary} />
-            <Text style={styles.cardHeaderTitle}>
+            <Text style={[styles.cardHeaderTitle, { color: colors.primary }]}>
               {selectedTopics.length > 0
                 ? `${selectedTopics.length} topics selected`
                 : 'Tap to select research topics'}
@@ -121,24 +131,24 @@ const styles = StyleSheet.create({
     ...typography.display,
     fontSize: 26,
     lineHeight: 34,
-    color: colors.textPrimary,
     textAlign: 'center',
     marginBottom: spacing.xs,
   },
   subtitle: {
     ...typography.body,
-    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
   },
   card: {
-    backgroundColor: colors.surface,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.border,
     padding: spacing.cardPadding,
     marginBottom: spacing.lg,
-    ...shadows.card,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -147,11 +157,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     paddingBottom: spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
   },
   cardHeaderTitle: {
     ...typography.caption,
-    color: colors.primary,
     fontWeight: '600',
   },
   chipContainer: {

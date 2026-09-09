@@ -3,10 +3,12 @@ import { View, Text, StyleSheet, Animated } from 'react-native';
 import { useRouter } from 'expo-router';
 import { GraduationCap, Loader2 } from 'lucide-react-native';
 import { ScreenContainer, Button } from '@/components';
-import { colors, radius, spacing, typography, shadows } from '@/constants';
+import { radius, spacing, typography, shadows } from '@/constants';
+import { useTheme } from '@/context/ThemeContext';
 
 export default function SplashScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
   const spinValue = React.useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -35,24 +37,49 @@ export default function SplashScreen() {
     <ScreenContainer style={styles.container}>
       <View style={styles.centerContent}>
         {/* Scholarly Logo Box */}
-        <View style={styles.logoCard}>
-          <View style={styles.iconInner}>
+        <View
+          style={[
+            styles.logoCard,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+            },
+          ]}
+        >
+          <View
+            style={[
+              styles.iconInner,
+              { backgroundColor: colors.primaryMuted },
+            ]}
+          >
             <GraduationCap size={56} color={colors.primary} />
           </View>
         </View>
 
         {/* Product Brand */}
-        <Text style={styles.brandTitle}>CSE Research Hub</Text>
-        <Text style={styles.tagline}>
+        <Text style={[styles.brandTitle, { color: colors.primaryDark }]}>
+          CSE Research Hub
+        </Text>
+        <Text style={[styles.tagline, { color: colors.textSecondary }]}>
           Department of Computer Science & Engineering
         </Text>
 
         {/* Loading / Initializing Status */}
-        <View style={styles.loadingRow}>
+        <View
+          style={[
+            styles.loadingRow,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+            },
+          ]}
+        >
           <Animated.View style={{ transform: [{ rotate: spin }] }}>
             <Loader2 size={18} color={colors.primary} />
           </Animated.View>
-          <Text style={styles.loadingText}>Initializing Scholar Network...</Text>
+          <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
+            Initializing Scholar Network...
+          </Text>
         </View>
       </View>
 
@@ -84,9 +111,7 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: radius.lg,
-    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.lg,
@@ -96,7 +121,6 @@ const styles = StyleSheet.create({
     width: 90,
     height: 90,
     borderRadius: radius.md,
-    backgroundColor: colors.primaryMuted,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -104,13 +128,11 @@ const styles = StyleSheet.create({
     ...typography.display,
     fontSize: 28,
     lineHeight: 36,
-    color: colors.primaryDark,
     textAlign: 'center',
     marginBottom: spacing.xs,
   },
   tagline: {
     ...typography.body,
-    color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: spacing.xl,
   },
@@ -118,16 +140,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    backgroundColor: colors.surface,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs + 4,
     borderRadius: radius.full,
     borderWidth: 1,
-    borderColor: colors.border,
   },
   loadingText: {
     ...typography.caption,
-    color: colors.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
   },

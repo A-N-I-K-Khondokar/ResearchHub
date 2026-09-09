@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  TouchableOpacity,
+  Pressable,
   Text,
   ActivityIndicator,
   StyleSheet,
@@ -44,7 +44,7 @@ export const Button: React.FC<ButtonProps> = ({
   const { colors } = useTheme();
   const isInteractive = !disabled && !loading;
 
-  const getContainerStyles = (): ViewStyle[] => {
+  const getContainerStyles = (pressed: boolean): ViewStyle[] => {
     const list: ViewStyle[] = [styles.base, styles[`size_${size}`]];
 
     if (fullWidth) {
@@ -53,27 +53,27 @@ export const Button: React.FC<ButtonProps> = ({
 
     switch (variant) {
       case 'primary':
-        list.push({ backgroundColor: colors.primary });
+        list.push({ backgroundColor: pressed ? colors.primaryPressed : colors.primary });
         break;
       case 'secondary':
         list.push({
-          backgroundColor: colors.secondaryLight,
+          backgroundColor: pressed ? colors.surfaceHover : colors.secondaryLight,
           borderWidth: 1,
           borderColor: colors.secondaryLight,
         });
         break;
       case 'outline':
         list.push({
-          backgroundColor: 'transparent',
+          backgroundColor: pressed ? colors.surfaceSubtle : 'transparent',
           borderWidth: 1.5,
           borderColor: colors.border,
         });
         break;
       case 'ghost':
-        list.push({ backgroundColor: 'transparent' });
+        list.push({ backgroundColor: pressed ? colors.surfaceSubtle : 'transparent' });
         break;
       case 'destructive':
-        list.push({ backgroundColor: colors.error });
+        list.push({ backgroundColor: pressed ? colors.error : colors.error });
         break;
     }
 
@@ -135,11 +135,10 @@ export const Button: React.FC<ButtonProps> = ({
   };
 
   return (
-    <TouchableOpacity
-      activeOpacity={0.75}
+    <Pressable
       onPress={onPress}
       disabled={!isInteractive}
-      style={getContainerStyles()}
+      style={({ pressed }) => getContainerStyles(pressed)}
     >
       {loading ? (
         <ActivityIndicator size="small" color={getIndicatorColor()} />
@@ -150,13 +149,13 @@ export const Button: React.FC<ButtonProps> = ({
           {icon && iconPosition === 'right' && <View style={styles.iconRight}>{icon}</View>}
         </View>
       )}
-    </TouchableOpacity>
+    </Pressable>
   );
 };
 
 const styles = StyleSheet.create({
   base: {
-    borderRadius: radius.sm,
+    borderRadius: radius.md, // slightly rounder for a modern look
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
@@ -186,7 +185,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   size_lg: {
-    height: 54,
+    height: 52, // refined from 54 for elegance
     paddingHorizontal: spacing.xl,
   },
 

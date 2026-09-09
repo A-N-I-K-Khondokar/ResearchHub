@@ -1,8 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, ViewStyle } from 'react-native';
 import { GraduationCap } from 'lucide-react-native';
-import { radius, spacing, typography } from '@/constants';
-import { useTheme } from '@/hooks/useTheme';
+import { radius, spacing, typography, fontFamilies } from '@/constants';
+import { useTheme } from '@/context/ThemeContext';
 
 export interface AuthHeaderProps {
   title: string;
@@ -28,11 +28,11 @@ export const AuthHeader: React.FC<AuthHeaderProps> = ({
               styles.iconCircle,
               {
                 backgroundColor: colors.primaryMuted,
-                borderColor: colors.border,
+                // Removed border for a cleaner, modern look
               },
             ]}
           >
-            <GraduationCap size={28} color={colors.primary} />
+            <GraduationCap size={30} color={colors.primary} />
           </View>
         </View>
       )}
@@ -50,27 +50,30 @@ export const AuthHeader: React.FC<AuthHeaderProps> = ({
 const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
-    marginBottom: spacing.lg,
+    marginBottom: spacing.xl, // slightly more breathing room
   },
   badgeContainer: {
-    marginBottom: spacing.md,
+    marginBottom: spacing.md + 4,
   },
   iconCircle: {
-    width: 60,
-    height: 60,
-    borderRadius: radius.md,
-    borderWidth: 1,
+    width: 64, // refined proportion
+    height: 64,
+    borderRadius: radius.xl, // softer, modern squircle shape
     alignItems: 'center',
     justifyContent: 'center',
   },
   title: {
     ...typography.display,
-    fontSize: 24,
-    lineHeight: 32,
+    fontFamily: fontFamilies.serifBold, // Reinforce scholarly typography
+    fontSize: 26, // improved hierarchy
+    lineHeight: 34,
     textAlign: 'center',
+    letterSpacing: -0.3,
   },
   subtitle: {
     ...typography.body,
+    fontSize: 15,
+    lineHeight: 22,
     textAlign: 'center',
     marginTop: spacing.xs,
     paddingHorizontal: spacing.md,

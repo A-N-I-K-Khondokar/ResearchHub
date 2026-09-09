@@ -16,10 +16,12 @@ import {
   OnboardingHeader,
   OnboardingProgress,
 } from '@/components';
-import { colors, radius, spacing, typography, shadows } from '@/constants';
+import { radius, spacing, typography } from '@/constants';
+import { useTheme } from '@/context/ThemeContext';
 
 export default function ExternalProfilesScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
   const [googleScholar, setGoogleScholar] = useState('');
   const [researchGate, setResearchGate] = useState('');
   const [ieee, setIeee] = useState('');
@@ -45,14 +47,22 @@ export default function ExternalProfilesScreen() {
 
         {/* Title Block */}
         <View style={styles.titleBlock}>
-          <Text style={styles.title}>Connect External Profiles</Text>
-          <Text style={styles.subtitle}>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>Connect External Profiles</Text>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
             Link your existing research profiles to build your academic identity.
           </Text>
         </View>
 
         {/* Form Card */}
-        <View style={styles.card}>
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+            },
+          ]}
+        >
           <AuthInput
             label="Google Scholar"
             value={googleScholar}
@@ -140,24 +150,24 @@ const styles = StyleSheet.create({
     ...typography.display,
     fontSize: 26,
     lineHeight: 34,
-    color: colors.textPrimary,
     textAlign: 'center',
     marginBottom: spacing.xs,
   },
   subtitle: {
     ...typography.body,
-    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
   },
   card: {
-    backgroundColor: colors.surface,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.border,
     padding: spacing.cardPadding,
     marginBottom: spacing.lg,
-    ...shadows.card,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
   },
   actionContainer: {
     width: '100%',

@@ -1,7 +1,7 @@
 import React from 'react';
-import { TouchableOpacity, Text, View, StyleSheet, ViewStyle } from 'react-native';
+import { Pressable, Text, View, StyleSheet, ViewStyle, Image } from 'react-native';
 import { radius, spacing, typography } from '@/constants';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '@/context/ThemeContext';
 
 export interface SocialAuthButtonProps {
   onPress: () => void;
@@ -12,51 +12,51 @@ export const SocialAuthButton: React.FC<SocialAuthButtonProps> = ({ onPress, sty
   const { colors } = useTheme();
 
   return (
-    <TouchableOpacity
-      activeOpacity={0.8}
+    <Pressable
       onPress={onPress}
-      style={[
+      style={({ pressed }) => [
         styles.container,
         {
-          backgroundColor: colors.surface,
+          backgroundColor: pressed ? colors.surfaceSubtle : colors.surface,
           borderColor: colors.border,
         },
         style,
       ]}
     >
-      <View style={styles.googleIconCircle}>
-        <Text style={styles.googleIconText}>G</Text>
+      <View style={styles.iconContainer}>
+        <Image 
+          source={require('../../../assets/images/google-icon.png')} 
+          style={styles.googleImage}
+          resizeMode="contain"
+        />
       </View>
       <Text style={[styles.buttonText, { color: colors.textPrimary }]}>Continue with Google</Text>
-    </TouchableOpacity>
+    </Pressable>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    height: 46,
+    height: 48,
     borderWidth: 1,
-    borderRadius: radius.sm,
+    borderRadius: radius.md,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing.md,
   },
-  googleIconCircle: {
-    width: 22,
-    height: 22,
-    borderRadius: radius.full,
-    backgroundColor: '#4285F4',
+  iconContainer: {
+    marginRight: spacing.sm + 2,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing.sm,
   },
-  googleIconText: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 13,
+  googleImage: {
+    width: 20,
+    height: 20,
   },
   buttonText: {
     ...typography.button,
+    color: '#3C4043', // Google's standard dark gray for text
   },
 });
+

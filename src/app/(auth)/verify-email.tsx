@@ -3,10 +3,12 @@ import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MailCheck, ArrowLeft, RefreshCw, ExternalLink } from 'lucide-react-native';
 import { ScreenContainer, Button } from '@/components';
-import { colors, radius, spacing, typography, shadows } from '@/constants';
+import { radius, spacing, typography } from '@/constants';
+import { useTheme } from '@/context/ThemeContext';
 
 export default function VerifyEmailScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
   const [resending, setResending] = useState(false);
 
   const handleOpenEmailApp = () => {
@@ -35,15 +37,31 @@ export default function VerifyEmailScreen() {
     <ScreenContainer scrollable>
       <View style={styles.container}>
         {/* Verification Card */}
-        <View style={styles.card}>
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+            },
+          ]}
+        >
           {/* Icon Badge */}
-          <View style={styles.iconCircle}>
+          <View
+            style={[
+              styles.iconCircle,
+              {
+                backgroundColor: colors.primaryMuted,
+                borderColor: colors.primaryLight,
+              },
+            ]}
+          >
             <MailCheck size={40} color={colors.primary} />
           </View>
 
           {/* Title and Message */}
-          <Text style={styles.title}>Verify your email</Text>
-          <Text style={styles.body}>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>Verify your email</Text>
+          <Text style={[styles.body, { color: colors.textSecondary }]}>
             We've sent a verification link to your institutional email. Please check your inbox to activate your research account.
           </Text>
 
@@ -69,14 +87,14 @@ export default function VerifyEmailScreen() {
           </View>
 
           {/* Return to Login */}
-          <View style={styles.footer}>
+          <View style={[styles.footer, { borderTopColor: colors.border }]}>
             <TouchableOpacity
               activeOpacity={0.7}
               onPress={() => router.replace('/(auth)/login' as any)}
               style={styles.backLink}
             >
               <ArrowLeft size={16} color={colors.textSecondary} />
-              <Text style={styles.backText}>Return to login</Text>
+              <Text style={[styles.backText, { color: colors.textSecondary }]}>Return to login</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -92,34 +110,32 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xxl,
   },
   card: {
-    backgroundColor: colors.surface,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.border,
     padding: spacing.cardPadding * 1.5,
     alignItems: 'center',
-    ...shadows.card,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
   },
   iconCircle: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: colors.primaryMuted,
     borderWidth: 1,
-    borderColor: colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.lg,
   },
   title: {
     ...typography.headline,
-    color: colors.textPrimary,
     textAlign: 'center',
     marginBottom: spacing.sm,
   },
   body: {
     ...typography.body,
-    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: spacing.xl,
@@ -136,7 +152,6 @@ const styles = StyleSheet.create({
     marginTop: spacing.xl,
     paddingTop: spacing.md,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
     width: '100%',
     alignItems: 'center',
   },
@@ -147,7 +162,6 @@ const styles = StyleSheet.create({
   },
   backText: {
     ...typography.caption,
-    color: colors.textSecondary,
     fontWeight: '600',
   },
 });

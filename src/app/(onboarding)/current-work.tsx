@@ -9,7 +9,8 @@ import {
   OnboardingHeader,
   OnboardingProgress,
 } from '@/components';
-import { colors, radius, spacing, typography, shadows } from '@/constants';
+import { radius, spacing, typography } from '@/constants';
+import { useTheme } from '@/context/ThemeContext';
 
 const STAGE_OPTIONS = [
   'Ideation',
@@ -21,6 +22,7 @@ const STAGE_OPTIONS = [
 
 export default function CurrentWorkScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [selectedStage, setSelectedStage] = useState('Experimentation');
@@ -44,27 +46,42 @@ export default function CurrentWorkScreen() {
 
         {/* Title Block */}
         <View style={styles.titleBlock}>
-          <Text style={styles.title}>Current Work</Text>
-          <Text style={styles.subtitle}>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>Current Work</Text>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
             What are you currently researching or developing?
           </Text>
         </View>
 
         {/* Form Card */}
-        <View style={styles.card}>
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+            },
+          ]}
+        >
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Project / Thesis Title</Text>
+            <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>Project / Thesis Title</Text>
             <TextInput
               value={title}
               onChangeText={setTitle}
               placeholder="e.g., Evaluating Transformer Models for Bangla NLP"
               placeholderTextColor={colors.textMuted}
-              style={styles.textInput}
+              style={[
+                styles.textInput,
+                {
+                  backgroundColor: colors.surface,
+                  borderColor: colors.border,
+                  color: colors.textPrimary,
+                },
+              ]}
             />
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Short Overview / Focus</Text>
+            <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>Short Overview / Focus</Text>
             <TextInput
               value={description}
               onChangeText={setDescription}
@@ -73,13 +90,21 @@ export default function CurrentWorkScreen() {
               multiline
               numberOfLines={4}
               textAlignVertical="top"
-              style={[styles.textInput, styles.textArea]}
+              style={[
+                styles.textInput,
+                styles.textArea,
+                {
+                  backgroundColor: colors.surface,
+                  borderColor: colors.border,
+                  color: colors.textPrimary,
+                },
+              ]}
             />
           </View>
 
           {/* Current Stage */}
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Current Research Stage</Text>
+            <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>Current Research Stage</Text>
             <View style={styles.stageRow}>
               {STAGE_OPTIONS.map((stage) => (
                 <TopicChip
@@ -94,9 +119,17 @@ export default function CurrentWorkScreen() {
           </View>
 
           {/* Info Callout */}
-          <View style={styles.infoBox}>
+          <View
+            style={[
+              styles.infoBox,
+              {
+                backgroundColor: colors.primaryMuted,
+                borderColor: colors.primaryLight,
+              },
+            ]}
+          >
             <Info size={18} color={colors.primary} style={styles.infoIcon} />
-            <Text style={styles.infoText}>
+            <Text style={[styles.infoText, { color: colors.primaryDark }]}>
               Sharing Current Work is temporary momentum, not a publication. It helps departmental peers collaborate with you early.
             </Text>
           </View>
@@ -142,43 +175,39 @@ const styles = StyleSheet.create({
     ...typography.display,
     fontSize: 26,
     lineHeight: 34,
-    color: colors.textPrimary,
     textAlign: 'center',
     marginBottom: spacing.xs,
   },
   subtitle: {
     ...typography.body,
-    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
   },
   card: {
-    backgroundColor: colors.surface,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.border,
     padding: spacing.cardPadding,
     marginBottom: spacing.lg,
-    ...shadows.card,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
   },
   inputGroup: {
     marginBottom: spacing.md,
   },
   inputLabel: {
     ...typography.caption,
-    color: colors.textPrimary,
     fontWeight: '600',
     marginBottom: spacing.xs + 2,
   },
   textInput: {
-    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.border,
     borderRadius: radius.sm,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     ...typography.body,
-    color: colors.textPrimary,
   },
   textArea: {
     height: 96,
@@ -192,9 +221,7 @@ const styles = StyleSheet.create({
   },
   infoBox: {
     flexDirection: 'row',
-    backgroundColor: colors.primaryMuted,
     borderWidth: 1,
-    borderColor: colors.primaryLight,
     borderRadius: radius.sm,
     padding: spacing.md,
     alignItems: 'flex-start',
@@ -207,7 +234,6 @@ const styles = StyleSheet.create({
   infoText: {
     flex: 1,
     ...typography.caption,
-    color: colors.primaryDark,
     lineHeight: 18,
   },
   actionContainer: {

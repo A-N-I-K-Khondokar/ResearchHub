@@ -9,10 +9,12 @@ import {
   AuthInput,
   SocialAuthButton,
 } from '@/components';
-import { colors, radius, spacing, typography, shadows } from '@/constants';
+import { radius, spacing, typography } from '@/constants';
+import { useTheme } from '@/context/ThemeContext';
 
 export default function SignUpScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -69,7 +71,6 @@ export default function SignUpScreen() {
     setLoading(true);
     setTimeout(() => {
       setLoading(false);
-      // Route to Verify Email screen
       router.push('/(auth)/verify-email' as any);
     }, 600);
   };
@@ -84,7 +85,15 @@ export default function SignUpScreen() {
         />
 
         {/* Form Card */}
-        <View style={styles.card}>
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+            },
+          ]}
+        >
           <AuthInput
             label="Full Name"
             value={fullName}
@@ -143,8 +152,15 @@ export default function SignUpScreen() {
           </View>
 
           {/* Academic Affiliation Section */}
-          <View style={styles.affiliationSection}>
-            <Text style={styles.affiliationTitle}>Academic Affiliation (Optional)</Text>
+          <View
+            style={[
+              styles.affiliationSection,
+              { borderTopColor: colors.border },
+            ]}
+          >
+            <Text style={[styles.affiliationTitle, { color: colors.textSecondary }]}>
+              Academic Affiliation (Optional)
+            </Text>
             <View style={styles.row}>
               <View style={styles.halfCol}>
                 <AuthInput
@@ -177,9 +193,9 @@ export default function SignUpScreen() {
 
           {/* Divider */}
           <View style={styles.dividerRow}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>OR</Text>
-            <View style={styles.dividerLine} />
+            <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+            <Text style={[styles.dividerText, { color: colors.textSecondary }]}>OR</Text>
+            <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
           </View>
 
           <SocialAuthButton onPress={() => router.push('/(onboarding)/welcome' as any)} />
@@ -187,12 +203,12 @@ export default function SignUpScreen() {
 
         {/* Footer */}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Already have an account? </Text>
+          <Text style={[styles.footerText, { color: colors.textSecondary }]}>Already have an account? </Text>
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={() => router.push('/(auth)/login' as any)}
           >
-            <Text style={styles.signInText}>Sign In</Text>
+            <Text style={[styles.signInText, { color: colors.primary }]}>Sign In</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -205,12 +221,14 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.lg,
   },
   card: {
-    backgroundColor: colors.surface,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.border,
     padding: spacing.cardPadding,
-    ...shadows.card,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
   },
   row: {
     flexDirection: 'row',
@@ -223,12 +241,10 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
     paddingTop: spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
     marginBottom: spacing.xs,
   },
   affiliationTitle: {
     ...typography.caption,
-    color: colors.textSecondary,
     fontWeight: '600',
     marginBottom: spacing.xs + 2,
     textTransform: 'uppercase',
@@ -245,11 +261,9 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: colors.border,
   },
   dividerText: {
     ...typography.caption,
-    color: colors.textSecondary,
     marginHorizontal: spacing.md,
   },
   footer: {
@@ -260,11 +274,9 @@ const styles = StyleSheet.create({
   },
   footerText: {
     ...typography.body,
-    color: colors.textSecondary,
   },
   signInText: {
     ...typography.body,
-    color: colors.primary,
     fontWeight: '600',
   },
 });

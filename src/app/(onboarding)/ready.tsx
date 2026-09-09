@@ -1,12 +1,14 @@
 import React from 'react';
-import { View, Text, StyleSheet, Alert } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { CheckCircle2, ArrowRight } from 'lucide-react-native';
 import { ScreenContainer, Button, OnboardingProgress } from '@/components';
-import { colors, radius, spacing, typography, shadows } from '@/constants';
+import { radius, spacing, typography } from '@/constants';
+import { useTheme } from '@/context/ThemeContext';
 
 export default function ReadyToExploreScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
 
   const handleFinish = () => {
     router.replace('/(tabs)' as any);
@@ -17,13 +19,29 @@ export default function ReadyToExploreScreen() {
       <View style={styles.container}>
         {/* Step Header */}
         <View style={styles.header}>
-          <Text style={styles.stepText}>Step 5 of 5</Text>
+          <Text style={[styles.stepText, { color: colors.textSecondary }]}>Step 5 of 5</Text>
         </View>
 
         {/* Success Icon Graphic */}
         <View style={styles.iconContainer}>
-          <View style={styles.outerRing}>
-            <View style={styles.innerCircle}>
+          <View
+            style={[
+              styles.outerRing,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            <View
+              style={[
+                styles.innerCircle,
+                {
+                  backgroundColor: colors.primaryMuted,
+                  borderColor: colors.primaryLight,
+                },
+              ]}
+            >
               <CheckCircle2 size={54} color={colors.primary} />
             </View>
           </View>
@@ -31,8 +49,8 @@ export default function ReadyToExploreScreen() {
 
         {/* Text Content */}
         <View style={styles.textBlock}>
-          <Text style={styles.title}>You're ready to explore.</Text>
-          <Text style={styles.body}>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>You're ready to explore.</Text>
+          <Text style={[styles.body, { color: colors.textSecondary }]}>
             Start discovering researchers, exploring active momentum, and connecting with peers across the CSE department.
           </Text>
         </View>
@@ -70,7 +88,6 @@ const styles = StyleSheet.create({
   },
   stepText: {
     ...typography.caption,
-    color: colors.textSecondary,
     fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 0.8,
@@ -84,20 +101,20 @@ const styles = StyleSheet.create({
     width: 140,
     height: 140,
     borderRadius: 70,
-    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
-    ...shadows.card,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
   },
   innerCircle: {
     width: 104,
     height: 104,
     borderRadius: 52,
-    backgroundColor: colors.primaryMuted,
     borderWidth: 1,
-    borderColor: colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -110,13 +127,11 @@ const styles = StyleSheet.create({
     ...typography.display,
     fontSize: 28,
     lineHeight: 36,
-    color: colors.textPrimary,
     textAlign: 'center',
     marginBottom: spacing.sm,
   },
   body: {
     ...typography.body,
-    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
     paddingHorizontal: spacing.sm,

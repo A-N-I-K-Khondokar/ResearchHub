@@ -3,23 +3,41 @@ import { View, Text, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { CheckCircle2 } from 'lucide-react-native';
 import { ScreenContainer, Button } from '@/components';
-import { colors, radius, spacing, typography, shadows } from '@/constants';
+import { radius, spacing, typography } from '@/constants';
+import { useTheme } from '@/context/ThemeContext';
 
 export default function ForgotPasswordSuccessScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
 
   return (
     <ScreenContainer scrollable>
       <View style={styles.container}>
-        <View style={styles.card}>
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+            },
+          ]}
+        >
           {/* Success Icon */}
-          <View style={styles.iconCircle}>
+          <View
+            style={[
+              styles.iconCircle,
+              {
+                backgroundColor: colors.primaryMuted,
+                borderColor: colors.primaryLight,
+              },
+            ]}
+          >
             <CheckCircle2 size={44} color={colors.primary} />
           </View>
 
           {/* Title and Message */}
-          <Text style={styles.title}>Link Sent</Text>
-          <Text style={styles.body}>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>Link Sent</Text>
+          <Text style={[styles.body, { color: colors.textSecondary }]}>
             If an account exists for that email, you will receive a reset link shortly.
           </Text>
 
@@ -44,34 +62,32 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xxl,
   },
   card: {
-    backgroundColor: colors.surface,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.border,
     padding: spacing.cardPadding * 1.5,
     alignItems: 'center',
-    ...shadows.card,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
   },
   iconCircle: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: colors.primaryMuted,
     borderWidth: 1,
-    borderColor: colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.lg,
   },
   title: {
     ...typography.headline,
-    color: colors.textPrimary,
     textAlign: 'center',
     marginBottom: spacing.sm,
   },
   body: {
     ...typography.body,
-    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: spacing.xl,

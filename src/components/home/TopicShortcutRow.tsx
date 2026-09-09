@@ -64,7 +64,7 @@ export const TopicShortcutRow: React.FC<TopicShortcutRowProps> = ({
                 style={[
                   styles.countBadge,
                   { backgroundColor: colors.surfaceSubtle },
-                  isSelected && styles.countBadgeSelected,
+                  isSelected && { backgroundColor: 'rgba(255,255,255,0.22)' },
                 ]}
               >
                 <Text
@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
   },
   countBadgeSelected: {
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    // Color set dynamically via inline style on the View
   },
   countText: {
     fontSize: 10,

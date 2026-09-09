@@ -9,10 +9,12 @@ import {
   AuthInput,
   SocialAuthButton,
 } from '@/components';
-import { colors, radius, spacing, typography, shadows } from '@/constants';
+import { radius, spacing, typography, shadows } from '@/constants';
+import { useTheme } from '@/context/ThemeContext';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -49,7 +51,6 @@ export default function LoginScreen() {
     setLoading(true);
     setTimeout(() => {
       setLoading(false);
-      // Direct to Onboarding Welcome
       router.push('/(onboarding)/welcome' as any);
     }, 600);
   };
@@ -77,7 +78,15 @@ export default function LoginScreen() {
         />
 
         {/* Card Form */}
-        <View style={styles.card}>
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.borderSubtle, // Modern, softer border
+            },
+          ]}
+        >
           <AuthInput
             label="Email"
             value={email}
@@ -114,13 +123,14 @@ export default function LoginScreen() {
             loading={loading}
             fullWidth
             style={styles.signInButton}
+            size="lg" // Larger, premium button height
           />
 
           {/* Divider */}
           <View style={styles.dividerRow}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>or</Text>
-            <View style={styles.dividerLine} />
+            <View style={[styles.dividerLine, { backgroundColor: colors.borderSubtle }]} />
+            <Text style={[styles.dividerText, { color: colors.textSecondary }]}>or</Text>
+            <View style={[styles.dividerLine, { backgroundColor: colors.borderSubtle }]} />
           </View>
 
           {/* Social Auth */}
@@ -129,12 +139,17 @@ export default function LoginScreen() {
 
         {/* Footer Navigation */}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Don't have an account? </Text>
+          <Text style={[styles.footerText, { color: colors.textSecondary }]}>
+            Don't have an account?{' '}
+          </Text>
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={() => router.push('/(auth)/sign-up' as any)}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
-            <Text style={styles.createAccountText}>Create Account</Text>
+            <Text style={[styles.createAccountText, { color: colors.primary }]}>
+              Create Account
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -144,48 +159,51 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   content: {
-    paddingVertical: spacing.lg,
+    paddingVertical: spacing.xl,
+    paddingHorizontal: spacing.sm, // Slightly narrower overall width for a more focused modal feel on tablets/wide screens
   },
   card: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
+    borderRadius: radius.xl, // Softer, more modern corner radius
     borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.cardPadding,
-    ...shadows.card,
+    padding: spacing.cardPadding * 1.25, // More breathing room inside the card
+    // Very subtle, premium shadow elevation instead of the heavy old one
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.03,
+    shadowRadius: 12,
+    elevation: 2,
   },
   signInButton: {
-    marginTop: spacing.xs,
+    marginTop: spacing.sm,
   },
   dividerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: spacing.md,
+    marginVertical: spacing.lg,
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: colors.border,
   },
   dividerText: {
     ...typography.caption,
-    color: colors.textSecondary,
     marginHorizontal: spacing.md,
     textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: spacing.lg,
+    marginTop: spacing.xl,
   },
   footerText: {
     ...typography.body,
-    color: colors.textSecondary,
+    fontSize: 15,
   },
   createAccountText: {
     ...typography.body,
-    color: colors.primary,
+    fontSize: 15,
     fontWeight: '600',
   },
 });

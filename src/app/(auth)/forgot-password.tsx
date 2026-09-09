@@ -3,10 +3,12 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Mail, ArrowLeft, KeyRound } from 'lucide-react-native';
 import { ScreenContainer, Button, AuthInput } from '@/components';
-import { colors, radius, spacing, typography, shadows } from '@/constants';
+import { radius, spacing, typography } from '@/constants';
+import { useTheme } from '@/context/ThemeContext';
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
   const [email, setEmail] = useState('');
   const [emailError, setEmailError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -31,18 +33,34 @@ export default function ForgotPasswordScreen() {
   return (
     <ScreenContainer scrollable withKeyboardAvoidance>
       <View style={styles.container}>
-        <View style={styles.card}>
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+            },
+          ]}
+        >
           {/* Top Decorative Strip */}
-          <View style={styles.accentBar} />
+          <View style={[styles.accentBar, { backgroundColor: colors.primary }]} />
 
           {/* Icon Badge */}
-          <View style={styles.iconCircle}>
+          <View
+            style={[
+              styles.iconCircle,
+              {
+                backgroundColor: colors.primaryMuted,
+                borderColor: colors.border,
+              },
+            ]}
+          >
             <KeyRound size={32} color={colors.primary} />
           </View>
 
           {/* Title & Description */}
-          <Text style={styles.title}>Reset Password</Text>
-          <Text style={styles.subtitle}>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>Reset Password</Text>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
             Enter your institutional email address and we'll send you a link to reset your password.
           </Text>
 
@@ -71,14 +89,14 @@ export default function ForgotPasswordScreen() {
           />
 
           {/* Back to Login Footer */}
-          <View style={styles.footer}>
+          <View style={[styles.footer, { borderTopColor: colors.border }]}>
             <TouchableOpacity
               activeOpacity={0.7}
               onPress={() => router.replace('/(auth)/login' as any)}
               style={styles.backLink}
             >
               <ArrowLeft size={16} color={colors.primary} />
-              <Text style={styles.backText}>Back to Login</Text>
+              <Text style={[styles.backText, { color: colors.primary }]}>Back to Login</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -94,15 +112,17 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xxl,
   },
   card: {
-    backgroundColor: colors.surface,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.border,
     padding: spacing.cardPadding * 1.2,
     position: 'relative',
     overflow: 'hidden',
     alignItems: 'center',
-    ...shadows.card,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
   },
   accentBar: {
     position: 'absolute',
@@ -110,15 +130,12 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 4,
-    backgroundColor: colors.primary,
   },
   iconCircle: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: colors.primaryMuted,
     borderWidth: 1,
-    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: spacing.sm,
@@ -126,13 +143,11 @@ const styles = StyleSheet.create({
   },
   title: {
     ...typography.headline,
-    color: colors.textPrimary,
     textAlign: 'center',
     marginBottom: spacing.xs,
   },
   subtitle: {
     ...typography.body,
-    color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: spacing.lg,
     paddingHorizontal: spacing.sm,
@@ -147,7 +162,6 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
     paddingTop: spacing.md,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
     width: '100%',
     alignItems: 'center',
   },
@@ -158,7 +172,6 @@ const styles = StyleSheet.create({
   },
   backText: {
     ...typography.caption,
-    color: colors.primary,
     fontWeight: '600',
   },
 });
