@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ViewStyle } from 'react-native';
-import { ChevronRight } from 'lucide-react-native';
-import { spacing, typography } from '@/constants';
+import { ArrowRight, ChevronRight } from 'lucide-react-native';
+import { spacing, radius, typography, fontFamilies } from '@/constants';
 import { useTheme } from '@/context/ThemeContext';
 
 export interface SectionHeaderProps {
@@ -9,6 +9,11 @@ export interface SectionHeaderProps {
   subtitle?: string;
   actionLabel?: string;
   onActionPress?: () => void;
+  indicatorColor?: string;
+  badge?: {
+    text: string;
+    dotColor?: string;
+  };
   style?: ViewStyle;
 }
 
@@ -17,27 +22,58 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
   subtitle,
   actionLabel,
   onActionPress,
+  indicatorColor,
+  badge,
   style,
 }) => {
   const { colors } = useTheme();
 
   return (
     <View style={[styles.container, style]}>
-      <View style={styles.titleContainer}>
-        <Text style={[styles.title, { color: colors.textPrimary }]}>{title}</Text>
-        {subtitle && <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{subtitle}</Text>}
+      <View style={styles.leftRow}>
+        {indicatorColor ? (
+          <View style={[styles.indicator, { backgroundColor: indicatorColor }]} />
+        ) : null}
+        <View style={styles.titleContainer}>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>
+            {indicatorColor ? title.toUpperCase() : title}
+          </Text>
+          {subtitle && (
+            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{subtitle}</Text>
+          )}
+        </View>
       </View>
 
-      {actionLabel && onActionPress && (
+      {badge ? (
+        <View
+          style={[
+            styles.badgePill,
+            {
+              backgroundColor: colors.surfaceSubtle,
+              borderColor: colors.borderSubtle,
+            },
+          ]}
+        >
+          <View
+            style={[
+              styles.badgeDot,
+              { backgroundColor: badge.dotColor || colors.success },
+            ]}
+          />
+          <Text style={[styles.badgeText, { color: colors.textSecondary }]}>
+            {badge.text}
+          </Text>
+        </View>
+      ) : actionLabel && onActionPress ? (
         <TouchableOpacity
           activeOpacity={0.7}
           onPress={onActionPress}
           style={styles.actionButton}
         >
           <Text style={[styles.actionLabel, { color: colors.primary }]}>{actionLabel}</Text>
-          <ChevronRight size={14} color={colors.primary} />
+          <ArrowRight size={14} color={colors.primary} />
         </TouchableOpacity>
-      )}
+      ) : null}
     </View>
   );
 };
@@ -45,29 +81,63 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
+    alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: spacing.sm + 4,
+  },
+  leftRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  indicator: {
+    width: 4,
+    height: 18,
+    borderRadius: radius.full,
+    marginRight: spacing.sm,
   },
   titleContainer: {
     flex: 1,
   },
   title: {
-    ...typography.title,
+    fontFamily: fontFamilies.sansBold,
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: 0.4,
   },
   subtitle: {
     ...typography.subhead,
     marginTop: 2,
+  },
+  badgePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: radius.full,
+    borderWidth: 1,
+  },
+  badgeDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    marginRight: 6,
+  },
+  badgeText: {
+    fontSize: 12,
+    fontFamily: fontFamilies.sansSemiBold,
+    fontWeight: '600',
   },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: spacing.xs,
     paddingLeft: spacing.sm,
+    gap: 4,
   },
   actionLabel: {
-    ...typography.caption,
+    fontSize: 13,
+    fontFamily: fontFamilies.sansSemiBold,
     fontWeight: '600',
-    marginRight: 2,
   },
 });

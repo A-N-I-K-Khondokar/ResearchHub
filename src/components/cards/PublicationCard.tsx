@@ -30,7 +30,7 @@ export const PublicationCard: React.FC<PublicationCardProps> = ({
         styles.card,
         {
           backgroundColor: colors.surface,
-          borderColor: colors.border,
+          borderColor: colors.borderSubtle,
         },
       ]}
       accessibilityRole="button"
@@ -99,7 +99,7 @@ export const PublicationCard: React.FC<PublicationCardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: radius.md,
+    borderRadius: 20,
     borderWidth: 1,
     padding: spacing.md,
     marginBottom: spacing.md,

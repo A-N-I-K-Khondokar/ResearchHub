@@ -291,7 +291,7 @@ export default function GlobalSearchScreen() {
                     key={pub.id}
                     publication={pub}
                     onPress={() => router.push(`/(research)/${pub.id}` as any)}
-                    onExternalPress={() => {}}
+                    onExternalPress={() => { }}
                     onTopicPress={(topic) => handleTopicPress(topic)}
                   />
                 ))}

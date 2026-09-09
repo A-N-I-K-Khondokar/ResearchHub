@@ -183,12 +183,10 @@ export default function HomeFeedScreen() {
           <View style={styles.sectionHeaderWrapper}>
             <SectionHeader
               title="People are working on"
-              actionLabel={selectedTopic ? 'Clear filter' : 'View all'}
-              onActionPress={
-                selectedTopic
-                  ? () => setSelectedTopic(null)
-                  : () => router.push('/(tabs)/explore' as any)
-              }
+              indicatorColor="#2471E7"
+              badge={{ text: 'Live Feed', dotColor: colors.success }}
+              actionLabel={selectedTopic ? 'Clear filter' : undefined}
+              onActionPress={selectedTopic ? () => setSelectedTopic(null) : undefined}
             />
           </View>
 
@@ -218,7 +216,14 @@ export default function HomeFeedScreen() {
               const researcherId = work.userId || work.researcherId || '';
               const author = getResearcherById(researcherId);
               const authorName = author ? author.name : work.authorName || 'CSE Researcher';
-              const authorBatch = author ? author.batch || author.designation : work.authorBatch || 'CSE';
+              const authorBatch = author?.id === 'res-rafiq-003' 
+                ? 'CSE • Batch 12' 
+                : author ? `CSE • ${author.batch || 'Batch 14'}` : work.authorBatch || 'CSE';
+              const authorRole = author?.id === 'res-mou-002'
+                ? 'NLP Lab'
+                : author?.batch === 'Faculty' || author?.id === 'res-rafiq-003'
+                ? 'Faculty'
+                : undefined;
               const isLiked = likedWorkIds.has(work.id);
               const isBookmarked = bookmarkedWorkIds.has(work.id);
               const likeDelta = isLiked && !work.isLiked ? 1 : !isLiked && work.isLiked ? -1 : 0;
@@ -233,6 +238,7 @@ export default function HomeFeedScreen() {
                   authorName={authorName}
                   authorBatch={authorBatch}
                   authorAvatar={author?.photoURL || author?.avatar}
+                  authorRole={authorRole}
                   isLiked={isLiked}
                   isBookmarked={isBookmarked}
                   onPress={() => router.push(`/(research)/${work.id}` as any)}
@@ -259,7 +265,8 @@ export default function HomeFeedScreen() {
           <View style={styles.sectionHeaderWrapper}>
             <SectionHeader
               title="Researchers to Follow"
-              actionLabel="See all"
+              indicatorColor="#FF7145"
+              actionLabel="Discover"
               onActionPress={() => router.push('/(tabs)/explore' as any)}
             />
           </View>
@@ -270,12 +277,13 @@ export default function HomeFeedScreen() {
             keyExtractor={(item) => item.id}
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.researchersScrollList}
-            renderItem={({ item }) => (
+            renderItem={({ item, index }) => (
               <ResearcherCard
                 researcher={item}
                 connectionStatus={connectionStates[item.id] || item.connectionStatus || 'none'}
                 onPress={() => router.push(`/(profile)/${item.id}` as any)}
                 onConnectPress={() => handleToggleConnect(item.id)}
+                isOutlineButton={index === 1}
               />
             )}
           />

@@ -155,7 +155,7 @@ export const Button: React.FC<ButtonProps> = ({
 
 const styles = StyleSheet.create({
   base: {
-    borderRadius: radius.md, // slightly rounder for a modern look
+    borderRadius: radius.full, // full capsule pill radius
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',

@@ -36,7 +36,7 @@ export const TopicShortcutRow: React.FC<TopicShortcutRowProps> = ({
               styles.chip,
               {
                 backgroundColor: colors.surface,
-                borderColor: colors.border,
+                borderColor: colors.borderSubtle,
               },
               isSelected && {
                 backgroundColor: colors.primary,

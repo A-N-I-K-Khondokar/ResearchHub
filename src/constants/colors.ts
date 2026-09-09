@@ -1,7 +1,7 @@
 /**
  * CSE Research Hub — Centralized Color Tokens
- * Derived from the canonical Stitch design system and DESIGN.md.
- * Supports both Light (Scholarly Crisp) and Dark (Deep Scholar Slate) themes.
+ * Derived from the Luminous Scientific / Atmospheric Academic Design System reference.
+ * Supports both Light (Atmospheric Sky Azure) and Dark (Deep Oceanic Slate) themes.
  */
 
 export type ColorToken =
@@ -11,23 +11,40 @@ export type ColorToken =
   | 'primaryDark'
   | 'primaryLight'
   | 'primaryMuted'
+  | 'primaryContainer'
+  | 'onPrimaryContainer'
   | 'secondary'
   | 'secondaryLight'
   | 'secondaryDark'
+  | 'secondaryContainer'
+  | 'onSecondaryContainer'
   | 'accent'
   | 'accentLight'
+  | 'tertiary'
+  | 'tertiaryContainer'
   | 'background'
   | 'surface'
   | 'surfaceElevated'
   | 'surfaceSubtle'
   | 'surfaceHover'
+  | 'surfaceDim'
+  | 'surfaceBright'
+  | 'surfaceContainerLowest'
+  | 'surfaceContainerLow'
+  | 'surfaceContainer'
+  | 'surfaceContainerHigh'
+  | 'surfaceContainerHighest'
   | 'textPrimary'
   | 'textSecondary'
   | 'textMuted'
   | 'textInverse'
+  | 'onSurface'
+  | 'onSurfaceVariant'
   | 'border'
   | 'borderFocus'
   | 'borderSubtle'
+  | 'outline'
+  | 'outlineVariant'
   | 'success'
   | 'successLight'
   | 'error'
@@ -40,93 +57,131 @@ export type ColorToken =
 export type ThemeColors = Record<ColorToken, string>;
 
 export const lightColors: ThemeColors = {
-  // Brand & Accents
-  primary: '#3B65DF',          // Softer, modern Academic Royal Blue
-  primaryHover: '#4A72E6',     // Slightly lighter for hover states
-  primaryPressed: '#2E51B8',   // Deeper for pressed states
-  primaryDark: '#0A3DAF',      // Deep Academic Blue
-  primaryLight: '#E8EDFF',     // Tinted primary container
-  primaryMuted: '#F0F4FF',     // Primary badge background / active item background
+  // Brand & Accents (Vibrant Sky Azure #2471E7 / #0058C2)
+  primary: '#2471E7',                // Vibrant Sky Azure (Primary CTAs, active indicators, focus rings)
+  primaryHover: '#3D85EF',           // Ambient hover glow
+  primaryPressed: '#1B5ECC',         // Deep kinetic pressed state
+  primaryDark: '#0058C2',            // Authoritative deep azure
+  primaryLight: '#D8E2FF',           // Tinted primary container / primary-fixed
+  primaryMuted: '#EAEDFF',           // Pill background / surface-container
+  primaryContainer: '#2471E7',
+  onPrimaryContainer: '#FFFEFF',
 
-  secondary: '#159A9C',        // Research Teal
-  secondaryLight: '#E0F7F6',   // Soft Teal container
-  secondaryDark: '#00696B',    // Dark teal for chip labels
+  // Secondary & Validations (Soft Mint Sage #71E07E / #006E27)
+  secondary: '#006E27',              // Deep Mint Green for accessible text/icons
+  secondaryLight: '#EAF9EC',         // Soft mint container
+  secondaryDark: '#00531B',          // Contrast mint for chip labels
+  secondaryContainer: '#8BFB95',     // Mint badge container
+  onSecondaryContainer: '#00752A',
 
-  accent: '#B45309',           // Knowledge Amber / Warning
-  accentLight: '#FEF3C7',      // Light amber container
+  // Tertiary & Critical Highlights (Radiant Coral #FF7145 / #CB4C23 / #A9340A)
+  accent: '#FF7145',                 // Radiant Coral Accent
+  accentLight: '#FFDBD1',            // Soft coral container (tertiary-fixed)
+  tertiary: '#A9340A',
+  tertiaryContainer: '#CB4C23',
 
-  // Canvas & Surfaces
-  background: '#F6F8FC',       // Canvas background (soft scholarly cool gray)
-  surface: '#FFFFFF',          // Card & container surface
-  surfaceElevated: '#FFFFFF',  // Modals & sheets
-  surfaceSubtle: '#F8FAFC',    // Input fields, inactive tabs, pill backgrounds
-  surfaceHover: '#F1F5F9',     // Hover state for interactive surface elements
+  // Canvas & Surfaces (Atmospheric Luminous Canvas)
+  background: '#FAF8FF',             // Luminous atmospheric pale canvas
+  surface: '#FFFFFF',                // Solid pristine white cards (surface-container-lowest)
+  surfaceElevated: '#FFFFFF',        // Modals & floating trays
+  surfaceSubtle: '#F2F3FF',          // Search bars, inactive capsule pills (surface-container-low)
+  surfaceHover: '#EAEDFF',           // Interactive surface hover (surface-container)
+  surfaceDim: '#CDD9FF',
+  surfaceBright: '#FAF8FF',
+  surfaceContainerLowest: '#FFFFFF',
+  surfaceContainerLow: '#F2F3FF',
+  surfaceContainer: '#EAEDFF',
+  surfaceContainerHigh: '#E2E7FF',
+  surfaceContainerHighest: '#D9E2FF',
 
-  // Typography
-  textPrimary: '#172033',      // Deep navy/slate for titles & primary reading text
-  textSecondary: '#475467',    // Refined slate gray for metadata, sub-labels
-  textMuted: '#94A3B8',        // Inactive icons, placeholder text
-  textInverse: '#FFFFFF',      // Text on primary buttons
+  // Typography (Deep Ocean Navy replacing pure black)
+  textPrimary: '#071A3E',            // Deep Ocean Navy (on-surface / high optical weight)
+  textSecondary: '#424754',          // Slate navy for metadata & subheads (on-surface-variant)
+  textMuted: '#727785',              // Outline / placeholder text
+  textInverse: '#FFFFFF',            // Crisp white text on primary buttons
+  onSurface: '#071A3E',
+  onSurfaceVariant: '#424754',
 
-  // Structural & Borders
-  border: '#E2E8F0',           // Cleaner standard 1px card/divider outline
-  borderFocus: '#3B65DF',      // Active input/filter border
-  borderSubtle: '#F1F5F9',     // Secondary dividers
+  // Structural Borders & Outlines
+  border: '#D9E2FF',                 // Refined atmospheric card outline
+  borderFocus: '#2471E7',            // Sky Azure focus ring
+  borderSubtle: '#E2E7FF',           // Hairline module dividers (surface-container-high)
+  outline: '#727785',
+  outlineVariant: '#C2C6D6',
 
-  // Feedback & Status
-  success: '#16A34A',          
+  // Feedback & Telemetry Statuses
+  success: '#006E27',
   successLight: '#DCFCE7',
-  error: '#DC2626',            
-  errorLight: '#FEE2E2',
-  warning: '#D97706',
-  warningLight: '#FEF3C7',
-  info: '#0284C7',
-  infoLight: '#E0F2FE',
+  error: '#BA1A1A',
+  errorLight: '#FFDAD6',
+  warning: '#CB4C23',
+  warningLight: '#FFDBD1',
+  info: '#0058C2',
+  infoLight: '#D8E2FF',
 };
 
 export const darkColors: ThemeColors = {
-  // Brand & Accents
-  primary: '#5B82F6',          // Royal Blue adjusted for dark background legibility
-  primaryHover: '#6D91F7',
-  primaryPressed: '#466CE0',
-  primaryDark: '#3B66D4',      // Deepened pressed state
-  primaryLight: '#1E294A',     // Dark tinted primary container
-  primaryMuted: '#162038',     // Dark primary badge background
+  // Brand & Accents (Adjusted for Deep Oceanic Slate readability)
+  primary: '#82B1FF',                // Sky Azure adjusted for dark legibility
+  primaryHover: '#AEC6FF',
+  primaryPressed: '#6897E8',
+  primaryDark: '#3B6FD0',
+  primaryLight: '#152A54',
+  primaryMuted: '#112040',
+  primaryContainer: '#004397',
+  onPrimaryContainer: '#D8E2FF',
 
-  secondary: '#2DD4BF',        // Vibrant Research Teal
-  secondaryLight: '#0C2B2C',   // Deep teal badge container
-  secondaryDark: '#5EEAD4',    // Bright teal text
+  // Secondary (Vibrant Mint)
+  secondary: '#8BFB95',              // Mint Sage highlight
+  secondaryLight: '#0C2B14',         // Deep forest container
+  secondaryDark: '#A6FFAD',          // Bright mint text
+  secondaryContainer: '#00531B',
+  onSecondaryContainer: '#8BFB95',
 
-  accent: '#F59E0B',           // Knowledge Amber
-  accentLight: '#3A2707',      // Deep amber container
+  // Tertiary (Radiant Coral)
+  accent: '#FFB59F',                 // Coral glow for dark backgrounds
+  accentLight: '#3A0A00',            // Deep coral container
+  tertiary: '#FF7145',
+  tertiaryContainer: '#862300',
 
-  // Canvas & Surfaces (Deep Scholarly Slate)
-  background: '#0B0F19',       // Deep scholarly canvas
-  surface: '#131B2E',          // Card surface
-  surfaceElevated: '#1E293B',  // Modals, sheets & popovers
-  surfaceSubtle: '#1A2438',    // Search bars, pill backgrounds, inactive states
-  surfaceHover: '#1E2A44',     // Hover state for dark mode surfaces
+  // Canvas & Surfaces (Deep Oceanic Slate)
+  background: '#070F1E',             // Deep oceanic night base canvas
+  surface: '#0F1A30',                // Pristine dark card surface
+  surfaceElevated: '#172542',        // Modals, sheets & popovers
+  surfaceSubtle: '#13203A',          // Capsule search bars, inactive pills
+  surfaceHover: '#1C2E52',           // Hover state for dark mode surfaces
+  surfaceDim: '#070F1E',
+  surfaceBright: '#172542',
+  surfaceContainerLowest: '#0A1324',
+  surfaceContainerLow: '#0F1A30',
+  surfaceContainer: '#13203A',
+  surfaceContainerHigh: '#1A2A4A',
+  surfaceContainerHighest: '#223458',
 
   // Typography
-  textPrimary: '#F8FAFC',      // Slate 50 - high contrast readability
-  textSecondary: '#94A3B8',    // Slate 400 - clean metadata & secondary info
-  textMuted: '#64748B',        // Slate 500 - placeholder text & subtle icons
-  textInverse: '#0B0F19',      // Dark text on bright buttons
+  textPrimary: '#EEF0FF',            // Inverse-on-surface high contrast readability
+  textSecondary: '#A5B0C8',          // Clean slate metadata
+  textMuted: '#727785',              // Outline / placeholder text
+  textInverse: '#071A3E',            // Deep navy text on bright buttons
+  onSurface: '#EEF0FF',
+  onSurfaceVariant: '#A5B0C8',
 
   // Structural & Borders
-  border: '#243048',           // Subtle card boundary
-  borderFocus: '#5B82F6',      // Focused active border
-  borderSubtle: '#182236',     // Dividers
+  border: '#1E2D4A',                 // Subtle card boundary
+  borderFocus: '#82B1FF',            // Focused active border
+  borderSubtle: '#16233B',           // Module dividers
+  outline: '#8C92A4',
+  outlineVariant: '#2A3B5C',
 
-  // Feedback & Status
-  success: '#22C55E',
+  // Feedback & Telemetry Statuses
+  success: '#6EDD7C',
   successLight: '#052E16',
-  error: '#EF4444',
+  error: '#FFB4AB',
   errorLight: '#450A0A',
-  warning: '#F59E0B',
+  warning: '#FFB59F',
   warningLight: '#451A03',
-  info: '#38BDF8',
-  infoLight: '#082F49',
+  info: '#AEC6FF',
+  infoLight: '#0F2650',
 };
 
 // Default colors exported for backward compatibility

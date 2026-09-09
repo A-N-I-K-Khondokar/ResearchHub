@@ -6,7 +6,7 @@ import { typography, fontFamilies } from './typography';
 
 /**
  * CSE Research Hub — Centralized Elevation / Shadow Styles
- * Clean low-contrast shadows conforming to DESIGN.md.
+ * Clean low-contrast ambient shadows conforming to the design system reference.
  */
 export const shadows: Record<'subtle' | 'card' | 'elevated' | 'none', ViewStyle> = {
   none: {
@@ -18,23 +18,23 @@ export const shadows: Record<'subtle' | 'card' | 'elevated' | 'none', ViewStyle>
   },
   subtle: {
     shadowColor: colors.textPrimary,
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.03,
-    shadowRadius: 3,
+    shadowRadius: 6,
     elevation: 1,
   },
   card: {
     shadowColor: colors.textPrimary,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.04,
-    shadowRadius: 6,
+    shadowRadius: 16,
     elevation: 2,
   },
   elevated: {
     shadowColor: colors.textPrimary,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.06,
+    shadowRadius: 28,
     elevation: 4,
   },
 };
