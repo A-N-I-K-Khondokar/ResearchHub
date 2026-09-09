@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, ViewStyle } from 'react-native';
 import { Search, Inbox } from 'lucide-react-native';
-import { colors, spacing, radius, typography } from '@/constants';
+import { spacing, radius, typography } from '@/constants';
+import { useTheme } from '@/context/ThemeContext';
 import { Button } from '../common/Button';
 
 export interface EmptyStateProps {
@@ -21,13 +22,26 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   onActionPress,
   style,
 }) => {
+  const { colors } = useTheme();
+
   return (
-    <View style={[styles.container, style]}>
-      <View style={styles.iconContainer}>
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: colors.surface,
+          borderColor: colors.border,
+        },
+        style,
+      ]}
+    >
+      <View style={[styles.iconContainer, { backgroundColor: colors.primaryMuted }]}>
         {icon || <Search size={28} color={colors.primary} />}
       </View>
-      <Text style={styles.title}>{title}</Text>
-      {description ? <Text style={styles.description}>{description}</Text> : null}
+      <Text style={[styles.title, { color: colors.textPrimary }]}>{title}</Text>
+      {description ? (
+        <Text style={[styles.description, { color: colors.textSecondary }]}>{description}</Text>
+      ) : null}
       {actionLabel && onActionPress ? (
         <Button
           label={actionLabel}
@@ -43,10 +57,8 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: colors.surface,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.border,
     padding: spacing.xl,
     alignItems: 'center',
     justifyContent: 'center',
@@ -56,20 +68,17 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: radius.full,
-    backgroundColor: colors.primaryMuted,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.md,
   },
   title: {
     ...typography.titleSmall,
-    color: colors.textPrimary,
     textAlign: 'center',
     marginBottom: 4,
   },
   description: {
     ...typography.bodySmall,
-    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 18,
     maxWidth: 280,

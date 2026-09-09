@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, Image, StyleSheet, ViewStyle } from 'react-native';
-import { colors, radius, typography } from '@/constants';
+import { radius, typography } from '@/constants';
+import { useTheme } from '@/context/ThemeContext';
 
 export type AvatarSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 
@@ -33,11 +34,14 @@ export const Avatar: React.FC<AvatarProps> = ({
   name,
   size = 'md',
   badge = false,
-  badgeColor = colors.success,
+  badgeColor,
   style,
 }) => {
+  const { colors } = useTheme();
   const { dimension, fontSize, radius: borderRadius } = sizeMap[size];
   const [hasError, setHasError] = React.useState(false);
+
+  const effectiveBadgeColor = badgeColor || colors.success;
 
   const imageSource = React.useMemo(() => {
     if (!uri || hasError) return null;
@@ -53,6 +57,7 @@ export const Avatar: React.FC<AvatarProps> = ({
       width: dimension,
       height: dimension,
       borderRadius,
+      backgroundColor: colors.surfaceSubtle,
     },
     style,
   ];
@@ -62,13 +67,26 @@ export const Avatar: React.FC<AvatarProps> = ({
       {imageSource ? (
         <Image
           source={imageSource}
-          style={[styles.image, { width: dimension, height: dimension, borderRadius }]}
+          style={[styles.image, { width: dimension, height: dimension, borderRadius, backgroundColor: colors.surfaceSubtle }]}
           resizeMode="cover"
           onError={() => setHasError(true)}
         />
       ) : (
-        <View style={[styles.fallback, { width: dimension, height: dimension, borderRadius }]}>
-          <Text style={[styles.initials, { fontSize }]}>{getInitials(name)}</Text>
+        <View
+          style={[
+            styles.fallback,
+            {
+              width: dimension,
+              height: dimension,
+              borderRadius,
+              backgroundColor: colors.primaryLight,
+              borderColor: colors.border,
+            },
+          ]}
+        >
+          <Text style={[styles.initials, { fontSize, color: colors.primaryDark }]}>
+            {getInitials(name)}
+          </Text>
         </View>
       )}
 
@@ -77,10 +95,11 @@ export const Avatar: React.FC<AvatarProps> = ({
           style={[
             styles.badge,
             {
-              backgroundColor: badgeColor,
+              backgroundColor: effectiveBadgeColor,
               width: Math.max(8, dimension * 0.25),
               height: Math.max(8, dimension * 0.25),
               borderRadius: radius.full,
+              borderColor: colors.surface,
             },
           ]}
         />
@@ -92,23 +111,17 @@ export const Avatar: React.FC<AvatarProps> = ({
 const styles = StyleSheet.create({
   container: {
     position: 'relative',
-    backgroundColor: colors.surfaceSubtle,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  image: {
-    backgroundColor: colors.surfaceSubtle,
-  },
+  image: {},
   fallback: {
-    backgroundColor: colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: colors.border,
   },
   initials: {
     ...typography.buttonSmall,
-    color: colors.primaryDark,
     fontWeight: '700',
   },
   badge: {
@@ -116,6 +129,5 @@ const styles = StyleSheet.create({
     bottom: 0,
     right: 0,
     borderWidth: 1.5,
-    borderColor: colors.surface,
   },
 });

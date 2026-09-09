@@ -2,7 +2,8 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Heart, MessageSquare, Bookmark } from 'lucide-react-native';
 import { CurrentWork } from '../../types';
-import { colors, spacing, radius, typography, fontFamilies, shadows } from '../../constants';
+import { spacing, radius, typography, fontFamilies, shadows } from '../../constants';
+import { useTheme } from '@/context/ThemeContext';
 import { Avatar } from '../common/Avatar';
 import { TopicChip } from '../common/TopicChip';
 
@@ -35,11 +36,19 @@ export const CurrentWorkCard: React.FC<CurrentWorkCardProps> = ({
   isLiked = false,
   isBookmarked = false,
 }) => {
+  const { colors } = useTheme();
+
   return (
     <TouchableOpacity
       activeOpacity={0.92}
       onPress={onPress}
-      style={styles.card}
+      style={[
+        styles.card,
+        {
+          backgroundColor: colors.surface,
+          borderColor: colors.border,
+        },
+      ]}
       accessibilityRole="button"
       accessibilityLabel={`Research work: ${work.title} by ${authorName}`}
     >
@@ -52,30 +61,38 @@ export const CurrentWorkCard: React.FC<CurrentWorkCardProps> = ({
         >
           <Avatar name={authorName} uri={authorAvatar} size="md" />
           <View style={styles.authorInfo}>
-            <Text style={styles.authorName} numberOfLines={1}>
+            <Text style={[styles.authorName, { color: colors.textPrimary }]} numberOfLines={1}>
               {authorName}
             </Text>
             {authorBatch ? (
-              <Text style={styles.authorBatch}>{authorBatch}</Text>
+              <Text style={[styles.authorBatch, { color: colors.textSecondary }]}>{authorBatch}</Text>
             ) : null}
           </View>
         </TouchableOpacity>
 
         {/* Stage Badge */}
         {work.stage ? (
-          <View style={styles.stageBadge}>
-            <Text style={styles.stageText}>{work.stage}</Text>
+          <View
+            style={[
+              styles.stageBadge,
+              {
+                backgroundColor: colors.surfaceSubtle,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            <Text style={[styles.stageText, { color: colors.primary }]}>{work.stage}</Text>
           </View>
         ) : null}
       </View>
 
       {/* Title */}
-      <Text style={styles.title} numberOfLines={2}>
+      <Text style={[styles.title, { color: colors.textPrimary }]} numberOfLines={2}>
         {work.title}
       </Text>
 
       {/* Description Snippet */}
-      <Text style={styles.description} numberOfLines={3}>
+      <Text style={[styles.description, { color: colors.textSecondary }]} numberOfLines={3}>
         {work.shortDescription || work.description}
       </Text>
 
@@ -95,7 +112,7 @@ export const CurrentWorkCard: React.FC<CurrentWorkCardProps> = ({
       ) : null}
 
       {/* Interaction Footer */}
-      <View style={styles.footer}>
+      <View style={[styles.footer, { borderTopColor: colors.borderSubtle }]}>
         <View style={styles.footerLeft}>
           <TouchableOpacity
             onPress={onLikePress}
@@ -107,7 +124,12 @@ export const CurrentWorkCard: React.FC<CurrentWorkCardProps> = ({
               color={isLiked ? colors.error : colors.textSecondary}
               fill={isLiked ? colors.error : 'transparent'}
             />
-            <Text style={[styles.actionText, isLiked && styles.actionTextActive]}>
+            <Text
+              style={[
+                styles.actionText,
+                { color: isLiked ? colors.error : colors.textSecondary },
+              ]}
+            >
               {work.likesCount || 0}
             </Text>
           </TouchableOpacity>
@@ -118,7 +140,9 @@ export const CurrentWorkCard: React.FC<CurrentWorkCardProps> = ({
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             <MessageSquare size={16} color={colors.textSecondary} />
-            <Text style={styles.actionText}>{work.commentsCount || 0}</Text>
+            <Text style={[styles.actionText, { color: colors.textSecondary }]}>
+              {work.commentsCount || 0}
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -142,10 +166,8 @@ export const CurrentWorkCard: React.FC<CurrentWorkCardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.surface,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.border,
     padding: spacing.md,
     marginBottom: spacing.md,
     ...shadows.card,
@@ -168,36 +190,29 @@ const styles = StyleSheet.create({
   },
   authorName: {
     ...typography.titleSmall,
-    color: colors.textPrimary,
   },
   authorBatch: {
     ...typography.caption,
-    color: colors.textSecondary,
     marginTop: 1,
   },
   stageBadge: {
-    backgroundColor: colors.surfaceSubtle,
     paddingHorizontal: spacing.sm,
     paddingVertical: 3,
     borderRadius: radius.full,
     borderWidth: 1,
-    borderColor: colors.border,
   },
   stageText: {
     ...typography.caption,
     fontFamily: fontFamilies.sansMedium,
-    color: colors.primary,
   },
   title: {
     ...typography.headlineSmall,
-    color: colors.textPrimary,
     lineHeight: 24,
     marginBottom: spacing.xs,
   },
   description: {
     ...typography.body,
     fontSize: 14,
-    color: colors.textSecondary,
     lineHeight: 20,
     marginBottom: spacing.sm,
   },
@@ -215,7 +230,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     borderTopWidth: 1,
-    borderTopColor: colors.borderSubtle,
     paddingTop: spacing.sm,
     marginTop: spacing.xs,
   },
@@ -235,10 +249,6 @@ const styles = StyleSheet.create({
   },
   actionText: {
     ...typography.caption,
-    color: colors.textSecondary,
-  },
-  actionTextActive: {
-    color: colors.error,
   },
   iconOnlyButton: {
     padding: 2,

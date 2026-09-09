@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ViewStyle } from 'react-native';
 import { ChevronRight } from 'lucide-react-native';
-import { colors, spacing, typography } from '@/constants';
+import { spacing, typography } from '@/constants';
+import { useTheme } from '@/context/ThemeContext';
 
 export interface SectionHeaderProps {
   title: string;
@@ -18,11 +19,13 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
   onActionPress,
   style,
 }) => {
+  const { colors } = useTheme();
+
   return (
     <View style={[styles.container, style]}>
       <View style={styles.titleContainer}>
-        <Text style={styles.title}>{title}</Text>
-        {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
+        <Text style={[styles.title, { color: colors.textPrimary }]}>{title}</Text>
+        {subtitle && <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{subtitle}</Text>}
       </View>
 
       {actionLabel && onActionPress && (
@@ -31,7 +34,7 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
           onPress={onActionPress}
           style={styles.actionButton}
         >
-          <Text style={styles.actionLabel}>{actionLabel}</Text>
+          <Text style={[styles.actionLabel, { color: colors.primary }]}>{actionLabel}</Text>
           <ChevronRight size={14} color={colors.primary} />
         </TouchableOpacity>
       )}
@@ -51,11 +54,9 @@ const styles = StyleSheet.create({
   },
   title: {
     ...typography.title,
-    color: colors.textPrimary,
   },
   subtitle: {
     ...typography.subhead,
-    color: colors.textSecondary,
     marginTop: 2,
   },
   actionButton: {
@@ -66,7 +67,6 @@ const styles = StyleSheet.create({
   },
   actionLabel: {
     ...typography.caption,
-    color: colors.primary,
     fontWeight: '600',
     marginRight: 2,
   },

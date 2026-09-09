@@ -2,7 +2,8 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { ExternalLink, BookOpen } from 'lucide-react-native';
 import { ResearchPublication } from '../../types';
-import { colors, spacing, radius, typography, fontFamilies, shadows } from '../../constants';
+import { spacing, radius, typography, fontFamilies, shadows } from '../../constants';
+import { useTheme } from '@/context/ThemeContext';
 import { TopicChip } from '../common/TopicChip';
 
 interface PublicationCardProps {
@@ -18,49 +19,58 @@ export const PublicationCard: React.FC<PublicationCardProps> = ({
   onExternalPress,
   onTopicPress,
 }) => {
+  const { colors } = useTheme();
   const authorList = publication.authors || (publication.coAuthors ? [publication.authorName, ...publication.coAuthors] : [publication.authorName]);
 
   return (
     <TouchableOpacity
       activeOpacity={0.92}
       onPress={onPress}
-      style={styles.card}
+      style={[
+        styles.card,
+        {
+          backgroundColor: colors.surface,
+          borderColor: colors.border,
+        },
+      ]}
       accessibilityRole="button"
       accessibilityLabel={`Publication: ${publication.title}`}
     >
       {/* Top Meta: Type & Year */}
       <View style={styles.topMeta}>
-        <View style={styles.typeBadge}>
+        <View style={[styles.typeBadge, { backgroundColor: colors.secondaryLight }]}>
           <BookOpen size={12} color={colors.secondary} />
-          <Text style={styles.typeText}>{publication.type.toUpperCase()}</Text>
+          <Text style={[styles.typeText, { color: colors.secondaryDark }]}>
+            {publication.type.toUpperCase()}
+          </Text>
         </View>
-        <Text style={styles.yearText}>{publication.year}</Text>
+        <Text style={[styles.yearText, { color: colors.textSecondary }]}>{publication.year}</Text>
       </View>
 
       {/* Title */}
-      <Text style={styles.title} numberOfLines={2}>
+      <Text style={[styles.title, { color: colors.textPrimary }]} numberOfLines={2}>
         {publication.title}
       </Text>
 
       {/* Authors & Venue */}
-      <Text style={styles.authors} numberOfLines={1}>
+      <Text style={[styles.authors, { color: colors.textSecondary }]} numberOfLines={1}>
         {authorList.join(', ')}
       </Text>
       {publication.venue ? (
-        <Text style={styles.venue} numberOfLines={1}>
+        <Text style={[styles.venue, { color: colors.textMuted }]} numberOfLines={1}>
           {publication.venue}
         </Text>
       ) : null}
 
       {/* Abstract Snippet */}
       {publication.overview || publication.abstract ? (
-        <Text style={styles.abstract} numberOfLines={2}>
+        <Text style={[styles.abstract, { color: colors.textSecondary }]} numberOfLines={2}>
           {publication.overview || publication.abstract}
         </Text>
       ) : null}
 
       {/* Topics and Actions */}
-      <View style={styles.footer}>
+      <View style={[styles.footer, { borderTopColor: colors.borderSubtle }]}>
         <View style={styles.topicsRow}>
           {publication.topics && publication.topics.slice(0, 2).map((topic, index) => (
             <TopicChip
@@ -79,7 +89,7 @@ export const PublicationCard: React.FC<PublicationCardProps> = ({
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             <ExternalLink size={14} color={colors.primary} />
-            <Text style={styles.externalText}>View</Text>
+            <Text style={[styles.externalText, { color: colors.primary }]}>View</Text>
           </TouchableOpacity>
         ) : null}
       </View>
@@ -89,10 +99,8 @@ export const PublicationCard: React.FC<PublicationCardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.surface,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.border,
     padding: spacing.md,
     marginBottom: spacing.md,
     ...shadows.card,
@@ -107,7 +115,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: colors.secondaryLight,
     paddingHorizontal: spacing.sm,
     paddingVertical: 2,
     borderRadius: radius.full,
@@ -115,34 +122,28 @@ const styles = StyleSheet.create({
   typeText: {
     fontSize: 10,
     fontFamily: fontFamilies.sansSemiBold,
-    color: colors.secondaryDark,
   },
   yearText: {
     ...typography.caption,
-    color: colors.textSecondary,
   },
   title: {
     ...typography.title,
     fontFamily: fontFamilies.serifBold,
-    color: colors.textPrimary,
     lineHeight: 22,
     marginBottom: 4,
   },
   authors: {
     ...typography.caption,
     fontFamily: fontFamilies.sansMedium,
-    color: colors.textSecondary,
     marginBottom: 2,
   },
   venue: {
     ...typography.caption,
-    color: colors.textMuted,
     fontStyle: 'italic',
     marginBottom: spacing.xs,
   },
   abstract: {
     ...typography.bodySmall,
-    color: colors.textSecondary,
     lineHeight: 18,
     marginBottom: spacing.sm,
   },
@@ -151,7 +152,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     borderTopWidth: 1,
-    borderTopColor: colors.borderSubtle,
     paddingTop: spacing.xs,
     marginTop: spacing.xs,
   },
@@ -171,6 +171,5 @@ const styles = StyleSheet.create({
   externalText: {
     ...typography.caption,
     fontFamily: fontFamilies.sansSemiBold,
-    color: colors.primary,
   },
 });

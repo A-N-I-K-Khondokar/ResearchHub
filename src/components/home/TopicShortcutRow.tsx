@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Topic } from '../../types';
-import { colors, spacing, radius, typography, fontFamilies, shadows } from '../../constants';
+import { spacing, radius, typography, fontFamilies, shadows } from '../../constants';
+import { useTheme } from '@/context/ThemeContext';
 
 interface TopicShortcutRowProps {
   topics: Topic[];
@@ -14,6 +15,8 @@ export const TopicShortcutRow: React.FC<TopicShortcutRowProps> = ({
   selectedTopicId,
   onSelectTopic,
 }) => {
+  const { colors } = useTheme();
+
   return (
     <ScrollView
       horizontal
@@ -31,7 +34,14 @@ export const TopicShortcutRow: React.FC<TopicShortcutRowProps> = ({
             onPress={() => onSelectTopic?.(topic)}
             style={[
               styles.chip,
-              isSelected && styles.chipSelected,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+              },
+              isSelected && {
+                backgroundColor: colors.primary,
+                borderColor: colors.primary,
+              },
             ]}
             accessibilityRole="button"
             accessibilityState={{ selected: isSelected }}
@@ -43,6 +53,7 @@ export const TopicShortcutRow: React.FC<TopicShortcutRowProps> = ({
             <Text
               style={[
                 styles.label,
+                { color: isSelected ? colors.textInverse : colors.textPrimary },
                 isSelected && styles.labelSelected,
               ]}
             >
@@ -52,13 +63,14 @@ export const TopicShortcutRow: React.FC<TopicShortcutRowProps> = ({
               <View
                 style={[
                   styles.countBadge,
+                  { backgroundColor: colors.surfaceSubtle },
                   isSelected && styles.countBadgeSelected,
                 ]}
               >
                 <Text
                   style={[
                     styles.countText,
-                    isSelected && styles.countTextSelected,
+                    { color: isSelected ? colors.textInverse : colors.textSecondary },
                   ]}
                 >
                   {count}
@@ -81,18 +93,12 @@ const styles = StyleSheet.create({
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surface,
     paddingHorizontal: spacing.md,
     paddingVertical: 8,
     borderRadius: radius.full,
     borderWidth: 1,
-    borderColor: colors.border,
     marginRight: spacing.xs,
     ...shadows.subtle,
-  },
-  chipSelected: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
   },
   icon: {
     fontSize: 14,
@@ -101,15 +107,12 @@ const styles = StyleSheet.create({
   label: {
     ...typography.caption,
     fontFamily: fontFamilies.sansMedium,
-    color: colors.textPrimary,
   },
   labelSelected: {
-    color: colors.textInverse,
     fontFamily: fontFamilies.sansSemiBold,
   },
   countBadge: {
     marginLeft: 6,
-    backgroundColor: colors.surfaceSubtle,
     paddingHorizontal: 6,
     paddingVertical: 1,
     borderRadius: radius.full,
@@ -120,9 +123,5 @@ const styles = StyleSheet.create({
   countText: {
     fontSize: 10,
     fontFamily: fontFamilies.sansBold,
-    color: colors.textSecondary,
-  },
-  countTextSelected: {
-    color: colors.textInverse,
   },
 });

@@ -8,7 +8,8 @@ import {
   TextStyle,
   View,
 } from 'react-native';
-import { colors, radius, spacing, typography } from '@/constants';
+import { radius, spacing, typography } from '@/constants';
+import { useTheme } from '@/context/ThemeContext';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'destructive';
 export type ButtonSize = 'sm' | 'md' | 'lg';
@@ -40,6 +41,7 @@ export const Button: React.FC<ButtonProps> = ({
   style,
   textStyle,
 }) => {
+  const { colors } = useTheme();
   const isInteractive = !disabled && !loading;
 
   const getContainerStyles = (): ViewStyle[] => {
@@ -51,24 +53,36 @@ export const Button: React.FC<ButtonProps> = ({
 
     switch (variant) {
       case 'primary':
-        list.push(styles.variant_primary);
+        list.push({ backgroundColor: colors.primary });
         break;
       case 'secondary':
-        list.push(styles.variant_secondary);
+        list.push({
+          backgroundColor: colors.secondaryLight,
+          borderWidth: 1,
+          borderColor: colors.secondaryLight,
+        });
         break;
       case 'outline':
-        list.push(styles.variant_outline);
+        list.push({
+          backgroundColor: 'transparent',
+          borderWidth: 1.5,
+          borderColor: colors.border,
+        });
         break;
       case 'ghost':
-        list.push(styles.variant_ghost);
+        list.push({ backgroundColor: 'transparent' });
         break;
       case 'destructive':
-        list.push(styles.variant_destructive);
+        list.push({ backgroundColor: colors.error });
         break;
     }
 
     if (disabled) {
-      list.push(styles.disabled);
+      list.push({
+        backgroundColor: colors.surfaceSubtle,
+        borderColor: colors.border,
+        opacity: 0.6,
+      });
     }
 
     if (style) {
@@ -83,24 +97,24 @@ export const Button: React.FC<ButtonProps> = ({
 
     switch (variant) {
       case 'primary':
-        list.push(styles.text_primary);
+        list.push({ color: colors.textInverse });
         break;
       case 'secondary':
-        list.push(styles.text_secondary);
+        list.push({ color: colors.secondaryDark });
         break;
       case 'outline':
-        list.push(styles.text_outline);
+        list.push({ color: colors.textPrimary });
         break;
       case 'ghost':
-        list.push(styles.text_ghost);
+        list.push({ color: colors.primary });
         break;
       case 'destructive':
-        list.push(styles.text_destructive);
+        list.push({ color: colors.textInverse });
         break;
     }
 
     if (disabled) {
-      list.push(styles.disabledText);
+      list.push({ color: colors.textMuted });
     }
 
     if (textStyle) {
@@ -189,55 +203,5 @@ const styles = StyleSheet.create({
   textSize_lg: {
     ...typography.button,
     fontSize: 16,
-  },
-
-  // Variants
-  variant_primary: {
-    backgroundColor: colors.primary,
-  },
-  text_primary: {
-    color: colors.textInverse,
-  },
-
-  variant_secondary: {
-    backgroundColor: colors.secondaryLight,
-    borderWidth: 1,
-    borderColor: colors.secondaryLight,
-  },
-  text_secondary: {
-    color: colors.secondaryDark,
-  },
-
-  variant_outline: {
-    backgroundColor: 'transparent',
-    borderWidth: 1.5,
-    borderColor: colors.border,
-  },
-  text_outline: {
-    color: colors.textPrimary,
-  },
-
-  variant_ghost: {
-    backgroundColor: 'transparent',
-  },
-  text_ghost: {
-    color: colors.primary,
-  },
-
-  variant_destructive: {
-    backgroundColor: colors.error,
-  },
-  text_destructive: {
-    color: colors.textInverse,
-  },
-
-  // Disabled states
-  disabled: {
-    backgroundColor: colors.surfaceSubtle,
-    borderColor: colors.border,
-    opacity: 0.6,
-  },
-  disabledText: {
-    color: colors.textMuted,
   },
 });

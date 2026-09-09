@@ -1,6 +1,7 @@
 import React from 'react';
 import { TouchableOpacity, Text, View, StyleSheet, ViewStyle } from 'react-native';
-import { colors, radius, spacing, typography } from '@/constants';
+import { radius, spacing, typography } from '@/constants';
+import { useTheme } from '@/hooks/useTheme';
 
 export interface SocialAuthButtonProps {
   onPress: () => void;
@@ -8,16 +9,25 @@ export interface SocialAuthButtonProps {
 }
 
 export const SocialAuthButton: React.FC<SocialAuthButtonProps> = ({ onPress, style }) => {
+  const { colors } = useTheme();
+
   return (
     <TouchableOpacity
       activeOpacity={0.8}
       onPress={onPress}
-      style={[styles.container, style]}
+      style={[
+        styles.container,
+        {
+          backgroundColor: colors.surface,
+          borderColor: colors.border,
+        },
+        style,
+      ]}
     >
       <View style={styles.googleIconCircle}>
         <Text style={styles.googleIconText}>G</Text>
       </View>
-      <Text style={styles.buttonText}>Continue with Google</Text>
+      <Text style={[styles.buttonText, { color: colors.textPrimary }]}>Continue with Google</Text>
     </TouchableOpacity>
   );
 };
@@ -25,9 +35,7 @@ export const SocialAuthButton: React.FC<SocialAuthButtonProps> = ({ onPress, sty
 const styles = StyleSheet.create({
   container: {
     height: 46,
-    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.border,
     borderRadius: radius.sm,
     flexDirection: 'row',
     alignItems: 'center',
@@ -50,6 +58,5 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     ...typography.button,
-    color: colors.textPrimary,
   },
 });

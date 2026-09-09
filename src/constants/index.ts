@@ -39,4 +39,8 @@ export const shadows: Record<'subtle' | 'card' | 'elevated' | 'none', ViewStyle>
   },
 };
 
-export { colors, spacing, radius, typography, fontFamilies };
+export { colors, lightColors, darkColors, type ThemeColors, type ColorToken } from './colors';
+export { spacing } from './spacing';
+export { radius } from './radius';
+export { typography, fontFamilies } from './typography';
+

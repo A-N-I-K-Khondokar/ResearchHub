@@ -10,7 +10,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { colors, spacing, radius, typography, fontFamilies, shadows } from '../../constants';
+import { spacing, radius, typography, fontFamilies, shadows } from '../../constants';
+import { useTheme } from '@/context/ThemeContext';
 import {
   currentUser,
   mockTopics,
@@ -32,6 +33,7 @@ import { SectionHeader } from '../../components/common/SectionHeader';
 
 export default function HomeFeedScreen() {
   const router = useRouter();
+  const { colors, isDark } = useTheme();
   const [refreshing, setRefreshing] = useState(false);
   const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
 
@@ -132,7 +134,10 @@ export default function HomeFeedScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: colors.surface }]}
+      edges={['top']}
+    >
       {/* Header */}
       <HomeHeader
         userName={currentUser.name}
@@ -144,7 +149,7 @@ export default function HomeFeedScreen() {
       />
 
       <ScrollView
-        style={styles.container}
+        style={[styles.container, { backgroundColor: colors.background }]}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -157,7 +162,15 @@ export default function HomeFeedScreen() {
         }
       >
         {/* Topic Shortcuts Row */}
-        <View style={styles.topicSection}>
+        <View
+          style={[
+            styles.topicSection,
+            {
+              backgroundColor: colors.surface,
+              borderBottomColor: colors.borderSubtle,
+            },
+          ]}
+        >
           <TopicShortcutRow
             topics={mockTopics}
             selectedTopicId={selectedTopic?.id}
@@ -180,16 +193,24 @@ export default function HomeFeedScreen() {
           </View>
 
           {filteredWork.length === 0 ? (
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyTitle}>No research found</Text>
-              <Text style={styles.emptySubtitle}>
+            <View
+              style={[
+                styles.emptyContainer,
+                {
+                  backgroundColor: colors.surface,
+                  borderColor: colors.border,
+                },
+              ]}
+            >
+              <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>No research found</Text>
+              <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
                 No current work matches "{selectedTopic?.name}".
               </Text>
               <TouchableOpacity
                 onPress={() => setSelectedTopic(null)}
-                style={styles.clearFilterButton}
+                style={[styles.clearFilterButton, { backgroundColor: colors.primaryMuted }]}
               >
-                <Text style={styles.clearFilterText}>Show all research</Text>
+                <Text style={[styles.clearFilterText, { color: colors.primary }]}>Show all research</Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -343,19 +364,15 @@ export default function HomeFeedScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.surface,
   },
   container: {
     flex: 1,
-    backgroundColor: colors.background,
   },
   scrollContent: {
     paddingBottom: spacing.xxl,
   },
   topicSection: {
-    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: colors.borderSubtle,
     marginBottom: spacing.sm,
   },
   sectionContainer: {
@@ -374,10 +391,8 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xs,
   },
   emptyContainer: {
-    backgroundColor: colors.surface,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.border,
     padding: spacing.xl,
     alignItems: 'center',
     justifyContent: 'center',
@@ -386,17 +401,14 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     ...typography.titleSmall,
-    color: colors.textPrimary,
     marginBottom: 4,
   },
   emptySubtitle: {
     ...typography.bodySmall,
-    color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: spacing.md,
   },
   clearFilterButton: {
-    backgroundColor: colors.primaryMuted,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
     borderRadius: radius.full,
@@ -404,7 +416,6 @@ const styles = StyleSheet.create({
   clearFilterText: {
     ...typography.caption,
     fontFamily: fontFamilies.sansSemiBold,
-    color: colors.primary,
   },
   bottomSpacer: {
     height: 40,

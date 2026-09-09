@@ -1,9 +1,42 @@
 /**
  * CSE Research Hub — Centralized Color Tokens
  * Derived from the canonical Stitch design system and DESIGN.md.
+ * Supports both Light (Scholarly Crisp) and Dark (Deep Scholar Slate) themes.
  */
 
-export const colors = {
+export type ColorToken =
+  | 'primary'
+  | 'primaryDark'
+  | 'primaryLight'
+  | 'primaryMuted'
+  | 'secondary'
+  | 'secondaryLight'
+  | 'secondaryDark'
+  | 'accent'
+  | 'accentLight'
+  | 'background'
+  | 'surface'
+  | 'surfaceElevated'
+  | 'surfaceSubtle'
+  | 'textPrimary'
+  | 'textSecondary'
+  | 'textMuted'
+  | 'textInverse'
+  | 'border'
+  | 'borderFocus'
+  | 'borderSubtle'
+  | 'success'
+  | 'successLight'
+  | 'error'
+  | 'errorLight'
+  | 'warning'
+  | 'warningLight'
+  | 'info'
+  | 'infoLight';
+
+export type ThemeColors = Record<ColorToken, string>;
+
+export const lightColors: ThemeColors = {
   // Brand & Accents
   primary: '#3157C8',          // Academic Royal Blue (Primary actions, brand accents, active tabs)
   primaryDark: '#0A3DAF',      // Deep Academic Blue (Pressed states, high-contrast headers)
@@ -43,6 +76,49 @@ export const colors = {
   warningLight: '#FEF3C7',
   info: '#0284C7',
   infoLight: '#E0F2FE',
-} as const;
+};
 
-export type ColorToken = keyof typeof colors;
+export const darkColors: ThemeColors = {
+  // Brand & Accents
+  primary: '#5B82F6',          // Royal Blue adjusted for dark background legibility
+  primaryDark: '#3B66D4',      // Deepened pressed state
+  primaryLight: '#1E294A',     // Dark tinted primary container
+  primaryMuted: '#162038',     // Dark primary badge background
+
+  secondary: '#2DD4BF',        // Vibrant Research Teal
+  secondaryLight: '#0C2B2C',   // Deep teal badge container
+  secondaryDark: '#5EEAD4',    // Bright teal text
+
+  accent: '#F59E0B',           // Knowledge Amber
+  accentLight: '#3A2707',      // Deep amber container
+
+  // Canvas & Surfaces (Deep Scholarly Slate)
+  background: '#0B0F19',       // Deep scholarly canvas
+  surface: '#131B2E',          // Card surface
+  surfaceElevated: '#1E293B',  // Modals, sheets & popovers
+  surfaceSubtle: '#1A2438',    // Search bars, pill backgrounds, inactive states
+
+  // Typography
+  textPrimary: '#F8FAFC',      // Slate 50 - high contrast readability
+  textSecondary: '#94A3B8',    // Slate 400 - clean metadata & secondary info
+  textMuted: '#64748B',        // Slate 500 - placeholder text & subtle icons
+  textInverse: '#0B0F19',      // Dark text on bright buttons
+
+  // Structural & Borders
+  border: '#243048',           // Subtle card boundary
+  borderFocus: '#5B82F6',      // Focused active border
+  borderSubtle: '#182236',     // Dividers
+
+  // Feedback & Status
+  success: '#22C55E',
+  successLight: '#052E16',
+  error: '#EF4444',
+  errorLight: '#450A0A',
+  warning: '#F59E0B',
+  warningLight: '#451A03',
+  info: '#38BDF8',
+  infoLight: '#082F49',
+};
+
+// Default colors exported for backward compatibility
+export const colors = lightColors;

@@ -2,7 +2,8 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { UserPlus, Check, Clock, ChevronRight } from 'lucide-react-native';
 import { UserProfile, CurrentWork } from '@/types';
-import { colors, spacing, radius, typography, fontFamilies, shadows } from '@/constants';
+import { spacing, radius, typography, fontFamilies, shadows } from '@/constants';
+import { useTheme } from '@/context/ThemeContext';
 import { Avatar } from '../common/Avatar';
 import { TopicChip } from '../common/TopicChip';
 
@@ -23,10 +24,19 @@ export const ResearcherDiscoveryCard: React.FC<ResearcherDiscoveryCardProps> = (
   onConnectPress,
   onTopicPress,
 }) => {
+  const { colors } = useTheme();
   const interests = researcher.interests || researcher.researchInterests || [];
 
   return (
-    <View style={styles.card}>
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: colors.surface,
+          borderColor: colors.border,
+        },
+      ]}
+    >
       {/* Top Researcher Row */}
       <TouchableOpacity
         activeOpacity={0.85}
@@ -41,10 +51,10 @@ export const ResearcherDiscoveryCard: React.FC<ResearcherDiscoveryCardProps> = (
           size="lg"
         />
         <View style={styles.headerInfo}>
-          <Text style={styles.name} numberOfLines={1}>
+          <Text style={[styles.name, { color: colors.textPrimary }]} numberOfLines={1}>
             {researcher.name}
           </Text>
-          <Text style={styles.subhead} numberOfLines={1}>
+          <Text style={[styles.subhead, { color: colors.textSecondary }]} numberOfLines={1}>
             {researcher.batch || researcher.designation || researcher.department}
           </Text>
           {interests.length > 0 && (
@@ -68,14 +78,20 @@ export const ResearcherDiscoveryCard: React.FC<ResearcherDiscoveryCardProps> = (
         <TouchableOpacity
           activeOpacity={0.85}
           onPress={onPress}
-          style={styles.workCallout}
+          style={[
+            styles.workCallout,
+            {
+              backgroundColor: colors.surfaceSubtle,
+              borderLeftColor: colors.primary,
+            },
+          ]}
         >
-          <Text style={styles.workLabel}>CURRENTLY WORKING ON</Text>
-          <Text style={styles.workTitle} numberOfLines={2}>
+          <Text style={[styles.workLabel, { color: colors.primary }]}>CURRENTLY WORKING ON</Text>
+          <Text style={[styles.workTitle, { color: colors.textPrimary }]} numberOfLines={2}>
             {currentWork.title}
           </Text>
           {currentWork.description ? (
-            <Text style={styles.workDescription} numberOfLines={2}>
+            <Text style={[styles.workDescription, { color: colors.textSecondary }]} numberOfLines={2}>
               {currentWork.description}
             </Text>
           ) : null}
@@ -87,9 +103,15 @@ export const ResearcherDiscoveryCard: React.FC<ResearcherDiscoveryCardProps> = (
         <TouchableOpacity
           activeOpacity={0.8}
           onPress={onPress}
-          style={styles.viewProfileButton}
+          style={[
+            styles.viewProfileButton,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+            },
+          ]}
         >
-          <Text style={styles.viewProfileText}>View Profile</Text>
+          <Text style={[styles.viewProfileText, { color: colors.textPrimary }]}>View Profile</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -97,24 +119,33 @@ export const ResearcherDiscoveryCard: React.FC<ResearcherDiscoveryCardProps> = (
           onPress={onConnectPress}
           style={[
             styles.connectButton,
-            connectionStatus === 'connected' && styles.connectButtonConnected,
-            connectionStatus === 'pending' && styles.connectButtonPending,
+            { backgroundColor: colors.primary },
+            connectionStatus === 'connected' && {
+              backgroundColor: colors.secondaryLight,
+              borderWidth: 1,
+              borderColor: colors.secondary,
+            },
+            connectionStatus === 'pending' && {
+              backgroundColor: colors.surfaceSubtle,
+              borderWidth: 1,
+              borderColor: colors.border,
+            },
           ]}
         >
           {connectionStatus === 'connected' ? (
             <>
               <Check size={16} color={colors.secondary} />
-              <Text style={styles.connectTextConnected}>Connected</Text>
+              <Text style={[styles.connectTextConnected, { color: colors.secondary }]}>Connected</Text>
             </>
           ) : connectionStatus === 'pending' ? (
             <>
               <Clock size={16} color={colors.textSecondary} />
-              <Text style={styles.connectTextPending}>Pending</Text>
+              <Text style={[styles.connectTextPending, { color: colors.textSecondary }]}>Pending</Text>
             </>
           ) : (
             <>
               <UserPlus size={16} color={colors.textInverse} />
-              <Text style={styles.connectText}>Connect</Text>
+              <Text style={[styles.connectText, { color: colors.textInverse }]}>Connect</Text>
             </>
           )}
         </TouchableOpacity>
@@ -125,10 +156,8 @@ export const ResearcherDiscoveryCard: React.FC<ResearcherDiscoveryCardProps> = (
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.surface,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.border,
     padding: spacing.md,
     marginBottom: spacing.md,
     ...shadows.card,
@@ -144,12 +173,10 @@ const styles = StyleSheet.create({
   },
   name: {
     ...typography.title,
-    color: colors.textPrimary,
     marginBottom: 2,
   },
   subhead: {
     ...typography.caption,
-    color: colors.textSecondary,
     marginBottom: spacing.xs,
   },
   chipsRow: {
@@ -162,28 +189,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
   },
   workCallout: {
-    backgroundColor: colors.surfaceSubtle,
     borderRadius: radius.sm,
     borderLeftWidth: 3,
-    borderLeftColor: colors.primary,
     padding: spacing.sm + 2,
     marginVertical: spacing.xs,
   },
   workLabel: {
     fontSize: 10,
     fontFamily: fontFamilies.sansBold,
-    color: colors.primary,
     letterSpacing: 0.6,
     marginBottom: 2,
   },
   workTitle: {
     ...typography.bodyMedium,
-    color: colors.textPrimary,
     fontWeight: '600',
   },
   workDescription: {
     ...typography.bodySmall,
-    color: colors.textSecondary,
     marginTop: 2,
     lineHeight: 18,
   },
@@ -199,49 +221,32 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: radius.sm,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },
   viewProfileText: {
     ...typography.caption,
     fontFamily: fontFamilies.sansSemiBold,
-    color: colors.textPrimary,
   },
   connectButton: {
     flex: 1,
     height: 40,
     borderRadius: radius.sm,
-    backgroundColor: colors.primary,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
   },
-  connectButtonConnected: {
-    backgroundColor: colors.secondaryLight,
-    borderWidth: 1,
-    borderColor: colors.secondary,
-  },
-  connectButtonPending: {
-    backgroundColor: colors.surfaceSubtle,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
   connectText: {
     ...typography.caption,
     fontFamily: fontFamilies.sansSemiBold,
-    color: colors.textInverse,
   },
   connectTextConnected: {
     ...typography.caption,
     fontFamily: fontFamilies.sansSemiBold,
-    color: colors.secondary,
   },
   connectTextPending: {
     ...typography.caption,
     fontFamily: fontFamilies.sansMedium,
-    color: colors.textSecondary,
   },
 });

@@ -1,9 +1,12 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
 import { Home, Compass, PlusCircle, Bell, User } from 'lucide-react-native';
-import { colors, fontFamilies } from '../../constants';
+import { fontFamilies } from '@/constants';
+import { useTheme } from '@/context/ThemeContext';
 
 export default function TabLayout() {
+  const { colors } = useTheme();
+
   return (
     <Tabs
       screenOptions={{

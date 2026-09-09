@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, StyleSheet, ViewStyle } from 'react-native';
-import { colors, radius, spacing } from '@/constants';
+import { radius, spacing } from '@/constants';
+import { useTheme } from '@/hooks/useTheme';
 
 export interface OnboardingProgressProps {
   currentStep: number;
@@ -13,6 +14,8 @@ export const OnboardingProgress: React.FC<OnboardingProgressProps> = ({
   totalSteps = 5,
   style,
 }) => {
+  const { colors } = useTheme();
+
   return (
     <View style={[styles.container, style]}>
       {Array.from({ length: totalSteps }, (_, index) => {
@@ -25,8 +28,9 @@ export const OnboardingProgress: React.FC<OnboardingProgressProps> = ({
             key={stepNum}
             style={[
               styles.dot,
-              isActive && styles.activePill,
-              isCompleted && styles.completedDot,
+              { backgroundColor: colors.border },
+              isActive && [styles.activePill, { backgroundColor: colors.primary }],
+              isCompleted && { backgroundColor: colors.secondary },
             ]}
           />
         );
@@ -47,15 +51,10 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: radius.full,
-    backgroundColor: colors.border,
   },
   activePill: {
     width: 24,
     height: 6,
     borderRadius: radius.full,
-    backgroundColor: colors.primary,
-  },
-  completedDot: {
-    backgroundColor: colors.secondary,
   },
 });

@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, ViewStyle } from 'react-native';
 import { GraduationCap } from 'lucide-react-native';
-import { colors, radius, spacing, typography } from '@/constants';
+import { radius, spacing, typography } from '@/constants';
+import { useTheme } from '@/hooks/useTheme';
 
 export interface AuthHeaderProps {
   title: string;
@@ -16,18 +17,32 @@ export const AuthHeader: React.FC<AuthHeaderProps> = ({
   showBadge = true,
   style,
 }) => {
+  const { colors } = useTheme();
+
   return (
     <View style={[styles.container, style]}>
       {showBadge && (
         <View style={styles.badgeContainer}>
-          <View style={styles.iconCircle}>
+          <View
+            style={[
+              styles.iconCircle,
+              {
+                backgroundColor: colors.primaryMuted,
+                borderColor: colors.border,
+              },
+            ]}
+          >
             <GraduationCap size={28} color={colors.primary} />
           </View>
         </View>
       )}
 
-      <Text style={styles.title}>{title}</Text>
-      {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+      <Text style={[styles.title, { color: colors.textPrimary }]}>{title}</Text>
+      {subtitle ? (
+        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+          {subtitle}
+        </Text>
+      ) : null}
     </View>
   );
 };
@@ -44,9 +59,7 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: radius.md,
-    backgroundColor: colors.primaryMuted,
     borderWidth: 1,
-    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -54,12 +67,10 @@ const styles = StyleSheet.create({
     ...typography.display,
     fontSize: 24,
     lineHeight: 32,
-    color: colors.textPrimary,
     textAlign: 'center',
   },
   subtitle: {
     ...typography.body,
-    color: colors.textSecondary,
     textAlign: 'center',
     marginTop: spacing.xs,
     paddingHorizontal: spacing.md,

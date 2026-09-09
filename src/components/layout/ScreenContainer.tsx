@@ -10,7 +10,8 @@ import {
 } from 'react-native';
 import { SafeAreaView, Edge } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { colors, spacing } from '@/constants';
+import { spacing } from '@/constants';
+import { useTheme } from '@/context/ThemeContext';
 
 export interface ScreenContainerProps {
   children: React.ReactNode;
@@ -32,9 +33,13 @@ export const ScreenContainer: React.FC<ScreenContainerProps> = ({
   style,
   contentContainerStyle,
   edges = ['top', 'left', 'right'],
-  statusBarStyle = 'dark',
+  statusBarStyle,
   withKeyboardAvoidance = false,
 }) => {
+  const { colors, isDark } = useTheme();
+
+  const effectiveStatusBarStyle = statusBarStyle || (isDark ? 'light' : 'dark');
+
   const content = scrollable ? (
     <ScrollView
       style={[styles.scroll, style]}
@@ -70,8 +75,8 @@ export const ScreenContainer: React.FC<ScreenContainerProps> = ({
   );
 
   return (
-    <SafeAreaView edges={edges} style={styles.safeArea}>
-      <StatusBar style={statusBarStyle} backgroundColor={colors.background} />
+    <SafeAreaView edges={edges} style={[styles.safeArea, { backgroundColor: colors.background }]}>
+      <StatusBar style={effectiveStatusBarStyle} backgroundColor={colors.background} />
       {wrappedContent}
     </SafeAreaView>
   );
@@ -80,7 +85,6 @@ export const ScreenContainer: React.FC<ScreenContainerProps> = ({
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.background,
   },
   flex: {
     flex: 1,
@@ -97,3 +101,4 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.screenHorizontal,
   },
 });
+

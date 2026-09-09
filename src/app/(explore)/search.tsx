@@ -9,7 +9,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, Search, Users, Sparkles, BookOpen, Layers } from 'lucide-react-native';
-import { colors, spacing, radius, typography, fontFamilies, shadows } from '@/constants';
+import { spacing, radius, typography, fontFamilies, shadows } from '@/constants';
+import { useTheme } from '@/context/ThemeContext';
 import { SearchBar } from '@/components/common/SearchBar';
 import { SectionHeader } from '@/components/common/SectionHeader';
 import { TopicChip } from '@/components/common/TopicChip';
@@ -22,6 +23,7 @@ import { getResearcherById, getCurrentWorkById, mockTopics } from '@/data';
 
 export default function GlobalSearchScreen() {
   const router = useRouter();
+  const { colors, isDark } = useTheme();
   const params = useLocalSearchParams<{ q?: string; category?: string }>();
 
   const [query, setQuery] = useState(params.q || '');
@@ -75,9 +77,20 @@ export default function GlobalSearchScreen() {
   ];
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: colors.surface }]}
+      edges={['top']}
+    >
       {/* Header Search Bar */}
-      <View style={styles.header}>
+      <View
+        style={[
+          styles.header,
+          {
+            backgroundColor: colors.surface,
+            borderBottomColor: colors.borderSubtle,
+          },
+        ]}
+      >
         <View style={styles.searchRow}>
           <TouchableOpacity
             onPress={() => router.back()}
@@ -114,7 +127,10 @@ export default function GlobalSearchScreen() {
                 onPress={() => setSelectedCategory(cat.key)}
                 style={[
                   styles.categoryChip,
-                  isSelected && styles.categoryChipSelected,
+                  {
+                    backgroundColor: isSelected ? colors.primaryMuted : colors.surface,
+                    borderColor: isSelected ? colors.primary : colors.border,
+                  },
                 ]}
                 accessibilityRole="button"
                 accessibilityState={{ selected: isSelected }}
@@ -122,6 +138,9 @@ export default function GlobalSearchScreen() {
                 <Text
                   style={[
                     styles.categoryText,
+                    {
+                      color: isSelected ? colors.primary : colors.textSecondary,
+                    },
                     isSelected && styles.categoryTextSelected,
                   ]}
                 >
@@ -135,16 +154,24 @@ export default function GlobalSearchScreen() {
 
       {/* Main Results Content */}
       <ScrollView
-        style={styles.container}
+        style={[styles.container, { backgroundColor: colors.background }]}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
         {query.trim().length === 0 ? (
           /* Initial State / Suggested Topics */
-          <View style={styles.suggestedContainer}>
-            <Text style={styles.suggestedTitle}>Explore by Research Topic</Text>
-            <Text style={styles.suggestedSubtitle}>
+          <View
+            style={[
+              styles.suggestedContainer,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            <Text style={[styles.suggestedTitle, { color: colors.textPrimary }]}>Explore by Research Topic</Text>
+            <Text style={[styles.suggestedSubtitle, { color: colors.textSecondary }]}>
               Tap any topic to discover active projects and researchers
             </Text>
 
@@ -174,8 +201,8 @@ export default function GlobalSearchScreen() {
           <View style={styles.resultsFeed}>
             {/* Results Summary Counter */}
             <View style={styles.summaryBar}>
-              <Text style={styles.summaryText}>
-                Showing <Text style={styles.summaryHighlight}>{searchResults.totalCount}</Text> {searchResults.totalCount === 1 ? 'result' : 'results'} for "{query}"
+              <Text style={[styles.summaryText, { color: colors.textSecondary }]}>
+                Showing <Text style={[styles.summaryHighlight, { color: colors.textPrimary }]}>{searchResults.totalCount}</Text> {searchResults.totalCount === 1 ? 'result' : 'results'} for "{query}"
               </Text>
             </View>
 
@@ -282,12 +309,9 @@ export default function GlobalSearchScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.surface,
   },
   header: {
-    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: colors.borderSubtle,
     paddingTop: spacing.xs,
   },
   searchRow: {
@@ -318,46 +342,33 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: radius.full,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-  },
-  categoryChipSelected: {
-    backgroundColor: colors.primaryMuted,
-    borderColor: colors.primary,
   },
   categoryText: {
     ...typography.caption,
     fontFamily: fontFamilies.sansMedium,
-    color: colors.textSecondary,
   },
   categoryTextSelected: {
-    color: colors.primary,
     fontFamily: fontFamilies.sansSemiBold,
   },
   container: {
     flex: 1,
-    backgroundColor: colors.background,
   },
   scrollContent: {
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
   },
   suggestedContainer: {
-    backgroundColor: colors.surface,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.border,
     padding: spacing.md,
     ...shadows.card,
   },
   suggestedTitle: {
     ...typography.title,
-    color: colors.textPrimary,
     marginBottom: 2,
   },
   suggestedSubtitle: {
     ...typography.caption,
-    color: colors.textSecondary,
     marginBottom: spacing.md,
   },
   topicGrid: {
@@ -376,11 +387,9 @@ const styles = StyleSheet.create({
   },
   summaryText: {
     ...typography.caption,
-    color: colors.textSecondary,
   },
   summaryHighlight: {
     fontWeight: '700',
-    color: colors.textPrimary,
   },
   resultSection: {
     marginBottom: spacing.sm,

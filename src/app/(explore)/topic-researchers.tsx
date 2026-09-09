@@ -9,7 +9,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, Users, Sparkles, Filter, ArrowUpDown } from 'lucide-react-native';
-import { colors, spacing, radius, typography, fontFamilies, shadows } from '@/constants';
+import { spacing, radius, typography, fontFamilies, shadows } from '@/constants';
+import { useTheme } from '@/context/ThemeContext';
 import { SectionHeader } from '@/components/common/SectionHeader';
 import { ResearcherDiscoveryCard } from '@/components/cards/ResearcherDiscoveryCard';
 import { CurrentWorkCard } from '@/components/cards/CurrentWorkCard';
@@ -24,6 +25,7 @@ type SortOption = 'relevance' | 'name' | 'activity';
 
 export default function TopicResearchersScreen() {
   const router = useRouter();
+  const { colors, isDark } = useTheme();
   const params = useLocalSearchParams<{ topic?: string }>();
   const topicName = params.topic || 'Machine Learning';
 
@@ -78,9 +80,20 @@ export default function TopicResearchersScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: colors.surface }]}
+      edges={['top']}
+    >
       {/* Top App Header */}
-      <View style={styles.header}>
+      <View
+        style={[
+          styles.header,
+          {
+            backgroundColor: colors.surface,
+            borderBottomColor: colors.borderSubtle,
+          },
+        ]}
+      >
         <TouchableOpacity
           onPress={() => router.back()}
           style={styles.backButton}
@@ -88,19 +101,19 @@ export default function TopicResearchersScreen() {
           accessibilityRole="button"
         >
           <ArrowLeft size={22} color={colors.textPrimary} />
-          <Text style={styles.backButtonText}>Explore</Text>
+          <Text style={[styles.backButtonText, { color: colors.primary }]}>Explore</Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView
-        style={styles.container}
+        style={[styles.container, { backgroundColor: colors.background }]}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         {/* Topic Title & Description */}
         <View style={styles.topicHero}>
-          <Text style={styles.topicTitle}>{discoveryData.topic.name}</Text>
-          <Text style={styles.topicDescription}>
+          <Text style={[styles.topicTitle, { color: colors.textPrimary }]}>{discoveryData.topic.name}</Text>
+          <Text style={[styles.topicDescription, { color: colors.textSecondary }]}>
             {discoveryData.topic.description ||
               `Researchers and active investigations in ${discoveryData.topic.name} within the CSE department.`}
           </Text>
@@ -112,9 +125,23 @@ export default function TopicResearchersScreen() {
             <TouchableOpacity
               activeOpacity={0.8}
               onPress={() => setRoleFilter('all')}
-              style={[styles.rolePill, roleFilter === 'all' && styles.rolePillActive]}
+              style={[
+                styles.rolePill,
+                {
+                  backgroundColor: roleFilter === 'all' ? colors.primaryMuted : colors.surface,
+                  borderColor: roleFilter === 'all' ? colors.primary : colors.border,
+                },
+              ]}
             >
-              <Text style={[styles.roleText, roleFilter === 'all' && styles.roleTextActive]}>
+              <Text
+                style={[
+                  styles.roleText,
+                  {
+                    color: roleFilter === 'all' ? colors.primary : colors.textSecondary,
+                  },
+                  roleFilter === 'all' && styles.roleTextActive,
+                ]}
+              >
                 All ({discoveryData.researchers.length})
               </Text>
             </TouchableOpacity>
@@ -122,9 +149,23 @@ export default function TopicResearchersScreen() {
             <TouchableOpacity
               activeOpacity={0.8}
               onPress={() => setRoleFilter('faculty')}
-              style={[styles.rolePill, roleFilter === 'faculty' && styles.rolePillActive]}
+              style={[
+                styles.rolePill,
+                {
+                  backgroundColor: roleFilter === 'faculty' ? colors.primaryMuted : colors.surface,
+                  borderColor: roleFilter === 'faculty' ? colors.primary : colors.border,
+                },
+              ]}
             >
-              <Text style={[styles.roleText, roleFilter === 'faculty' && styles.roleTextActive]}>
+              <Text
+                style={[
+                  styles.roleText,
+                  {
+                    color: roleFilter === 'faculty' ? colors.primary : colors.textSecondary,
+                  },
+                  roleFilter === 'faculty' && styles.roleTextActive,
+                ]}
+              >
                 Faculty
               </Text>
             </TouchableOpacity>
@@ -132,9 +173,23 @@ export default function TopicResearchersScreen() {
             <TouchableOpacity
               activeOpacity={0.8}
               onPress={() => setRoleFilter('students')}
-              style={[styles.rolePill, roleFilter === 'students' && styles.rolePillActive]}
+              style={[
+                styles.rolePill,
+                {
+                  backgroundColor: roleFilter === 'students' ? colors.primaryMuted : colors.surface,
+                  borderColor: roleFilter === 'students' ? colors.primary : colors.border,
+                },
+              ]}
             >
-              <Text style={[styles.roleText, roleFilter === 'students' && styles.roleTextActive]}>
+              <Text
+                style={[
+                  styles.roleText,
+                  {
+                    color: roleFilter === 'students' ? colors.primary : colors.textSecondary,
+                  },
+                  roleFilter === 'students' && styles.roleTextActive,
+                ]}
+              >
                 Students
               </Text>
             </TouchableOpacity>
@@ -144,10 +199,16 @@ export default function TopicResearchersScreen() {
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={() => setSortBy((prev) => (prev === 'relevance' ? 'name' : 'relevance'))}
-            style={styles.sortButton}
+            style={[
+              styles.sortButton,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+              },
+            ]}
           >
             <ArrowUpDown size={14} color={colors.primary} />
-            <Text style={styles.sortButtonText}>
+            <Text style={[styles.sortButtonText, { color: colors.primary }]}>
               {sortBy === 'name' ? 'Name (A-Z)' : 'Most Relevant'}
             </Text>
           </TouchableOpacity>
@@ -264,12 +325,9 @@ export default function TopicResearchersScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.surface,
   },
   header: {
-    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: colors.borderSubtle,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
   },
@@ -283,11 +341,9 @@ const styles = StyleSheet.create({
   backButtonText: {
     ...typography.caption,
     fontFamily: fontFamilies.sansSemiBold,
-    color: colors.primary,
   },
   container: {
     flex: 1,
-    backgroundColor: colors.background,
   },
   scrollContent: {
     paddingHorizontal: spacing.md,
@@ -300,12 +356,10 @@ const styles = StyleSheet.create({
     ...typography.display,
     fontSize: 28,
     lineHeight: 34,
-    color: colors.textPrimary,
     marginBottom: 4,
   },
   topicDescription: {
     ...typography.body,
-    color: colors.textSecondary,
     lineHeight: 20,
   },
   controlsBar: {
@@ -325,29 +379,19 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: radius.full,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-  },
-  rolePillActive: {
-    backgroundColor: colors.primaryMuted,
-    borderColor: colors.primary,
   },
   roleText: {
     ...typography.caption,
     fontFamily: fontFamilies.sansMedium,
-    color: colors.textSecondary,
   },
   roleTextActive: {
-    color: colors.primary,
     fontFamily: fontFamilies.sansSemiBold,
   },
   sortButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.border,
     paddingHorizontal: spacing.sm + 2,
     paddingVertical: 6,
     borderRadius: radius.sm,
@@ -355,7 +399,6 @@ const styles = StyleSheet.create({
   sortButtonText: {
     ...typography.caption,
     fontFamily: fontFamilies.sansMedium,
-    color: colors.primary,
   },
   section: {
     marginBottom: spacing.lg,

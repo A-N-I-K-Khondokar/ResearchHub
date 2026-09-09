@@ -8,7 +8,8 @@ import {
   TextInputProps,
 } from 'react-native';
 import { Search, X, SlidersHorizontal } from 'lucide-react-native';
-import { colors, radius, spacing, typography } from '@/constants';
+import { radius, spacing, typography } from '@/constants';
+import { useTheme } from '@/context/ThemeContext';
 
 export interface SearchBarProps extends Omit<TextInputProps, 'style'> {
   value: string;
@@ -30,6 +31,8 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   style,
   ...rest
 }) => {
+  const { colors } = useTheme();
+
   const handleClear = () => {
     onChangeText('');
     if (onClear) {
@@ -38,7 +41,16 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   };
 
   return (
-    <View style={[styles.container, style]}>
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: colors.surfaceSubtle,
+          borderColor: colors.border,
+        },
+        style,
+      ]}
+    >
       <Search size={18} color={colors.textMuted} style={styles.searchIcon} />
 
       <TextInput
@@ -50,7 +62,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         autoCapitalize="none"
         autoCorrect={false}
         returnKeyType="search"
-        style={styles.input}
+        style={[styles.input, { color: colors.textPrimary }]}
         {...rest}
       />
 
@@ -70,7 +82,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           activeOpacity={0.7}
           onPress={onFilterPress}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          style={[styles.iconButton, styles.filterButton]}
+          style={[styles.iconButton, styles.filterButton, { borderLeftColor: colors.border }]}
         >
           <SlidersHorizontal size={16} color={colors.primary} />
         </TouchableOpacity>
@@ -82,9 +94,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
 const styles = StyleSheet.create({
   container: {
     height: 48,
-    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.border,
     borderRadius: radius.sm,
     flexDirection: 'row',
     alignItems: 'center',
@@ -97,7 +107,6 @@ const styles = StyleSheet.create({
     flex: 1,
     height: '100%',
     ...typography.body,
-    color: colors.textPrimary,
     paddingVertical: 0,
   },
   iconButton: {
@@ -106,7 +115,6 @@ const styles = StyleSheet.create({
   },
   filterButton: {
     borderLeftWidth: 1,
-    borderLeftColor: colors.border,
     paddingLeft: spacing.sm,
   },
 });

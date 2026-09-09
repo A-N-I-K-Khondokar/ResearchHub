@@ -13,12 +13,34 @@ import {
   SourceSerif4_600SemiBold,
   SourceSerif4_700Bold,
 } from '@expo-google-fonts/source-serif-4';
-import { colors } from '@/constants';
+import { ThemeProvider, useTheme } from '@/context/ThemeContext';
 
 // Keep the native splash screen visible while fonts load
 SplashScreen.preventAutoHideAsync().catch(() => {
   /* ignore */
 });
+
+function RootNavigation() {
+  const { colors } = useTheme();
+
+  return (
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        contentStyle: { backgroundColor: colors.background },
+        animation: 'slide_from_right',
+      }}
+    >
+      <Stack.Screen name="index" />
+      <Stack.Screen name="(auth)" />
+      <Stack.Screen name="(onboarding)" />
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="(research)" />
+      <Stack.Screen name="(profile)" />
+      <Stack.Screen name="(explore)" />
+    </Stack>
+  );
+}
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
@@ -44,21 +66,9 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: colors.background },
-          animation: 'slide_from_right',
-        }}
-      >
-        <Stack.Screen name="index" />
-        <Stack.Screen name="(auth)" />
-        <Stack.Screen name="(onboarding)" />
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="(research)" />
-        <Stack.Screen name="(profile)" />
-        <Stack.Screen name="(explore)" />
-      </Stack>
+      <ThemeProvider>
+        <RootNavigation />
+      </ThemeProvider>
     </SafeAreaProvider>
   );
 }

@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Search, Bell } from 'lucide-react-native';
-import { colors, spacing, radius, typography, fontFamilies } from '../../constants';
+import { Sun, Moon, Search, Bell } from 'lucide-react-native';
+import { spacing, radius, typography, fontFamilies } from '../../constants';
+import { useTheme } from '@/context/ThemeContext';
 import { Avatar } from '../common/Avatar';
 
 interface HomeHeaderProps {
@@ -21,6 +22,8 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
   onSearchPress,
   onNotificationPress,
 }) => {
+  const { colors, isDark, toggleTheme } = useTheme();
+
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good morning';
@@ -31,7 +34,15 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
   const firstName = userName.split(' ')[0] || userName;
 
   return (
-    <View style={styles.container}>
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: colors.surface,
+          borderBottomColor: colors.borderSubtle,
+        },
+      ]}
+    >
       {/* User Greeting & Avatar */}
       <View style={styles.leftSection}>
         <TouchableOpacity
@@ -44,36 +55,50 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
           <Avatar name={userName} uri={userAvatar} size="md" />
         </TouchableOpacity>
         <View style={styles.greetingContainer}>
-          <Text style={styles.greetingText}>{getGreeting()},</Text>
-          <Text style={styles.nameText} numberOfLines={1}>
+          <Text style={[styles.greetingText, { color: colors.textSecondary }]}>{getGreeting()},</Text>
+          <Text style={[styles.nameText, { color: colors.textPrimary }]} numberOfLines={1}>
             {firstName}
           </Text>
         </View>
       </View>
 
-      {/* Action Buttons: Search & Notifications */}
+      {/* Action Buttons: Quick Theme Toggle, Search & Notifications */}
       <View style={styles.rightSection}>
         <TouchableOpacity
           activeOpacity={0.8}
+          onPress={toggleTheme}
+          style={[styles.iconButton, { backgroundColor: colors.surfaceSubtle }]}
+          accessibilityRole="button"
+          accessibilityLabel="Toggle Dark Mode"
+        >
+          {isDark ? (
+            <Sun size={18} color={colors.accent} />
+          ) : (
+            <Moon size={18} color={colors.textPrimary} />
+          )}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          activeOpacity={0.8}
           onPress={onSearchPress}
-          style={styles.iconButton}
+          style={[styles.iconButton, { backgroundColor: colors.surfaceSubtle }]}
           accessibilityRole="button"
           accessibilityLabel="Search research and people"
         >
-          <Search size={20} color={colors.textPrimary} />
+          <Search size={18} color={colors.textPrimary} />
         </TouchableOpacity>
 
         <TouchableOpacity
           activeOpacity={0.8}
           onPress={onNotificationPress}
-          style={styles.iconButton}
+          style={[styles.iconButton, { backgroundColor: colors.surfaceSubtle }]}
           accessibilityRole="button"
           accessibilityLabel="Notifications"
         >
-          <Bell size={20} color={colors.textPrimary} />
+          <Bell size={18} color={colors.textPrimary} />
           {unreadNotificationsCount > 0 ? (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>
+            <View style={[styles.badge, { backgroundColor: colors.error }]}>
+              <Text style={[styles.badgeText, { color: colors.textInverse }]}>
                 {unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount}
               </Text>
             </View>
@@ -92,9 +117,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingTop: spacing.xs,
     paddingBottom: spacing.md,
-    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: colors.borderSubtle,
   },
   leftSection: {
     flexDirection: 'row',
@@ -109,11 +132,9 @@ const styles = StyleSheet.create({
   },
   greetingText: {
     ...typography.caption,
-    color: colors.textSecondary,
   },
   nameText: {
     ...typography.headlineSmall,
-    color: colors.textPrimary,
   },
   rightSection: {
     flexDirection: 'row',
@@ -121,22 +142,20 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   iconButton: {
-    width: 40,
-    height: 40,
+    width: 38,
+    height: 38,
     borderRadius: radius.full,
-    backgroundColor: colors.surfaceSubtle,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
   },
   badge: {
     position: 'absolute',
-    top: 6,
-    right: 6,
+    top: 5,
+    right: 5,
     minWidth: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: colors.error,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 3,
@@ -144,6 +163,5 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 9,
     fontFamily: fontFamilies.sansBold,
-    color: colors.textInverse,
   },
 });

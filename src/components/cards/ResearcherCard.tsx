@@ -2,7 +2,8 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { UserPlus, Check, Clock } from 'lucide-react-native';
 import { UserProfile } from '../../types';
-import { colors, spacing, radius, typography, fontFamilies, shadows } from '../../constants';
+import { spacing, radius, typography, fontFamilies, shadows } from '../../constants';
+import { useTheme } from '@/context/ThemeContext';
 import { Avatar } from '../common/Avatar';
 
 interface ResearcherCardProps {
@@ -22,6 +23,7 @@ export const ResearcherCard: React.FC<ResearcherCardProps> = ({
   onConnectPress,
   variant = 'compact',
 }) => {
+  const { colors } = useTheme();
   const isCompact = variant === 'compact';
   const interests = researcher.interests || researcher.researchInterests || [];
 
@@ -29,7 +31,14 @@ export const ResearcherCard: React.FC<ResearcherCardProps> = ({
     <TouchableOpacity
       activeOpacity={0.9}
       onPress={onPress}
-      style={[styles.card, isCompact && styles.cardCompact]}
+      style={[
+        styles.card,
+        {
+          backgroundColor: colors.surface,
+          borderColor: colors.border,
+        },
+        isCompact && styles.cardCompact,
+      ]}
       accessibilityRole="button"
       accessibilityLabel={`Researcher profile: ${researcher.name}`}
     >
@@ -43,24 +52,34 @@ export const ResearcherCard: React.FC<ResearcherCardProps> = ({
       </View>
 
       {/* Info */}
-      <Text style={styles.name} numberOfLines={1}>
+      <Text style={[styles.name, { color: colors.textPrimary }]} numberOfLines={1}>
         {researcher.name}
       </Text>
 
-      <Text style={styles.designation} numberOfLines={1}>
+      <Text style={[styles.designation, { color: colors.textSecondary }]} numberOfLines={1}>
         {researcher.batch || researcher.designation || researcher.department}
       </Text>
 
       {/* Shared Interests or Topics Tag */}
       {sharedInterestsCount !== undefined && sharedInterestsCount > 0 ? (
-        <View style={styles.sharedBadge}>
-          <Text style={styles.sharedText}>
+        <View
+          style={[
+            styles.sharedBadge,
+            { backgroundColor: colors.surfaceSubtle, borderColor: colors.border },
+          ]}
+        >
+          <Text style={[styles.sharedText, { color: colors.primary }]}>
             {sharedInterestsCount} shared {sharedInterestsCount === 1 ? 'topic' : 'topics'}
           </Text>
         </View>
       ) : interests.length > 0 ? (
-        <View style={styles.sharedBadge}>
-          <Text style={styles.sharedText} numberOfLines={1}>
+        <View
+          style={[
+            styles.sharedBadge,
+            { backgroundColor: colors.surfaceSubtle, borderColor: colors.border },
+          ]}
+        >
+          <Text style={[styles.sharedText, { color: colors.primary }]} numberOfLines={1}>
             {interests[0]}
           </Text>
         </View>
@@ -74,24 +93,33 @@ export const ResearcherCard: React.FC<ResearcherCardProps> = ({
         onPress={onConnectPress}
         style={[
           styles.connectButton,
-          connectionStatus === 'connected' && styles.connectButtonConnected,
-          connectionStatus === 'pending' && styles.connectButtonPending,
+          { backgroundColor: colors.primary },
+          connectionStatus === 'connected' && {
+            backgroundColor: colors.secondaryLight,
+            borderWidth: 1,
+            borderColor: colors.secondary,
+          },
+          connectionStatus === 'pending' && {
+            backgroundColor: colors.surfaceSubtle,
+            borderWidth: 1,
+            borderColor: colors.border,
+          },
         ]}
       >
         {connectionStatus === 'connected' ? (
           <>
             <Check size={14} color={colors.secondary} />
-            <Text style={styles.connectTextConnected}>Connected</Text>
+            <Text style={[styles.connectTextConnected, { color: colors.secondary }]}>Connected</Text>
           </>
         ) : connectionStatus === 'pending' ? (
           <>
             <Clock size={14} color={colors.textSecondary} />
-            <Text style={styles.connectTextPending}>Pending</Text>
+            <Text style={[styles.connectTextPending, { color: colors.textSecondary }]}>Pending</Text>
           </>
         ) : (
           <>
             <UserPlus size={14} color={colors.textInverse} />
-            <Text style={styles.connectText}>Connect</Text>
+            <Text style={[styles.connectText, { color: colors.textInverse }]}>Connect</Text>
           </>
         )}
       </TouchableOpacity>
@@ -101,10 +129,8 @@ export const ResearcherCard: React.FC<ResearcherCardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.surface,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.border,
     padding: spacing.md,
     alignItems: 'center',
     ...shadows.card,
@@ -118,28 +144,25 @@ const styles = StyleSheet.create({
   },
   name: {
     ...typography.titleSmall,
-    color: colors.textPrimary,
     textAlign: 'center',
     marginBottom: 2,
   },
   designation: {
     ...typography.caption,
-    color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: spacing.xs,
   },
   sharedBadge: {
-    backgroundColor: colors.surfaceSubtle,
     paddingHorizontal: spacing.sm,
     paddingVertical: 3,
     borderRadius: radius.full,
+    borderWidth: 1,
     marginBottom: spacing.sm,
     maxWidth: '100%',
   },
   sharedText: {
     fontSize: 11,
     fontFamily: fontFamilies.sansMedium,
-    color: colors.primary,
   },
   badgePlaceholder: {
     height: 20,
@@ -150,35 +173,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 4,
-    backgroundColor: colors.primary,
     paddingVertical: 7,
     paddingHorizontal: spacing.md,
     borderRadius: radius.sm,
     width: '100%',
   },
-  connectButtonConnected: {
-    backgroundColor: colors.secondaryLight,
-    borderWidth: 1,
-    borderColor: colors.secondary,
-  },
-  connectButtonPending: {
-    backgroundColor: colors.surfaceSubtle,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
   connectText: {
     ...typography.caption,
     fontFamily: fontFamilies.sansSemiBold,
-    color: colors.textInverse,
   },
   connectTextConnected: {
     ...typography.caption,
     fontFamily: fontFamilies.sansSemiBold,
-    color: colors.secondary,
   },
   connectTextPending: {
     ...typography.caption,
     fontFamily: fontFamilies.sansMedium,
-    color: colors.textSecondary,
   },
 });

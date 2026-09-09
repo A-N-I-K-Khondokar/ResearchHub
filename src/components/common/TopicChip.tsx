@@ -1,6 +1,7 @@
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, ViewStyle, TextStyle, View } from 'react-native';
-import { colors, radius, spacing, typography } from '@/constants';
+import { radius, spacing, typography } from '@/constants';
+import { useTheme } from '@/context/ThemeContext';
 
 export type TopicChipVariant = 'default' | 'teal' | 'primary' | 'outline';
 
@@ -27,26 +28,42 @@ export const TopicChip: React.FC<TopicChipProps> = ({
   style,
   textStyle,
 }) => {
+  const { colors } = useTheme();
   const isInteractive = Boolean(onPress);
 
   const getContainerStyles = (): ViewStyle[] => {
     const list: ViewStyle[] = [styles.base];
 
     if (selected) {
-      list.push(styles.selectedContainer);
+      list.push({
+        backgroundColor: colors.primary,
+        borderColor: colors.primary,
+      });
     } else {
       switch (variant) {
         case 'default':
-          list.push(styles.variant_default);
+          list.push({
+            backgroundColor: colors.surfaceSubtle,
+            borderColor: colors.border,
+          });
           break;
         case 'teal':
-          list.push(styles.variant_teal);
+          list.push({
+            backgroundColor: colors.secondaryLight,
+            borderColor: colors.secondaryLight,
+          });
           break;
         case 'primary':
-          list.push(styles.variant_primary);
+          list.push({
+            backgroundColor: colors.primaryMuted,
+            borderColor: colors.primaryLight,
+          });
           break;
         case 'outline':
-          list.push(styles.variant_outline);
+          list.push({
+            backgroundColor: 'transparent',
+            borderColor: colors.border,
+          });
           break;
       }
     }
@@ -62,20 +79,23 @@ export const TopicChip: React.FC<TopicChipProps> = ({
     const list: TextStyle[] = [styles.baseLabel];
 
     if (selected) {
-      list.push(styles.selectedLabel);
+      list.push({
+        color: colors.textInverse,
+        fontWeight: '600',
+      });
     } else {
       switch (variant) {
         case 'default':
-          list.push(styles.label_default);
+          list.push({ color: colors.textPrimary });
           break;
         case 'teal':
-          list.push(styles.label_teal);
+          list.push({ color: colors.secondaryDark });
           break;
         case 'primary':
-          list.push(styles.label_primary);
+          list.push({ color: colors.primaryDark });
           break;
         case 'outline':
-          list.push(styles.label_outline);
+          list.push({ color: colors.textSecondary });
           break;
       }
     }
@@ -92,8 +112,20 @@ export const TopicChip: React.FC<TopicChipProps> = ({
       {icon && <View style={styles.iconContainer}>{icon}</View>}
       <Text style={getLabelStyles()}>{label}</Text>
       {count !== undefined && (
-        <View style={[styles.countBadge, selected && styles.countBadgeSelected]}>
-          <Text style={[styles.countText, selected && styles.countTextSelected]}>{count}</Text>
+        <View
+          style={[
+            styles.countBadge,
+            { backgroundColor: selected ? colors.primaryDark : colors.border },
+          ]}
+        >
+          <Text
+            style={[
+              styles.countText,
+              { color: selected ? colors.textInverse : colors.textSecondary },
+            ]}
+          >
+            {count}
+          </Text>
         </View>
       )}
     </View>
@@ -137,70 +169,14 @@ const styles = StyleSheet.create({
     ...typography.caption,
     fontWeight: '500',
   },
-
-  // Default (subtle scholarly gray)
-  variant_default: {
-    backgroundColor: colors.surfaceSubtle,
-    borderColor: colors.border,
-  },
-  label_default: {
-    color: colors.textPrimary,
-  },
-
-  // Research Teal
-  variant_teal: {
-    backgroundColor: colors.secondaryLight,
-    borderColor: colors.secondaryLight,
-  },
-  label_teal: {
-    color: colors.secondaryDark,
-  },
-
-  // Primary Tint
-  variant_primary: {
-    backgroundColor: colors.primaryMuted,
-    borderColor: colors.primaryLight,
-  },
-  label_primary: {
-    color: colors.primaryDark,
-  },
-
-  // Outline
-  variant_outline: {
-    backgroundColor: 'transparent',
-    borderColor: colors.border,
-  },
-  label_outline: {
-    color: colors.textSecondary,
-  },
-
-  // Selected State
-  selectedContainer: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  selectedLabel: {
-    color: colors.textInverse,
-    fontWeight: '600',
-  },
-
-  // Count badge
   countBadge: {
     marginLeft: spacing.xs,
     paddingHorizontal: 5,
     paddingVertical: 1,
     borderRadius: radius.full,
-    backgroundColor: colors.border,
-  },
-  countBadgeSelected: {
-    backgroundColor: colors.primaryDark,
   },
   countText: {
     fontSize: 10,
     fontWeight: '600',
-    color: colors.textSecondary,
-  },
-  countTextSelected: {
-    color: colors.textInverse,
   },
 });

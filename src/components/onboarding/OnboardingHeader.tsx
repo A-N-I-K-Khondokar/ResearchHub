@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ViewStyle } from 'react-native';
 import { ArrowLeft } from 'lucide-react-native';
-import { colors, spacing, typography } from '@/constants';
+import { spacing, typography } from '@/constants';
+import { useTheme } from '@/hooks/useTheme';
 
 export interface OnboardingHeaderProps {
   step: number;
@@ -18,6 +19,8 @@ export const OnboardingHeader: React.FC<OnboardingHeaderProps> = ({
   showBack = true,
   style,
 }) => {
+  const { colors } = useTheme();
+
   return (
     <View style={[styles.container, style]}>
       {showBack && onBack ? (
@@ -25,7 +28,7 @@ export const OnboardingHeader: React.FC<OnboardingHeaderProps> = ({
           activeOpacity={0.7}
           onPress={onBack}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          style={styles.backButton}
+          style={[styles.backButton, { backgroundColor: colors.surfaceSubtle }]}
         >
           <ArrowLeft size={20} color={colors.textPrimary} />
         </TouchableOpacity>
@@ -33,7 +36,7 @@ export const OnboardingHeader: React.FC<OnboardingHeaderProps> = ({
         <View style={styles.placeholder} />
       )}
 
-      <Text style={styles.stepText}>
+      <Text style={[styles.stepText, { color: colors.textSecondary }]}>
         Step {step} of {totalSteps}
       </Text>
 
@@ -54,7 +57,6 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: colors.surfaceSubtle,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -63,7 +65,6 @@ const styles = StyleSheet.create({
   },
   stepText: {
     ...typography.caption,
-    color: colors.textSecondary,
     fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 0.8,

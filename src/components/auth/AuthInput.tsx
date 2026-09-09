@@ -9,7 +9,8 @@ import {
   TextInputProps,
 } from 'react-native';
 import { Eye, EyeOff } from 'lucide-react-native';
-import { colors, radius, spacing, typography } from '@/constants';
+import { radius, spacing, typography } from '@/constants';
+import { useTheme } from '@/hooks/useTheme';
 
 export interface AuthInputProps extends Omit<TextInputProps, 'style'> {
   label: string;
@@ -40,18 +41,19 @@ export const AuthInput: React.FC<AuthInputProps> = ({
 }) => {
   const [isFocused, setIsFocused] = useState(false);
   const [showPassword, setShowPassword] = useState(!isPassword);
+  const { colors } = useTheme();
 
   return (
     <View style={[styles.container, style]}>
       <View style={styles.labelRow}>
-        <Text style={styles.label}>{label}</Text>
+        <Text style={[styles.label, { color: colors.textPrimary }]}>{label}</Text>
         {rightAction && (
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={rightAction.onPress}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Text style={styles.rightActionLabel}>{rightAction.label}</Text>
+            <Text style={[styles.rightActionLabel, { color: colors.primary }]}>{rightAction.label}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -59,8 +61,12 @@ export const AuthInput: React.FC<AuthInputProps> = ({
       <View
         style={[
           styles.inputWrapper,
-          isFocused && styles.inputFocused,
-          Boolean(error) && styles.inputError,
+          {
+            backgroundColor: colors.surface,
+            borderColor: colors.border,
+          },
+          isFocused && { borderColor: colors.primary, borderWidth: 1.5 },
+          Boolean(error) && { borderColor: colors.error },
         ]}
       >
         {leftIcon && <View style={styles.leftIconContainer}>{leftIcon}</View>}
@@ -73,7 +79,7 @@ export const AuthInput: React.FC<AuthInputProps> = ({
           secureTextEntry={isPassword && !showPassword}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
-          style={styles.input}
+          style={[styles.input, { color: colors.textPrimary }]}
           autoCapitalize="none"
           autoCorrect={false}
           {...rest}
@@ -95,7 +101,7 @@ export const AuthInput: React.FC<AuthInputProps> = ({
         )}
       </View>
 
-      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+      {error ? <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text> : null}
     </View>
   );
 };
@@ -112,30 +118,19 @@ const styles = StyleSheet.create({
   },
   label: {
     ...typography.caption,
-    color: colors.textPrimary,
     fontWeight: '600',
   },
   rightActionLabel: {
     ...typography.caption,
-    color: colors.primary,
     fontWeight: '600',
   },
   inputWrapper: {
     height: 46,
-    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.border,
     borderRadius: radius.sm,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.md,
-  },
-  inputFocused: {
-    borderColor: colors.primary,
-    borderWidth: 1.5,
-  },
-  inputError: {
-    borderColor: colors.error,
   },
   leftIconContainer: {
     marginRight: spacing.sm,
@@ -144,7 +139,6 @@ const styles = StyleSheet.create({
     flex: 1,
     height: '100%',
     ...typography.body,
-    color: colors.textPrimary,
     paddingVertical: 0,
   },
   passwordToggle: {
@@ -153,7 +147,6 @@ const styles = StyleSheet.create({
   },
   errorText: {
     ...typography.caption,
-    color: colors.error,
     marginTop: spacing.xs,
   },
 });
