@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+// 1. Swap TouchableOpacity for Pressable
+import { View, Text, StyleSheet, Pressable } from 'react-native'; 
 import { Sun, Moon, Search, Bell } from 'lucide-react-native';
 import { spacing, radius, typography, fontFamilies } from '../../constants';
 import { useTheme } from '@/context/ThemeContext';
@@ -45,15 +46,14 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
     >
       {/* User Greeting & Avatar */}
       <View style={styles.leftSection}>
-        <TouchableOpacity
-          activeOpacity={0.8}
+        <Pressable
           onPress={onAvatarPress}
           style={styles.avatarTouchable}
           accessibilityRole="button"
           accessibilityLabel="Open profile"
         >
           <Avatar name={userName} uri={userAvatar} size="md" />
-        </TouchableOpacity>
+        </Pressable>
         <View style={styles.greetingContainer}>
           <Text style={[styles.greetingText, { color: colors.textSecondary }]}>{getGreeting()},</Text>
           <Text style={[styles.nameText, { color: colors.textPrimary }]} numberOfLines={1}>
@@ -64,10 +64,17 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
 
       {/* Action Buttons: Quick Theme Toggle, Search & Notifications */}
       <View style={styles.rightSection}>
-        <TouchableOpacity
-          activeOpacity={0.8}
+        {/* Toggle Theme Button */}
+        <Pressable
           onPress={toggleTheme}
-          style={[styles.iconButton, { backgroundColor: colors.surfaceSubtle }]}
+          // 2. Pass a function to style to read the pressed or hovered state
+          style={({ pressed, hovered }: any) => [
+            styles.iconButton,
+            { 
+              backgroundColor: hovered || pressed ? colors.borderSubtle : colors.surfaceSubtle,
+              opacity: pressed ? 0.8 : 1 
+            }
+          ]}
           accessibilityRole="button"
           accessibilityLabel="Toggle Dark Mode"
         >
@@ -76,22 +83,34 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
           ) : (
             <Moon size={18} color={colors.textPrimary} />
           )}
-        </TouchableOpacity>
+        </Pressable>
 
-        <TouchableOpacity
-          activeOpacity={0.8}
+        {/* Search Button */}
+        <Pressable
           onPress={onSearchPress}
-          style={[styles.iconButton, { backgroundColor: colors.surfaceSubtle }]}
+          style={({ pressed, hovered }: any) => [
+            styles.iconButton,
+            { 
+              backgroundColor: hovered || pressed ? colors.borderSubtle : colors.surfaceSubtle,
+              opacity: pressed ? 0.8 : 1 
+            }
+          ]}
           accessibilityRole="button"
           accessibilityLabel="Search research and people"
         >
           <Search size={18} color={colors.textPrimary} />
-        </TouchableOpacity>
+        </Pressable>
 
-        <TouchableOpacity
-          activeOpacity={0.8}
+        {/* Notification Button */}
+        <Pressable
           onPress={onNotificationPress}
-          style={[styles.iconButton, { backgroundColor: colors.surfaceSubtle }]}
+          style={({ pressed, hovered }: any) => [
+            styles.iconButton,
+            { 
+              backgroundColor: hovered || pressed ? colors.borderSubtle : colors.surfaceSubtle,
+              opacity: pressed ? 0.8 : 1 
+            }
+          ]}
           accessibilityRole="button"
           accessibilityLabel="Notifications"
         >
@@ -103,7 +122,7 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
               </Text>
             </View>
           ) : null}
-        </TouchableOpacity>
+        </Pressable>
       </View>
     </View>
   );
@@ -115,7 +134,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
-    paddingTop: spacing.xs,
+    paddingTop: 15,
     paddingBottom: spacing.md,
     borderBottomWidth: 1,
   },

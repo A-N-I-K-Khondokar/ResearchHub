@@ -275,6 +275,7 @@ const styles = StyleSheet.create({
   themeOptionDesc: {
     fontSize: 10,
     marginTop: 2,
+    textAlign: 'center',
   },
   subSectionTitle: {
     ...typography.titleSmall,
