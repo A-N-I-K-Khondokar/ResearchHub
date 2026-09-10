@@ -7,11 +7,12 @@ import {
   ViewStyle,
   TextStyle,
   View,
+  Insets,
 } from 'react-native';
-import { radius, spacing, typography } from '@/constants';
+import { radius, spacing, typography, fontFamilies } from '@/constants';
 import { useTheme } from '@/context/ThemeContext';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'destructive';
+export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'tertiary' | 'destructive';
 export type ButtonSize = 'sm' | 'md' | 'lg';
 
 export interface ButtonProps {
@@ -26,6 +27,7 @@ export interface ButtonProps {
   fullWidth?: boolean;
   style?: ViewStyle;
   textStyle?: TextStyle;
+  hitSlop?: Insets | number;
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -40,8 +42,9 @@ export const Button: React.FC<ButtonProps> = ({
   fullWidth = false,
   style,
   textStyle,
+  hitSlop,
 }) => {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const isInteractive = !disabled && !loading;
 
   const getContainerStyles = (pressed: boolean): ViewStyle[] => {
@@ -70,7 +73,14 @@ export const Button: React.FC<ButtonProps> = ({
         });
         break;
       case 'ghost':
-        list.push({ backgroundColor: pressed ? colors.surfaceSubtle : 'transparent' });
+      case 'tertiary':
+        list.push({
+          backgroundColor: pressed
+            ? isDark
+              ? colors.surfaceHover
+              : colors.surfaceSubtle
+            : 'transparent',
+        });
         break;
       case 'destructive':
         list.push({ backgroundColor: pressed ? colors.error : colors.error });
@@ -106,7 +116,12 @@ export const Button: React.FC<ButtonProps> = ({
         list.push({ color: colors.textPrimary });
         break;
       case 'ghost':
-        list.push({ color: colors.primary });
+      case 'tertiary':
+        list.push({
+          color: colors.textSecondary,
+          fontFamily: fontFamilies.sansMedium,
+          fontWeight: '500',
+        });
         break;
       case 'destructive':
         list.push({ color: colors.textInverse });
@@ -134,11 +149,20 @@ export const Button: React.FC<ButtonProps> = ({
     return colors.primary;
   };
 
+  const defaultHitSlop =
+    variant === 'ghost' || variant === 'tertiary'
+      ? { top: 12, bottom: 12, left: 12, right: 12 }
+      : { top: 6, bottom: 6, left: 6, right: 6 };
+
   return (
     <Pressable
       onPress={onPress}
       disabled={!isInteractive}
-      style={({ pressed }) => getContainerStyles(pressed)}
+      hitSlop={hitSlop ?? defaultHitSlop}
+      style={({ pressed }) => [
+        ...getContainerStyles(pressed),
+        pressed && { opacity: 0.92, transform: [{ scale: 0.992 }] },
+      ]}
     >
       {loading ? (
         <ActivityIndicator size="small" color={getIndicatorColor()} />
@@ -155,7 +179,7 @@ export const Button: React.FC<ButtonProps> = ({
 
 const styles = StyleSheet.create({
   base: {
-    borderRadius: radius.full, // full capsule pill radius
+    borderRadius: radius.md,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
@@ -185,13 +209,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   size_lg: {
-    height: 52, // refined from 54 for elegance
+    height: 50,
     paddingHorizontal: spacing.xl,
   },
 
   // Base text
   baseText: {
     textAlign: 'center',
+    textAlignVertical: 'center',
+    includeFontPadding: false,
   },
   textSize_sm: {
     ...typography.buttonSmall,
@@ -201,6 +227,8 @@ const styles = StyleSheet.create({
   },
   textSize_lg: {
     ...typography.button,
-    fontSize: 16,
+    fontSize: 15.5,
+    fontFamily: fontFamilies.sansSemiBold,
+    fontWeight: '600',
   },
 });

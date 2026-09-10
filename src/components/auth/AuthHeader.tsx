@@ -17,7 +17,7 @@ export const AuthHeader: React.FC<AuthHeaderProps> = ({
   showBadge = true,
   style,
 }) => {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
 
   return (
     <View style={[styles.container, style]}>
@@ -27,12 +27,12 @@ export const AuthHeader: React.FC<AuthHeaderProps> = ({
             style={[
               styles.iconCircle,
               {
-                backgroundColor: colors.primaryMuted,
-                // Removed border for a cleaner, modern look
+                backgroundColor: isDark ? '#152A54' : '#EEF3FD',
+                borderColor: isDark ? '#244585' : '#D4E2FB',
               },
             ]}
           >
-            <GraduationCap size={30} color={colors.primary} />
+            <GraduationCap size={28} color={colors.primary} />
           </View>
         </View>
       )}
@@ -50,32 +50,33 @@ export const AuthHeader: React.FC<AuthHeaderProps> = ({
 const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
-    marginBottom: spacing.xl, // slightly more breathing room
+    marginBottom: spacing.xl,
   },
   badgeContainer: {
-    marginBottom: spacing.md + 4,
+    marginBottom: spacing.md,
   },
   iconCircle: {
-    width: 64, // refined proportion
-    height: 64,
-    borderRadius: radius.xl, // softer, modern squircle shape
+    width: 58,
+    height: 58,
+    borderRadius: 18,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   title: {
-    ...typography.display,
-    fontFamily: fontFamilies.serifBold, // Reinforce scholarly typography
-    fontSize: 26, // improved hierarchy
+    fontFamily: fontFamilies.serifBold,
+    fontSize: 27,
+    fontWeight: '700',
     lineHeight: 34,
     textAlign: 'center',
-    letterSpacing: -0.3,
+    letterSpacing: -0.4,
   },
   subtitle: {
-    ...typography.body,
-    fontSize: 15,
+    fontFamily: fontFamilies.sansRegular,
+    fontSize: 14.5,
     lineHeight: 22,
     textAlign: 'center',
     marginTop: spacing.xs,
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.lg,
   },
 });

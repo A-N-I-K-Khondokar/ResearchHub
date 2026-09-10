@@ -9,12 +9,12 @@ import {
   AuthInput,
   SocialAuthButton,
 } from '@/components';
-import { radius, spacing, typography } from '@/constants';
+import { radius, spacing, typography, fontFamilies } from '@/constants';
 import { useTheme } from '@/context/ThemeContext';
 
 export default function SignUpScreen() {
   const router = useRouter();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -90,7 +90,9 @@ export default function SignUpScreen() {
             styles.card,
             {
               backgroundColor: colors.surface,
-              borderColor: colors.border,
+              borderColor: colors.borderSubtle,
+              shadowOpacity: isDark ? 0 : 0.04,
+              elevation: isDark ? 0 : 2,
             },
           ]}
         >
@@ -119,68 +121,57 @@ export default function SignUpScreen() {
             leftIcon={<Mail size={18} color={colors.textSecondary} />}
           />
 
-          <View style={styles.row}>
-            <View style={styles.halfCol}>
-              <AuthInput
-                label="Password"
-                value={password}
-                onChangeText={(text) => {
-                  setPassword(text);
-                  if (passwordError) setPasswordError('');
-                }}
-                placeholder="••••••••"
-                isPassword
-                error={passwordError}
-                leftIcon={<Lock size={18} color={colors.textSecondary} />}
-              />
-            </View>
+          {/* Vertically Stacked Passwords */}
+          <AuthInput
+            label="Password"
+            value={password}
+            onChangeText={(text) => {
+              setPassword(text);
+              if (passwordError) setPasswordError('');
+            }}
+            placeholder="••••••••"
+            isPassword
+            error={passwordError}
+            leftIcon={<Lock size={18} color={colors.textSecondary} />}
+          />
 
-            <View style={styles.halfCol}>
-              <AuthInput
-                label="Confirm Password"
-                value={confirmPassword}
-                onChangeText={(text) => {
-                  setConfirmPassword(text);
-                  if (confirmError) setConfirmError('');
-                }}
-                placeholder="••••••••"
-                isPassword
-                error={confirmError}
-                leftIcon={<Lock size={18} color={colors.textSecondary} />}
-              />
-            </View>
-          </View>
+          <AuthInput
+            label="Confirm Password"
+            value={confirmPassword}
+            onChangeText={(text) => {
+              setConfirmPassword(text);
+              if (confirmError) setConfirmError('');
+            }}
+            placeholder="••••••••"
+            isPassword
+            error={confirmError}
+            leftIcon={<Lock size={18} color={colors.textSecondary} />}
+          />
 
-          {/* Academic Affiliation Section */}
+          {/* Academic Affiliation Section - Vertically Stacked */}
           <View
             style={[
               styles.affiliationSection,
-              { borderTopColor: colors.border },
+              { borderTopColor: colors.borderSubtle },
             ]}
           >
             <Text style={[styles.affiliationTitle, { color: colors.textSecondary }]}>
               Academic Affiliation (Optional)
             </Text>
-            <View style={styles.row}>
-              <View style={styles.halfCol}>
-                <AuthInput
-                  label="Department"
-                  value={department}
-                  onChangeText={setDepartment}
-                  placeholder="e.g., CSE"
-                  leftIcon={<Building size={18} color={colors.textSecondary} />}
-                />
-              </View>
-              <View style={styles.halfCol}>
-                <AuthInput
-                  label="Batch / Designation"
-                  value={batch}
-                  onChangeText={setBatch}
-                  placeholder="e.g., 2024 / Batch 14"
-                  leftIcon={<Calendar size={18} color={colors.textSecondary} />}
-                />
-              </View>
-            </View>
+            <AuthInput
+              label="Department"
+              value={department}
+              onChangeText={setDepartment}
+              placeholder="e.g., CSE"
+              leftIcon={<Building size={18} color={colors.textSecondary} />}
+            />
+            <AuthInput
+              label="Batch / Designation"
+              value={batch}
+              onChangeText={setBatch}
+              placeholder="e.g., Batch 232"
+              leftIcon={<Calendar size={18} color={colors.textSecondary} />}
+            />
           </View>
 
           <Button
@@ -188,14 +179,15 @@ export default function SignUpScreen() {
             onPress={handleSignUp}
             loading={loading}
             fullWidth
+            size="lg"
             style={styles.createButton}
           />
 
           {/* Divider */}
           <View style={styles.dividerRow}>
-            <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+            <View style={[styles.dividerLine, { backgroundColor: colors.borderSubtle }]} />
             <Text style={[styles.dividerText, { color: colors.textSecondary }]}>OR</Text>
-            <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+            <View style={[styles.dividerLine, { backgroundColor: colors.borderSubtle }]} />
           </View>
 
           <SocialAuthButton onPress={() => router.push('/(onboarding)/welcome' as any)} />
@@ -207,6 +199,7 @@ export default function SignUpScreen() {
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={() => router.push('/(auth)/login' as any)}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
             <Text style={[styles.signInText, { color: colors.primary }]}>Sign In</Text>
           </TouchableOpacity>
@@ -218,37 +211,30 @@ export default function SignUpScreen() {
 
 const styles = StyleSheet.create({
   content: {
-    paddingVertical: spacing.lg,
+    paddingVertical: spacing.xl,
+    paddingHorizontal: spacing.sm,
   },
   card: {
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     borderWidth: 1,
-    padding: spacing.cardPadding,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  row: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  halfCol: {
-    flex: 1,
+    padding: 24,
+    shadowColor: '#071A3E',
+    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 16,
   },
   affiliationSection: {
     marginTop: spacing.xs,
-    paddingTop: spacing.sm,
+    paddingTop: spacing.md,
     borderTopWidth: 1,
     marginBottom: spacing.xs,
   },
   affiliationTitle: {
-    ...typography.caption,
+    fontFamily: fontFamilies.sansSemiBold,
+    fontSize: 12,
     fontWeight: '600',
-    marginBottom: spacing.xs + 2,
+    marginBottom: spacing.sm,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.6,
   },
   createButton: {
     marginTop: spacing.sm,
@@ -256,7 +242,7 @@ const styles = StyleSheet.create({
   dividerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: spacing.md,
+    marginVertical: spacing.lg,
   },
   dividerLine: {
     flex: 1,
@@ -265,18 +251,22 @@ const styles = StyleSheet.create({
   dividerText: {
     ...typography.caption,
     marginHorizontal: spacing.md,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: spacing.lg,
+    marginTop: spacing.xl,
   },
   footerText: {
-    ...typography.body,
+    fontFamily: fontFamilies.sansRegular,
+    fontSize: 14.5,
   },
   signInText: {
-    ...typography.body,
+    fontFamily: fontFamilies.sansSemiBold,
+    fontSize: 14.5,
     fontWeight: '600',
   },
 });

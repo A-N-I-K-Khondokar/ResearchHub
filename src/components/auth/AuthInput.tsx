@@ -9,7 +9,7 @@ import {
   TextInputProps,
 } from 'react-native';
 import { Eye, EyeOff } from 'lucide-react-native';
-import { radius, spacing, typography } from '@/constants';
+import { radius, spacing, typography, fontFamilies } from '@/constants';
 import { useTheme } from '@/context/ThemeContext';
 
 export interface AuthInputProps extends Omit<TextInputProps, 'style'> {
@@ -25,6 +25,8 @@ export interface AuthInputProps extends Omit<TextInputProps, 'style'> {
     onPress: () => void;
   };
   style?: ViewStyle;
+  wrapperStyle?: ViewStyle;
+  floating?: boolean;
 }
 
 export const AuthInput: React.FC<AuthInputProps> = ({
@@ -37,11 +39,13 @@ export const AuthInput: React.FC<AuthInputProps> = ({
   leftIcon,
   rightAction,
   style,
+  wrapperStyle,
+  floating = false,
   ...rest
 }) => {
   const [isFocused, setIsFocused] = useState(false);
   const [showPassword, setShowPassword] = useState(!isPassword);
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
 
   return (
     <View style={[styles.container, style]}>
@@ -62,10 +66,23 @@ export const AuthInput: React.FC<AuthInputProps> = ({
         style={[
           styles.inputWrapper,
           {
-            backgroundColor: isFocused ? colors.surface : colors.surfaceSubtle,
+            backgroundColor: floating
+              ? colors.surface
+              : isFocused
+              ? colors.surface
+              : colors.surfaceSubtle,
             borderColor: isFocused ? colors.primary : colors.borderSubtle,
+            borderWidth: isFocused ? 1.5 : 1,
           },
-          Boolean(error) && { borderColor: colors.error },
+          floating && {
+            shadowColor: isDark ? 'transparent' : '#071A3E',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: isDark ? 0 : 0.04,
+            shadowRadius: 12,
+            elevation: isDark ? 0 : 1,
+          },
+          Boolean(error) && { borderColor: colors.error, borderWidth: 1.5 },
+          wrapperStyle,
         ]}
       >
         {leftIcon && <View style={styles.leftIconContainer}>{leftIcon}</View>}
@@ -92,9 +109,9 @@ export const AuthInput: React.FC<AuthInputProps> = ({
             style={styles.passwordToggle}
           >
             {showPassword ? (
-              <EyeOff size={18} color={colors.textSecondary} />
+              <EyeOff size={18} color={colors.textMuted} />
             ) : (
-              <Eye size={18} color={colors.textSecondary} />
+              <Eye size={18} color={colors.textMuted} />
             )}
           </TouchableOpacity>
         )}
@@ -107,47 +124,49 @@ export const AuthInput: React.FC<AuthInputProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: spacing.lg,
+    marginBottom: spacing.md + 4,
   },
   labelRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.xs + 2,
+    marginBottom: 6,
   },
   label: {
-    ...typography.caption,
+    fontFamily: fontFamilies.sansSemiBold,
+    fontSize: 13,
     fontWeight: '600',
+    letterSpacing: 0.1,
   },
   rightActionLabel: {
-    ...typography.caption,
+    fontFamily: fontFamilies.sansSemiBold,
+    fontSize: 12.5,
     fontWeight: '600',
   },
   inputWrapper: {
-    height: 52, // Modern, slightly taller input field
-    borderWidth: 1.5,
+    height: 50,
     borderRadius: radius.md,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: 16,
   },
   leftIconContainer: {
-    marginRight: spacing.sm,
-    opacity: 0.8,
+    marginRight: 10,
   },
   input: {
     flex: 1,
     height: '100%',
-    ...typography.body,
+    fontFamily: fontFamilies.sansRegular,
+    fontSize: 14.5,
     paddingVertical: 0,
-    fontSize: 15, // slightly cleaner size
   },
   passwordToggle: {
     padding: spacing.xs,
     marginLeft: spacing.xs,
   },
   errorText: {
-    ...typography.caption,
-    marginTop: spacing.xs,
+    fontFamily: fontFamilies.sansMedium,
+    fontSize: 12,
+    marginTop: 4,
   },
 });

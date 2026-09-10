@@ -9,12 +9,12 @@ import {
   AuthInput,
   SocialAuthButton,
 } from '@/components';
-import { radius, spacing, typography, shadows } from '@/constants';
+import { radius, spacing, typography, fontFamilies, shadows } from '@/constants';
 import { useTheme } from '@/context/ThemeContext';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -83,7 +83,8 @@ export default function LoginScreen() {
             styles.card,
             {
               backgroundColor: colors.surface,
-              borderColor: colors.borderSubtle, // Modern, softer border
+              borderColor: colors.borderSubtle,
+              shadowOpacity: isDark ? 0 : 0.04,
             },
           ]}
         >
@@ -163,14 +164,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm, // Slightly narrower overall width for a more focused modal feel on tablets/wide screens
   },
   card: {
-    borderRadius: radius.xl, // Softer, more modern corner radius
+    borderRadius: radius.lg,
     borderWidth: 1,
-    padding: spacing.cardPadding * 1.25, // More breathing room inside the card
-    // Very subtle, premium shadow elevation instead of the heavy old one
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.03,
-    shadowRadius: 12,
+    padding: 24,
+    shadowColor: '#071A3E',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.04,
+    shadowRadius: 16,
     elevation: 2,
   },
   signInButton: {
@@ -198,12 +198,12 @@ const styles = StyleSheet.create({
     marginTop: spacing.xl,
   },
   footerText: {
-    ...typography.body,
-    fontSize: 15,
+    fontFamily: fontFamilies.sansRegular,
+    fontSize: 14.5,
   },
   createAccountText: {
-    ...typography.body,
-    fontSize: 15,
+    fontFamily: fontFamilies.sansSemiBold,
+    fontSize: 14.5,
     fontWeight: '600',
   },
 });

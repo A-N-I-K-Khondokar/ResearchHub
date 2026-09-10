@@ -3,3 +3,4 @@ export * from './Button';
 export * from './TopicChip';
 export * from './SearchBar';
 export * from './SectionHeader';
+export * from '../auth/SocialAuthButton';
