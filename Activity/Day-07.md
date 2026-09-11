@@ -1,9 +1,10 @@
-# Day 07: Login Page Modernization, Auth Button Bug Fixes & Create Account Card Refinement
+# Day 07: Login Page Modernization, Auth Button Bug Fixes, Create Account Card Refinement & Bottom Navigation Active State Fix
 
 ## Phase Objective
 1. Execute a focused UI modernization of the Login screen (`src/app/(auth)/login.tsx` and its tightly coupled local auth UI components). Elevate the visual polish of the light-mode login experience to feel modern, crisp, and authoritative while strictly preserving the established CSE Research Hub academic identity, the "Deep Scholar Slate" dark mode, and existing navigation/authentication logic.
 2. Resolve reported layout, alignment, clipping, and theme-contrast visual bugs with the "Google Sign-In" and "Skip for now" buttons across the authentication and onboarding flows.
 3. Modernize the "Create Account" screen (`src/app/(auth)/sign-up.tsx`) by unifying form elements inside a structured card enclosure with ambient elevation, while vertically stacking all inputs (including Passwords and Academic Affiliation fields) for optimal mobile ergonomics.
+4. Fix the bottom tab navigation active states (`src/app/(tabs)/_layout.tsx`) so that every tab dynamically highlights with the active capsule background and primary color tint when focused, without affecting the raised center Share button.
 
 ---
 
@@ -87,7 +88,25 @@ Following user review, pivot the "Create Account" screen (`src/app/(auth)/sign-u
 
 ---
 
-## Files Changed
+## Part 4: Bug Fix — Bottom Tab Active States
+
+### Specific Bug Identified
+In `src/app/(tabs)/_layout.tsx`, the active visual state indicator (the rounded pill capsule background `#E5EEFF` in light mode, `#152A54` in dark mode) was hardcoded exclusively into the `index` (Home) screen configuration. 
+When navigating to the other standard tabs (`explore`, `notifications`/Alerts, `profile`), their screen configurations did not include the `styles.iconWrapper` container or the dynamic capsule background logic. Consequently, while the icon tint changed, the tabs never displayed the distinctive active capsule pill, causing users to perceive the tabs as inactive or non-responsive.
+
+### Work Completed & Fixes Applied
+1. **`src/app/(tabs)/_layout.tsx`**:
+   - Wrapped all standard tab icons (`Home`, `Compass`, `Bell` with badge dot, and `User`) inside `styles.iconWrapper`.
+   - Dynamically applied `backgroundColor: isDark ? colors.primaryLight : '#E5EEFF'` when `focused` is true for every tab.
+   - Standardized icon size to 20px with active dynamic stroke width (`focused ? 2.5 : 2`).
+   - Fixed `iconWrapper` dimensions (`minWidth: 52, height: 30`) to prevent any icon jumping or layout shift when toggling between active and inactive states.
+   - Ensured the center raised "Share" button (`styles.centerButton`, 44×44, 22 radius, solid `colors.primary`) remains custom and completely unaffected by standard capsule states.
+   - Retained semantic theme tokens (`colors.surface`, `colors.borderSubtle`, `colors.primary`, `colors.textSecondary`, `colors.primaryLight`) for seamless light/dark mode transitions.
+
+---
+
+## Files Changed Across Day 07
+* `src/app/(tabs)/_layout.tsx`: Fixed active capsule background and focused state logic across all 5 bottom tabs.
 * `src/app/(auth)/sign-up.tsx`: Re-enclosed form inside `styles.card` (24px radius, ambient shadow), stacked Department and Batch fields vertically, removed floating drop shadows from nested inputs.
 * `src/components/auth/AuthInput.tsx`: Maintained clean base input styling with dynamic focus state and optional floating support.
 * `src/components/auth/SocialAuthButton.tsx`: Centered flexbox, lineHeight 20 + includeFontPadding false, 100% width, dynamic dark mode elevation suppression.
@@ -103,8 +122,8 @@ Following user review, pivot the "Create Account" screen (`src/app/(auth)/sign-u
    - Command: `npx tsc --noEmit`
    - Result: **0 errors** (Clean compilation).
 2. **Production Bundler Verification**:
-   - Command: `npx expo export --output-dir /tmp/test-export-signup-card`
-   - Result: **Success (Exit code 0)** — Web (`3.44 MB`), Android (`5.46 MB`), and iOS (`5.46 MB`) bundles generated cleanly with 99 assets.
+   - Command: `npx expo export --output-dir /tmp/test-export-tabs-fix`
+   - Result: **Success (Exit code 0)** — Web (`3.44 MB`), Android (`5.46 MB`), and iOS (`5.47 MB`) bundles generated cleanly with 99 assets.
 
 ---
-*Signed off by: Senior UI/UX Engineer & React Native Developer*
+*Signed off by: Senior React Native Developer & QA Systems Engineer*

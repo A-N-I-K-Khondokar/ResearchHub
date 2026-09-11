@@ -38,7 +38,7 @@ export default function TabLayout() {
               style={[
                 styles.iconWrapper,
                 focused && {
-                  backgroundColor: isDark ? '#152A54' : '#E5EEFF',
+                  backgroundColor: isDark ? colors.primaryLight : '#E5EEFF',
                 },
               ]}
             >
@@ -52,7 +52,16 @@ export default function TabLayout() {
         options={{
           title: 'Explore',
           tabBarIcon: ({ color, focused }) => (
-            <Compass size={22} color={color} strokeWidth={focused ? 2.5 : 2} />
+            <View
+              style={[
+                styles.iconWrapper,
+                focused && {
+                  backgroundColor: isDark ? colors.primaryLight : '#E5EEFF',
+                },
+              ]}
+            >
+              <Compass size={20} color={color} strokeWidth={focused ? 2.5 : 2} />
+            </View>
           ),
         }}
       />
@@ -83,14 +92,23 @@ export default function TabLayout() {
         options={{
           title: 'Alerts',
           tabBarIcon: ({ color, focused }) => (
-            <View style={styles.iconWithBadge}>
-              <Bell size={22} color={color} strokeWidth={focused ? 2.5 : 2} />
-              <View
-                style={[
-                  styles.notificationDot,
-                  { backgroundColor: colors.accent },
-                ]}
-              />
+            <View
+              style={[
+                styles.iconWrapper,
+                focused && {
+                  backgroundColor: isDark ? colors.primaryLight : '#E5EEFF',
+                },
+              ]}
+            >
+              <View style={styles.iconWithBadge}>
+                <Bell size={20} color={color} strokeWidth={focused ? 2.5 : 2} />
+                <View
+                  style={[
+                    styles.notificationDot,
+                    { backgroundColor: colors.accent },
+                  ]}
+                />
+              </View>
             </View>
           ),
         }}
@@ -100,7 +118,16 @@ export default function TabLayout() {
         options={{
           title: 'Profile',
           tabBarIcon: ({ color, focused }) => (
-            <User size={22} color={color} strokeWidth={focused ? 2.5 : 2} />
+            <View
+              style={[
+                styles.iconWrapper,
+                focused && {
+                  backgroundColor: isDark ? colors.primaryLight : '#E5EEFF',
+                },
+              ]}
+            >
+              <User size={20} color={color} strokeWidth={focused ? 2.5 : 2} />
+            </View>
           ),
         }}
       />
@@ -115,6 +142,8 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
     alignItems: 'center',
     justifyContent: 'center',
+    minWidth: 52,
+    height: 30,
   },
   centerButton: {
     width: 44,
