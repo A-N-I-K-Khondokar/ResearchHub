@@ -38,6 +38,7 @@ function RootNavigation() {
       <Stack.Screen name="(research)" />
       <Stack.Screen name="(profile)" />
       <Stack.Screen name="(explore)" />
+      <Stack.Screen name="+not-found" />
     </Stack>
   );
 }
