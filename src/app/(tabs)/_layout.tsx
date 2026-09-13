@@ -1,31 +1,54 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Tabs } from 'expo-router';
 import { Home, Compass, Plus, Bell, User } from 'lucide-react-native';
-import { fontFamilies, radius } from '@/constants';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/ThemeContext';
 
 export default function TabLayout() {
   const { colors, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
+
+  const bottomMargin = insets.bottom > 0 ? insets.bottom + 8 : 24;
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
+        tabBarShowLabel: false,
+        tabBarLabelPosition: 'beside-icon',
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textSecondary,
         tabBarStyle: {
+          position: 'absolute',
+          bottom: bottomMargin,
+          left: 24,
+          right: 24,
+          height: 64,
           backgroundColor: colors.surface,
-          borderTopColor: colors.borderSubtle,
+          borderRadius: 36,
+          borderWidth: 1,
+          borderColor: colors.borderSubtle,
           borderTopWidth: 1,
-          height: 68,
-          paddingBottom: 8,
-          paddingTop: 6,
+          borderTopColor: colors.borderSubtle,
+          shadowColor: '#071A3E',
+          shadowOffset: { width: 0, height: 6 },
+          shadowOpacity: isDark ? 0 : 0.08,
+          shadowRadius: 16,
+          elevation: isDark ? 0 : 4,
+          paddingBottom: 0,
+          paddingTop: 0,
         },
-        tabBarLabelStyle: {
-          fontSize: 11,
-          fontFamily: fontFamilies.sansSemiBold,
-          fontWeight: '600',
+        tabBarItemStyle: {
+          height: 64,
+          justifyContent: 'center',
+          alignItems: 'center',
+        },
+        tabBarIconStyle: {
+          width: 44,
+          height: 44,
+          justifyContent: 'center',
+          alignItems: 'center',
         },
       }}
     >
@@ -34,15 +57,8 @@ export default function TabLayout() {
         options={{
           title: 'Home',
           tabBarIcon: ({ color, focused }) => (
-            <View
-              style={[
-                styles.iconWrapper,
-                focused && {
-                  backgroundColor: isDark ? colors.primaryLight : '#E5EEFF',
-                },
-              ]}
-            >
-              <Home size={20} color={color} strokeWidth={focused ? 2.5 : 2} />
+            <View style={styles.tabIconWrapper}>
+              <Home size={24} color={color} strokeWidth={focused ? 2.5 : 2} />
             </View>
           ),
         }}
@@ -52,15 +68,8 @@ export default function TabLayout() {
         options={{
           title: 'Explore',
           tabBarIcon: ({ color, focused }) => (
-            <View
-              style={[
-                styles.iconWrapper,
-                focused && {
-                  backgroundColor: isDark ? colors.primaryLight : '#E5EEFF',
-                },
-              ]}
-            >
-              <Compass size={20} color={color} strokeWidth={focused ? 2.5 : 2} />
+            <View style={styles.tabIconWrapper}>
+              <Compass size={24} color={color} strokeWidth={focused ? 2.5 : 2} />
             </View>
           ),
         }}
@@ -76,14 +85,18 @@ export default function TabLayout() {
                 {
                   backgroundColor: colors.primary,
                   shadowColor: colors.primary,
+                  shadowOpacity: isDark ? 0 : 0.25,
+                  elevation: isDark ? 0 : 3,
                 },
               ]}
             >
-              <Plus size={24} color="#FFFFFF" strokeWidth={2.6} />
+              <Plus
+                size={24}
+                color="#FFFFFF"
+                strokeWidth={2.6}
+                style={styles.centerIcon}
+              />
             </View>
-          ),
-          tabBarLabel: ({ color }) => (
-            <Text style={[styles.shareLabel, { color }]}>Share</Text>
           ),
         }}
       />
@@ -92,16 +105,9 @@ export default function TabLayout() {
         options={{
           title: 'Alerts',
           tabBarIcon: ({ color, focused }) => (
-            <View
-              style={[
-                styles.iconWrapper,
-                focused && {
-                  backgroundColor: isDark ? colors.primaryLight : '#E5EEFF',
-                },
-              ]}
-            >
+            <View style={styles.tabIconWrapper}>
               <View style={styles.iconWithBadge}>
-                <Bell size={20} color={color} strokeWidth={focused ? 2.5 : 2} />
+                <Bell size={24} color={color} strokeWidth={focused ? 2.5 : 2} />
                 <View
                   style={[
                     styles.notificationDot,
@@ -118,15 +124,8 @@ export default function TabLayout() {
         options={{
           title: 'Profile',
           tabBarIcon: ({ color, focused }) => (
-            <View
-              style={[
-                styles.iconWrapper,
-                focused && {
-                  backgroundColor: isDark ? colors.primaryLight : '#E5EEFF',
-                },
-              ]}
-            >
-              <User size={20} color={color} strokeWidth={focused ? 2.5 : 2} />
+            <View style={styles.tabIconWrapper}>
+              <User size={24} color={color} strokeWidth={focused ? 2.5 : 2} />
             </View>
           ),
         }}
@@ -136,14 +135,11 @@ export default function TabLayout() {
 }
 
 const styles = StyleSheet.create({
-  iconWrapper: {
-    paddingHorizontal: 16,
-    paddingVertical: 4,
-    borderRadius: radius.full,
+  tabIconWrapper: {
+    width: 44,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    minWidth: 52,
-    height: 30,
   },
   centerButton: {
     width: 44,
@@ -151,17 +147,16 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: -8,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    elevation: 5,
+    padding: 0,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 3,
   },
-  shareLabel: {
-    fontSize: 11,
-    fontFamily: fontFamilies.sansSemiBold,
-    fontWeight: '600',
-    marginTop: 2,
+  centerIcon: {
+    alignSelf: 'center',
+    margin: 0,
+    padding: 0,
   },
   iconWithBadge: {
     position: 'relative',
@@ -170,8 +165,8 @@ const styles = StyleSheet.create({
   },
   notificationDot: {
     position: 'absolute',
-    top: -1,
-    right: -2,
+    top: 0,
+    right: 0,
     width: 8,
     height: 8,
     borderRadius: 4,

@@ -105,8 +105,72 @@ When navigating to the other standard tabs (`explore`, `notifications`/Alerts, `
 
 ---
 
+## Part 5: Bug Fix — Center Share Button Padding & Optical Alignment
+
+### Objective
+Fix the internal alignment and padding of the custom raised center "Share" button in the bottom navigation bar (`src/app/(tabs)/_layout.tsx`) so that the `+` icon is perfectly centered optically and mathematically within its circular container.
+
+### Specific Issues Identified
+1. **Implicit Container Padding & Box Model Reset**: `styles.centerButton` lacked an explicit `padding: 0` declaration. In certain platform runtimes and flexbox cascades, default padding could cause the 24x24 icon to sit slightly offset from the geometric center of the 44x44 circle.
+2. **SVG Alignment & Margin Normalization**: The Lucide `<Plus>` component lacked an explicit style prop resetting margin and padding. In React Native Web / native flex layouts, inline SVG elements can be subjected to baseline alignment quirks or rogue margins if not strictly bound to `alignSelf: 'center'`.
+
+### Work Completed & Fixes Applied
+1. **`src/app/(tabs)/_layout.tsx`**:
+   - Added explicit `padding: 0` to `styles.centerButton` to guarantee uniform zero-padding across all platforms.
+   - Preserved geometric container sizing (`width: 44`, `height: 44`, `borderRadius: 22`, `marginTop: -8`, and elevation/shadow tokens).
+   - Created dedicated `styles.centerIcon` with `alignSelf: 'center'`, `margin: 0`, and `padding: 0`.
+   - Bound `styles.centerIcon` to `<Plus size={24} color="#FFFFFF" strokeWidth={2.6} style={styles.centerIcon} />` for strict mathematical and optical subpixel centering.
+
+---
+
+## Part 6: UI Redesign — Floating Bottom Navigation Bar
+
+### Objective
+Redesign the bottom navigation bar into a modern "floating capsule" design that sits elevated above the screen bottom, removes active background pills in favor of crisp primary color tinting, and centers the label-free "Share" button seamlessly.
+
+### Work Completed
+1. **Floating Capsule Container (`tabBarStyle`)**:
+   - Switched to `position: 'absolute'`.
+   - Applied horizontal inset breathing room: `left: 20`, `right: 20`.
+   - Integrated dynamic safe-area handling via `useSafeAreaInsets`: `bottom: insets.bottom > 0 ? insets.bottom + 4 : 20`.
+   - Configured capsule geometry: `height: 66`, `borderRadius: 40` (high border radius).
+   - Applied complete 1px boundary: `borderWidth: 1`, `borderColor: colors.borderSubtle`.
+   - Ambient drop shadow: `shadowColor: '#071A3E'`, `shadowOffset: { width: 0, height: 6 }`, `shadowRadius: 16`, `shadowOpacity: isDark ? 0 : 0.08`, `elevation: isDark ? 0 : 4` (fully suppressed in dark mode).
+2. **Removed Active Background Pills**:
+   - Removed `iconWrapper` container and dynamic `#E5EEFF` / `colors.primaryLight` background pills from `Home`, `Explore`, `Alerts`, and `Profile` tabs.
+   - Standard tab icons render directly at 22px with dynamic stroke weight (`focused ? 2.4 : 1.8`), active tinting exclusively powered by `colors.primary`.
+3. **Centered Label-Free Share Button**:
+   - Disabled label entirely on the Share tab: `tabBarShowLabel: false`, `tabBarLabel: () => null`.
+   - Removed `marginTop: -8` offset from `centerButton`, allowing the 44×44 circular button to sit mathematically and optically centered inside the 66px floating capsule.
+   - Maintained `colors.primary` fill with white (`#FFFFFF`) 24px `Plus` icon.
+4. **Crisp Icon & Label Stacking**:
+   - Configured `tabBarItemStyle` (`paddingVertical: 8`, `justifyContent: 'center'`, `alignItems: 'center'`) and `tabBarLabelStyle` (`fontSize: 10`, `fontFamilies.sansSemiBold`, `marginTop: 2`) for minimal gap between icon and text.
+
+---
+
+## Part 7: UI Refinement — Icon-Only Floating Bottom Navigation & Center Share Alignment
+
+### Objective
+Remove all tab text labels across the entire bottom navigation bar, apply generous floating screen margins, and ensure the center Share button is perfectly centered horizontally and vertically.
+
+### Work Completed
+1. **Removed All Tab Labels**:
+   - Set `tabBarShowLabel: false` globally across `screenOptions`. All 5 tabs now operate in a minimalist, icon-only presentation.
+2. **Generous Floating Screen Margins**:
+   - Expanded horizontal margins to `left: 24`, `right: 24`.
+   - Dynamic bottom floating margin: `bottom: insets.bottom > 0 ? insets.bottom + 8 : 24` (lifts the capsule gracefully above the gesture bar on modern devices).
+3. **Exact Horizontal & Vertical Centering for Share & Standard Icons**:
+   - Resolved React Navigation's default vertical flex-start shift by configuring `tabBarLabelPosition: 'beside-icon'` (which activates `tabHorizontalUiKit` flexbox with `justifyContent: 'center', alignItems: 'center'`).
+   - Configured `tabBarIconStyle` with explicit `width: 44, height: 44, justifyContent: 'center', alignItems: 'center'`.
+   - Wrapped all standard tab icons in dedicated 44×44 `tabIconWrapper` containers matching the 44×44 dimensions of the center primary Share button.
+   - All 5 icons (`Home`, `Compass`, `Share` (+), `Alerts`, `Profile`) share the exact same geometric horizontal axis (`y = 32px`), perfectly centered within the 64px floating capsule.
+4. **Standard Icon Polish**:
+   - Standardized standard icons to 24px (`Home`, `Compass`, `Bell` with badge dot, `User`) with active stroke width enhancement (`focused ? 2.5 : 2`).
+
+---
+
 ## Files Changed Across Day 07
-* `src/app/(tabs)/_layout.tsx`: Fixed active capsule background and focused state logic across all 5 bottom tabs.
+* `src/app/(tabs)/_layout.tsx`: Configured icon-only floating capsule tab bar (no labels, generous 24px margins, centered Share button).
 * `src/app/(auth)/sign-up.tsx`: Re-enclosed form inside `styles.card` (24px radius, ambient shadow), stacked Department and Batch fields vertically, removed floating drop shadows from nested inputs.
 * `src/components/auth/AuthInput.tsx`: Maintained clean base input styling with dynamic focus state and optional floating support.
 * `src/components/auth/SocialAuthButton.tsx`: Centered flexbox, lineHeight 20 + includeFontPadding false, 100% width, dynamic dark mode elevation suppression.
@@ -122,8 +186,11 @@ When navigating to the other standard tabs (`explore`, `notifications`/Alerts, `
    - Command: `npx tsc --noEmit`
    - Result: **0 errors** (Clean compilation).
 2. **Production Bundler Verification**:
-   - Command: `npx expo export --output-dir /tmp/test-export-tabs-fix`
-   - Result: **Success (Exit code 0)** — Web (`3.44 MB`), Android (`5.46 MB`), and iOS (`5.47 MB`) bundles generated cleanly with 99 assets.
+   - Command: `npx expo export --output-dir /tmp/test-export-floating-tabs`
+   - Result: **Success (Exit code 0)** — Android HBC (`5.47 MB`), iOS HBC (`5.47 MB`), and Web (`3.44 MB`) bundles generated cleanly with 99 assets.
+3. **Web Distribution**:
+   - Command: `npx expo export -p web`
+   - Result: **Success (Exit code 0)** — Updated `./dist` with latest floating navigation build.
 
 ---
 *Signed off by: Senior React Native Developer & QA Systems Engineer*
