@@ -9,7 +9,7 @@ export default function TabLayout() {
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
 
-  const bottomMargin = insets.bottom > 0 ? insets.bottom + 8 : 24;
+  const bottomMargin = insets.bottom > 0 ? insets.bottom + 8 : 20;
 
   return (
     <Tabs
@@ -22,11 +22,11 @@ export default function TabLayout() {
         tabBarStyle: {
           position: 'absolute',
           bottom: bottomMargin,
-          left: 24,
-          right: 24,
+          left: 20,
+          right: 20,
           height: 64,
           backgroundColor: colors.surface,
-          borderRadius: 36,
+          borderRadius: 32,
           borderWidth: 1,
           borderColor: colors.borderSubtle,
           borderTopWidth: 1,

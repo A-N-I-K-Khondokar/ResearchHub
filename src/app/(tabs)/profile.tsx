@@ -32,7 +32,11 @@ export default function ProfileTab() {
   ];
 
   return (
-    <ScreenContainer scrollable statusBarStyle={isDark ? 'light' : 'dark'}>
+    <ScreenContainer
+      scrollable
+      contentContainerStyle={styles.scrollContent}
+      statusBarStyle={isDark ? 'light' : 'dark'}
+    >
       {/* User Header Profile Card */}
       <View
         style={[
@@ -165,6 +169,9 @@ export default function ProfileTab() {
 }
 
 const styles = StyleSheet.create({
+  scrollContent: {
+    paddingBottom: 120,
+  },
   profileCard: {
     borderRadius: radius.md,
     borderWidth: 1,

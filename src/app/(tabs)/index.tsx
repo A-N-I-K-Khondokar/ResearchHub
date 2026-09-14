@@ -377,7 +377,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: spacing.xxl,
+    paddingBottom: 120,
   },
   topicSection: {
     borderBottomWidth: 1,

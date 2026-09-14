@@ -169,8 +169,30 @@ Remove all tab text labels across the entire bottom navigation bar, apply genero
 
 ---
 
+## Part 8: Bug Fix — Floating Tab Bar Overlap & Margins
+
+### Objective
+Resolve the screen content cutoff bug caused by the absolute-positioned floating pill tab bar, and enforce distinct horizontal and bottom margins with a 32px border radius for the floating navigation container.
+
+### Work Completed & Fixes Applied
+1. **Enforced Floating Tab Bar Margins & Radius (`src/app/(tabs)/_layout.tsx`)**:
+   - Explicit margins: `left: 20`, `right: 20`.
+   - Dynamic safe-area bottom clearance: `bottom: insets.bottom > 0 ? insets.bottom + 8 : 20`.
+   - High capsule border radius: `borderRadius: 32` with clean 1px `colors.borderSubtle` boundary.
+   - Preserved 64px bar height, absolute positioning, and centered icon alignment.
+2. **Eliminated Screen Content Cutoff (`paddingBottom: 120`)**:
+   - Because the tab bar is positioned absolutely (`position: 'absolute'`), scrollable screens underneath require bottom clearance equal to the tab bar height (64px) + bottom margin (~24-42px) + safe breathing space.
+   - **`src/app/(tabs)/profile.tsx`**: Added `contentContainerStyle={styles.scrollContent}` with `paddingBottom: 120` to the main `<ScreenContainer scrollable>`. All profile cards, research activity items, and research interest badges now scroll completely clear of the floating tab bar.
+   - **`src/app/(tabs)/index.tsx`**: Updated `styles.scrollContent` from `paddingBottom: spacing.xxl` (48px) to `paddingBottom: 120`. Feed cards, faculty spotlight carousel, and recent publications scroll comfortably above the pill.
+   - **`src/app/(tabs)/explore.tsx`**: Updated `styles.scrollContent` from `paddingVertical: spacing.md` to `paddingTop: spacing.md, paddingBottom: 120`. Topic chips, featured researcher discovery cards, and publication archives now scroll fully into view.
+
+---
+
 ## Files Changed Across Day 07
-* `src/app/(tabs)/_layout.tsx`: Configured icon-only floating capsule tab bar (no labels, generous 24px margins, centered Share button).
+* `src/app/(tabs)/_layout.tsx`: Configured icon-only floating capsule tab bar (no labels, left/right 20px margins, dynamic bottom clearance, borderRadius 32, centered Share button).
+* `src/app/(tabs)/profile.tsx`: Added `contentContainerStyle` with `paddingBottom: 120` to eliminate content cutoff behind the floating tab bar.
+* `src/app/(tabs)/index.tsx`: Updated `scrollContent` with `paddingBottom: 120` for full clearance above the floating tab bar.
+* `src/app/(tabs)/explore.tsx`: Updated `scrollContent` with `paddingBottom: 120` to ensure all discovery cards scroll clear of the floating tab bar.
 * `src/app/(auth)/sign-up.tsx`: Re-enclosed form inside `styles.card` (24px radius, ambient shadow), stacked Department and Batch fields vertically, removed floating drop shadows from nested inputs.
 * `src/components/auth/AuthInput.tsx`: Maintained clean base input styling with dynamic focus state and optional floating support.
 * `src/components/auth/SocialAuthButton.tsx`: Centered flexbox, lineHeight 20 + includeFontPadding false, 100% width, dynamic dark mode elevation suppression.
@@ -186,11 +208,11 @@ Remove all tab text labels across the entire bottom navigation bar, apply genero
    - Command: `npx tsc --noEmit`
    - Result: **0 errors** (Clean compilation).
 2. **Production Bundler Verification**:
-   - Command: `npx expo export --output-dir /tmp/test-export-floating-tabs`
+   - Command: `npx expo export --output-dir /tmp/test-export-tab-margins`
    - Result: **Success (Exit code 0)** — Android HBC (`5.47 MB`), iOS HBC (`5.47 MB`), and Web (`3.44 MB`) bundles generated cleanly with 99 assets.
 3. **Web Distribution**:
    - Command: `npx expo export -p web`
    - Result: **Success (Exit code 0)** — Updated `./dist` with latest floating navigation build.
 
 ---
-*Signed off by: Senior React Native Developer & QA Systems Engineer*
+*Signed off by: Senior React Native Developer & UI/UX Systems Engineer*
