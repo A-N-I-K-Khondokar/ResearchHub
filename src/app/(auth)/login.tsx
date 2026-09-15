@@ -8,6 +8,7 @@ import {
   AuthHeader,
   AuthInput,
   SocialAuthButton,
+  SuccessModal,
 } from '@/components';
 import { radius, spacing, typography, fontFamilies, shadows } from '@/constants';
 import { useTheme } from '@/context/ThemeContext';
@@ -20,6 +21,11 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [modalContent, setModalContent] = useState({
+    title: 'Welcome Back',
+    message: 'Your authentication was successful. Welcome back to CSE Research Hub.',
+  });
 
   const validate = () => {
     let valid = true;
@@ -51,21 +57,25 @@ export default function LoginScreen() {
     setLoading(true);
     setTimeout(() => {
       setLoading(false);
-      router.push('/(onboarding)/welcome' as any);
+      setModalContent({
+        title: 'Welcome Back',
+        message: 'Your authentication was successful. Redirecting to your academic dashboard.',
+      });
+      setShowSuccessModal(true);
     }, 600);
   };
 
   const handleGoogleSignIn = () => {
-    Alert.alert(
-      'Google Sign-In',
-      'Google authentication UI simulated. Proceeding to Onboarding...',
-      [
-        {
-          text: 'Continue',
-          onPress: () => router.push('/(onboarding)/welcome' as any),
-        },
-      ]
-    );
+    setModalContent({
+      title: 'Google Sign-In',
+      message: 'Institutional Google authentication successful. Welcome back to CSE Research Hub.',
+    });
+    setShowSuccessModal(true);
+  };
+
+  const handleModalClose = () => {
+    setShowSuccessModal(false);
+    router.push('/(onboarding)/welcome' as any);
   };
 
   return (
@@ -154,6 +164,13 @@ export default function LoginScreen() {
           </TouchableOpacity>
         </View>
       </View>
+
+      <SuccessModal
+        visible={showSuccessModal}
+        title={modalContent.title}
+        message={modalContent.message}
+        onClose={handleModalClose}
+      />
     </ScreenContainer>
   );
 }

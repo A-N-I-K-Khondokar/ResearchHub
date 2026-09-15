@@ -8,6 +8,7 @@ import {
   AuthHeader,
   AuthInput,
   SocialAuthButton,
+  SuccessModal,
 } from '@/components';
 import { radius, spacing, typography, fontFamilies } from '@/constants';
 import { useTheme } from '@/context/ThemeContext';
@@ -22,6 +23,12 @@ export default function SignUpScreen() {
   const [department, setDepartment] = useState('CSE');
   const [batch, setBatch] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [modalConfig, setModalConfig] = useState({
+    title: 'Account Created',
+    message: 'Your research profile has been registered. Please verify your institutional email to proceed.',
+    targetRoute: '/(auth)/verify-email',
+  });
 
   // Errors
   const [nameError, setNameError] = useState('');
@@ -71,8 +78,27 @@ export default function SignUpScreen() {
     setLoading(true);
     setTimeout(() => {
       setLoading(false);
-      router.push('/(auth)/verify-email' as any);
+      setModalConfig({
+        title: 'Account Created',
+        message: 'Your academic profile has been registered. Please verify your institutional email to proceed.',
+        targetRoute: '/(auth)/verify-email',
+      });
+      setShowSuccessModal(true);
     }, 600);
+  };
+
+  const handleGoogleSignUp = () => {
+    setModalConfig({
+      title: 'Google Sign-In Successful',
+      message: 'Your institutional Google account has been connected. Welcome to CSE Research Hub.',
+      targetRoute: '/(onboarding)/welcome',
+    });
+    setShowSuccessModal(true);
+  };
+
+  const handleModalClose = () => {
+    setShowSuccessModal(false);
+    router.push(modalConfig.targetRoute as any);
   };
 
   return (
@@ -190,7 +216,7 @@ export default function SignUpScreen() {
             <View style={[styles.dividerLine, { backgroundColor: colors.borderSubtle }]} />
           </View>
 
-          <SocialAuthButton onPress={() => router.push('/(onboarding)/welcome' as any)} />
+          <SocialAuthButton onPress={handleGoogleSignUp} />
         </View>
 
         {/* Footer */}
@@ -205,6 +231,13 @@ export default function SignUpScreen() {
           </TouchableOpacity>
         </View>
       </View>
+
+      <SuccessModal
+        visible={showSuccessModal}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        onClose={handleModalClose}
+      />
     </ScreenContainer>
   );
 }
