@@ -188,10 +188,43 @@ Resolve the screen content cutoff bug caused by the absolute-positioned floating
 
 ---
 
+## Part 9: Bug Fix — ResearcherCard Connect Button Consistency
+
+### Objective
+Standardize the "Connect" button styling across researcher cards in the "Researchers to Follow" carousel. Remove hardcoded button variants tied to array index or mock users, enforce a solid primary pill as the default state, and implement dynamic prop-driven state rendering for outline ("Pending") and connected states.
+
+### Work Completed & Fixes Applied
+1. **Removed Hardcoded Array Index Variant (`src/app/(tabs)/index.tsx`)**:
+   - Removed `isOutlineButton={index === 1}` from the horizontal `FlatList` in the "Researchers to Follow" section.
+   - All cards now uniformly derive their button presentation from `connectionStates[item.id] || item.connectionStatus || 'none'`, eliminating the visual mismatch where index 1 was arbitrarily outlined while index 0 was solid.
+2. **Standardized Default State to Solid Primary Pill (`src/components/cards/ResearcherCard.tsx`)**:
+   - In the default "Connect" state (`'none'`), the button renders as a solid primary pill (`backgroundColor: colors.primary`) with crisp inverse text and user-plus icon (`colors.textInverse`).
+   - In Scholarly Crisp (Light Mode): Solid `#2471E7` background with `#FFFFFF` text.
+   - In Deep Scholar Slate (Dark Mode): Solid `#82B1FF` background with `#071A3E` high-contrast text.
+3. **Dynamic Prop-Based State Rendering**:
+   - Expanded `ResearcherCardProps` to support `connectionStatus`, `connectionState`, `isPending`, and `isConnected`.
+   - Dynamic resolution logic:
+     ```ts
+     const effectiveStatus: 'none' | 'pending' | 'connected' =
+       connectionState ||
+       connectionStatus ||
+       (isConnectedProp ? 'connected' : isPendingProp ? 'pending' : (researcher.connectionStatus || 'none'));
+     const isConnected = effectiveStatus === 'connected' || isConnectedProp === true;
+     const isPending = !isConnected && (effectiveStatus === 'pending' || isPendingProp === true);
+     ```
+   - **Pending State**: Renders as an outlined pill using semantic theme tokens (`backgroundColor: isDark ? colors.surfaceSubtle : colors.surface`, `borderWidth: 1.5`, `borderColor: colors.border`, text/clock icon in `colors.textSecondary`).
+   - **Connected State**: Renders as a soft secondary container with mint outline (`backgroundColor: colors.secondaryLight`, `borderWidth: 1`, `borderColor: colors.secondary`, text/check icon in `colors.secondary`).
+4. **Mock Data Harmonization (`src/data/researchers.ts`)**:
+   - Updated Tanvir Ahmed's initial `connectionStatus` from `'pending'` to `'none'` so all initial featured researchers in the "Researchers to Follow" carousel share the uniform default solid "Connect" button. Tapping any card dynamically cycles through `'none'` -> `'pending'` -> `'connected'`.
+
+---
+
 ## Files Changed Across Day 07
+* `src/components/cards/ResearcherCard.tsx`: Standardized default state to solid primary pill, removed hardcoded user/index styles, added prop-based dynamic state rendering (`connectionState`, `isPending`, `isConnected`), and applied semantic tokens for both light and dark modes.
+* `src/app/(tabs)/index.tsx`: Removed hardcoded `isOutlineButton={index === 1}`, updated scroll container with `paddingBottom: 120`.
+* `src/data/researchers.ts`: Updated Tanvir Ahmed's default mock status to `connectionStatus: 'none'` for initial carousel uniformity.
 * `src/app/(tabs)/_layout.tsx`: Configured icon-only floating capsule tab bar (no labels, left/right 20px margins, dynamic bottom clearance, borderRadius 32, centered Share button).
 * `src/app/(tabs)/profile.tsx`: Added `contentContainerStyle` with `paddingBottom: 120` to eliminate content cutoff behind the floating tab bar.
-* `src/app/(tabs)/index.tsx`: Updated `scrollContent` with `paddingBottom: 120` for full clearance above the floating tab bar.
 * `src/app/(tabs)/explore.tsx`: Updated `scrollContent` with `paddingBottom: 120` to ensure all discovery cards scroll clear of the floating tab bar.
 * `src/app/(auth)/sign-up.tsx`: Re-enclosed form inside `styles.card` (24px radius, ambient shadow), stacked Department and Batch fields vertically, removed floating drop shadows from nested inputs.
 * `src/components/auth/AuthInput.tsx`: Maintained clean base input styling with dynamic focus state and optional floating support.
@@ -208,11 +241,11 @@ Resolve the screen content cutoff bug caused by the absolute-positioned floating
    - Command: `npx tsc --noEmit`
    - Result: **0 errors** (Clean compilation).
 2. **Production Bundler Verification**:
-   - Command: `npx expo export --output-dir /tmp/test-export-tab-margins`
+   - Command: `npx expo export --output-dir /tmp/test-export-researcher-card`
    - Result: **Success (Exit code 0)** — Android HBC (`5.47 MB`), iOS HBC (`5.47 MB`), and Web (`3.44 MB`) bundles generated cleanly with 99 assets.
 3. **Web Distribution**:
    - Command: `npx expo export -p web`
-   - Result: **Success (Exit code 0)** — Updated `./dist` with latest floating navigation build.
+   - Result: **Success (Exit code 0)** — Updated `./dist` with latest navigation and component updates.
 
 ---
 *Signed off by: Senior React Native Developer & UI/UX Systems Engineer*

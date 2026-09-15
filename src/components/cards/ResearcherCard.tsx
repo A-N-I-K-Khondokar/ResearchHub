@@ -6,10 +6,13 @@ import { spacing, radius, typography, fontFamilies, shadows } from '../../consta
 import { useTheme } from '@/context/ThemeContext';
 import { Avatar } from '../common/Avatar';
 
-interface ResearcherCardProps {
+export interface ResearcherCardProps {
   researcher: UserProfile;
   sharedInterestsCount?: number;
   connectionStatus?: 'none' | 'pending' | 'connected';
+  connectionState?: 'none' | 'pending' | 'connected';
+  isPending?: boolean;
+  isConnected?: boolean;
   onPress?: () => void;
   onConnectPress?: () => void;
   variant?: 'compact' | 'full';
@@ -19,7 +22,10 @@ interface ResearcherCardProps {
 export const ResearcherCard: React.FC<ResearcherCardProps> = ({
   researcher,
   sharedInterestsCount,
-  connectionStatus = 'none',
+  connectionStatus,
+  connectionState,
+  isPending: isPendingProp,
+  isConnected: isConnectedProp,
   onPress,
   onConnectPress,
   variant = 'compact',
@@ -32,8 +38,14 @@ export const ResearcherCard: React.FC<ResearcherCardProps> = ({
     ? sharedInterestsCount
     : (interests.length > 0 ? Math.min(interests.length, 3) : 2);
 
-  const isConnected = connectionStatus === 'connected';
-  const isPending = connectionStatus === 'pending';
+  // Dynamic state resolution strictly driven by props/data
+  const effectiveStatus: 'none' | 'pending' | 'connected' =
+    connectionState ||
+    connectionStatus ||
+    (isConnectedProp ? 'connected' : isPendingProp ? 'pending' : (researcher.connectionStatus || 'none'));
+
+  const isConnected = effectiveStatus === 'connected' || isConnectedProp === true;
+  const isPending = !isConnected && (effectiveStatus === 'pending' || isPendingProp === true);
 
   return (
     <TouchableOpacity
@@ -73,8 +85,8 @@ export const ResearcherCard: React.FC<ResearcherCardProps> = ({
         style={[
           styles.sharedBadge,
           {
-            backgroundColor: isDark ? '#152A54' : '#EAF0FC',
-            borderColor: isDark ? '#244585' : '#D4E2FB',
+            backgroundColor: isDark ? colors.primaryLight : '#EAF0FC',
+            borderColor: isDark ? colors.borderFocus : '#D4E2FB',
           },
         ]}
       >
@@ -95,33 +107,44 @@ export const ResearcherCard: React.FC<ResearcherCardProps> = ({
         onPress={onConnectPress}
         style={[
           styles.connectButton,
-          isOutlineButton
-            ? {
-                backgroundColor: colors.surface,
-                borderWidth: 1.5,
-                borderColor: colors.primary,
-              }
-            : { backgroundColor: colors.primary },
+          // 1. Default state: Solid primary pill
+          { backgroundColor: colors.primary },
+          // 2. Explicit outline override (only if explicitly enabled for Connect)
+          isOutlineButton && !isConnected && !isPending && {
+            backgroundColor: colors.surface,
+            borderWidth: 1.5,
+            borderColor: colors.primary,
+          },
+          // 3. Pending / Requested state: Outline pill with subtle surface
+          isPending && {
+            backgroundColor: isDark ? colors.surfaceSubtle : colors.surface,
+            borderWidth: 1.5,
+            borderColor: colors.border,
+          },
+          // 4. Connected state: Soft secondary container with mint outline
           isConnected && {
-            backgroundColor: isDark ? '#0C2B1C' : '#EAF9EC',
+            backgroundColor: colors.secondaryLight,
             borderWidth: 1,
             borderColor: colors.secondary,
           },
-          isPending && {
-            backgroundColor: colors.surfaceSubtle,
-            borderWidth: 1,
-            borderColor: colors.border,
-          },
         ]}
+        accessibilityRole="button"
+        accessibilityLabel={
+          isConnected
+            ? `Connected with ${researcher.name}`
+            : isPending
+            ? `Connection request to ${researcher.name} is pending`
+            : `Connect with ${researcher.name}`
+        }
       >
         {isConnected ? (
           <>
-            <Check size={14} color={colors.secondary} />
+            <Check size={14} color={colors.secondary} strokeWidth={2.5} />
             <Text style={[styles.connectText, { color: colors.secondary }]}>Connected</Text>
           </>
         ) : isPending ? (
           <>
-            <Clock size={14} color={colors.textSecondary} />
+            <Clock size={14} color={colors.textSecondary} strokeWidth={2} />
             <Text style={[styles.connectText, { color: colors.textSecondary }]}>Pending</Text>
           </>
         ) : (
@@ -129,6 +152,7 @@ export const ResearcherCard: React.FC<ResearcherCardProps> = ({
             <UserPlus
               size={14}
               color={isOutlineButton ? colors.primary : colors.textInverse}
+              strokeWidth={2}
             />
             <Text
               style={[

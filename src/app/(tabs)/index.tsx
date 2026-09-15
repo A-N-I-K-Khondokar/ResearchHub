@@ -277,13 +277,12 @@ export default function HomeFeedScreen() {
             keyExtractor={(item) => item.id}
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.researchersScrollList}
-            renderItem={({ item, index }) => (
+            renderItem={({ item }) => (
               <ResearcherCard
                 researcher={item}
                 connectionStatus={connectionStates[item.id] || item.connectionStatus || 'none'}
                 onPress={() => router.push(`/(profile)/${item.id}` as any)}
                 onConnectPress={() => handleToggleConnect(item.id)}
-                isOutlineButton={index === 1}
               />
             )}
           />

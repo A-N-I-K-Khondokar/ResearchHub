@@ -95,7 +95,7 @@ export const mockResearchers: UserProfile[] = [
     connectionsCount: 19,
     sharedInterestsCount: 2,
     isConnected: false,
-    connectionStatus: 'pending',
+    connectionStatus: 'none',
   },
   {
     id: 'res-nadia-006',
