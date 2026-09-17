@@ -12,7 +12,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import {
-  Sparkles,
   PenLine,
   AlignLeft,
   Hash,
@@ -28,7 +27,23 @@ import {
 import { spacing, radius, fontFamilies } from '@/constants';
 import { useTheme } from '@/context/ThemeContext';
 import { Button } from '@/components/common/Button';
+import { Avatar } from '@/components/common/Avatar';
 import { SuccessModal } from '@/components/feedback/SuccessModal';
+import { activeUser } from '@/data/researchers';
+
+// Common CSE Suggested Tags
+const SUGGESTED_TAGS = [
+  '#MachineLearning',
+  '#DataScience',
+  '#Cybersecurity',
+  '#IoT',
+  '#BanglaNLP',
+  '#ComputerVision',
+  '#DistributedSystems',
+  '#HCI',
+  '#SoftwareEngineering',
+  '#Bioinformatics',
+];
 
 // Project progression stages with minimalist line-art vector icons
 const RESEARCH_STAGES = [
@@ -92,6 +107,13 @@ export default function ShareTab() {
       handleAddTag(text);
     } else {
       setCustomTag(text);
+    }
+  };
+
+  // Click-to-add from suggested list
+  const handleSuggestedTagClick = (tag: string) => {
+    if (!selectedTags.some((t) => t.toLowerCase() === tag.toLowerCase())) {
+      setSelectedTags((prev) => [...prev, tag]);
     }
   };
 
@@ -166,26 +188,28 @@ export default function ShareTab() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Header Section with Modern Line-Art Icon */}
-          <View style={styles.header}>
-            <View style={styles.headerTitleRow}>
-              <Text style={[styles.title, { color: colors.textPrimary }]}>
-                Share Current Work
+          {/* Identity-First Header Row */}
+          <View style={styles.identityHeader}>
+            <Avatar
+              name={activeUser.name}
+              uri={activeUser.photoURL}
+              size="md"
+              style={{ borderWidth: 1, borderColor: colors.borderSubtle }}
+            />
+            <View style={styles.identityTextCol}>
+              <Text style={[styles.userName, { color: colors.textPrimary }]}>
+                {activeUser.name}
               </Text>
-              <View
-                style={[
-                  styles.sparkleBadge,
-                  { backgroundColor: colors.surfaceSubtle, borderColor: colors.borderSubtle },
-                ]}
-              >
-                <Sparkles size={15} strokeWidth={1.8} color={colors.primary} />
-              </View>
+              <Text style={[styles.statusText, { color: colors.textSecondary }]}>
+                Drafting a research update...
+              </Text>
             </View>
-            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-              Post a live research update, thesis milestone, or ongoing experiment to your CSE
-              peers and faculty.
-            </Text>
           </View>
+
+          {/* Structural Divider */}
+          <View
+            style={[styles.headerDivider, { backgroundColor: colors.borderSubtle }]}
+          />
 
           {/* Card Container for Form */}
           <View
@@ -272,12 +296,12 @@ export default function ShareTab() {
               </View>
             </View>
 
-            {/* Field: Dynamic Research Areas / Custom Tags */}
+            {/* Field: Hybrid Research Areas (Custom Tag Input + Clickable Suggestions) */}
             <View style={styles.fieldBlock}>
               <View style={styles.labelRow}>
                 <Hash size={15} strokeWidth={1.8} color={colors.textSecondary} />
                 <Text style={[styles.fieldLabel, { color: colors.textPrimary }]}>
-                  Research Areas <Text style={styles.optionalText}>(Custom Tags)</Text>
+                  Research Areas <Text style={styles.optionalText}>(Custom & Suggested)</Text>
                 </Text>
               </View>
 
@@ -315,7 +339,7 @@ export default function ShareTab() {
                 ) : null}
               </View>
 
-              {/* Render Selected Tags with Deletion */}
+              {/* Selected Tags Display with Deletion */}
               {selectedTags.length > 0 ? (
                 <View style={styles.tagsContainer}>
                   {selectedTags.map((tag) => (
@@ -344,6 +368,61 @@ export default function ShareTab() {
                   ))}
                 </View>
               ) : null}
+
+              {/* Suggested Tags Horizontal Scroll Section */}
+              <View style={styles.suggestedSection}>
+                <Text style={[styles.suggestedLabel, { color: colors.textSecondary }]}>
+                  Suggested
+                </Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.suggestedScrollContent}
+                >
+                  {SUGGESTED_TAGS.map((tag) => {
+                    const isAlreadySelected = selectedTags.some(
+                      (t) => t.toLowerCase() === tag.toLowerCase()
+                    );
+                    return (
+                      <TouchableOpacity
+                        key={tag}
+                        activeOpacity={0.7}
+                        onPress={() => handleSuggestedTagClick(tag)}
+                        style={[
+                          styles.suggestedPill,
+                          {
+                            backgroundColor: isAlreadySelected
+                              ? (isDark ? colors.surfaceSubtle : colors.surface)
+                              : (isDark ? colors.surfaceSubtle : colors.background),
+                            borderColor: isAlreadySelected
+                              ? colors.primary
+                              : colors.borderSubtle,
+                            opacity: isAlreadySelected ? 0.65 : 1,
+                          },
+                        ]}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Suggested tag: ${tag}`}
+                      >
+                        <Text
+                          style={[
+                            styles.suggestedPillText,
+                            {
+                              color: isAlreadySelected
+                                ? colors.primary
+                                : colors.textSecondary,
+                              fontFamily: isAlreadySelected
+                                ? fontFamilies.sansSemiBold
+                                : fontFamilies.sansRegular,
+                            },
+                          ]}
+                        >
+                          {isAlreadySelected ? `${tag} ✓` : tag}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </View>
             </View>
 
             {/* Field: Current Stage Selector with Clean Centered Vector Icons */}
@@ -473,33 +552,33 @@ const styles = StyleSheet.create({
     paddingTop: spacing.md,
     paddingBottom: 120,
   },
-  header: {
-    marginBottom: spacing.lg,
-  },
-  headerTitleRow: {
+  identityHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing.xs,
+    gap: 12,
   },
-  title: {
-    fontSize: 26,
-    fontFamily: fontFamilies.serifBold,
-    fontWeight: '700',
-    letterSpacing: -0.4,
-  },
-  sparkleBadge: {
-    width: 32,
-    height: 32,
-    borderRadius: radius.full,
+  avatarBorder: {
     borderWidth: 1,
-    alignItems: 'center',
+  },
+  identityTextCol: {
+    flex: 1,
     justifyContent: 'center',
   },
-  subtitle: {
-    fontSize: 14,
+  userName: {
+    fontSize: 16,
+    fontFamily: fontFamilies.sansSemiBold,
+    letterSpacing: 0.1,
+    marginBottom: 2,
+  },
+  statusText: {
+    fontSize: 13.5,
     fontFamily: fontFamilies.sansRegular,
-    lineHeight: 20,
+  },
+  headerDivider: {
+    height: 1,
+    width: '100%',
+    marginTop: 16,
+    marginBottom: 20,
   },
   formCard: {
     borderRadius: 20,
@@ -601,6 +680,28 @@ const styles = StyleSheet.create({
   tagCloseIconWrapper: {
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  suggestedSection: {
+    marginTop: 12,
+  },
+  suggestedLabel: {
+    fontSize: 12,
+    fontFamily: fontFamilies.sansRegular,
+    marginBottom: 6,
+    letterSpacing: 0.1,
+  },
+  suggestedScrollContent: {
+    gap: 8,
+    paddingVertical: 2,
+  },
+  suggestedPill: {
+    paddingHorizontal: 11,
+    paddingVertical: 6,
+    borderRadius: radius.full,
+    borderWidth: 1,
+  },
+  suggestedPillText: {
+    fontSize: 12,
   },
   stagesGrid: {
     flexDirection: 'row',
