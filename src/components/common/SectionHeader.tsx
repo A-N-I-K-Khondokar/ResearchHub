@@ -45,19 +45,11 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
       </View>
 
       {badge ? (
-        <View
-          style={[
-            styles.badgePill,
-            {
-              backgroundColor: colors.surfaceSubtle,
-              borderColor: colors.borderSubtle,
-            },
-          ]}
-        >
+        <View style={styles.badgeContainer}>
           <View
             style={[
               styles.badgeDot,
-              { backgroundColor: badge.dotColor || colors.success },
+              { backgroundColor: badge.dotColor || colors.secondary },
             ]}
           />
           <Text style={[styles.badgeText, { color: colors.textSecondary }]}>
@@ -109,24 +101,19 @@ const styles = StyleSheet.create({
     ...typography.subhead,
     marginTop: 2,
   },
-  badgePill: {
+  badgeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: radius.full,
-    borderWidth: 1,
   },
   badgeDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
     marginRight: 6,
   },
   badgeText: {
-    fontSize: 12,
-    fontFamily: fontFamilies.sansSemiBold,
-    fontWeight: '600',
+    fontSize: 12.5,
+    fontFamily: fontFamilies.sansMedium,
   },
   actionButton: {
     flexDirection: 'row',

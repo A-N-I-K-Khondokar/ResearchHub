@@ -245,24 +245,90 @@ Implement a reusable, modern success confirmation modal (`SuccessModal.tsx`) tha
 
 ---
 
+## Part 11: UI Redesign — Minimalist Current Work Card & SectionHeader
+
+### Objective
+Execute a minimalist academic redesign of `CurrentWorkCard.tsx` and `SectionHeader.tsx`. Strip away colorful badges, contextual pastel pill backgrounds, and extraneous metadata badges in favor of a clean, typography-focused academic aesthetic with unified `#` tags, outline action row, and faint divider.
+
+### Work Completed & Styling Specifics
+1. **SectionHeader Refinement (`src/components/common/SectionHeader.tsx` & `src/app/(tabs)/index.tsx`)**:
+   - Removed the vibrant blue indicator pill bar (`indicatorColor="#2471E7"`) on the left of "PEOPLE ARE WORKING ON".
+   - Removed the capsule pill container (`backgroundColor`, border, padding) from the "Live feed" badge.
+   - Restructured into a clean inline badge (`badgeContainer`): a simple 6px green circular dot (`colors.secondary`, `#006E27` light / `#8BFB95` dark) followed by plain text "Live feed" (`colors.textSecondary`).
+2. **CurrentWorkCard — Minimal Author Header Row**:
+   - Removed the blue "2h ago" time pill.
+   - Removed colored role and lab badge containers (`#E5EEFF`, `#E8F8F5`, etc.).
+   - Implemented a single secondary text line (`colors.textSecondary`, `Inter-Regular`, 13px) formatted as `Department • Lab/Role` (e.g., "CSE • NLP Lab", "CSE • Faculty", "CSE • Batch 13").
+   - Retained Avatar (`size="md"`), Name (`colors.textPrimary`, `Inter-SemiBold`, 15px), verified checkmark (`<CheckCircle2 size={14} color={colors.primary} />`), and added a subtle `MoreHorizontal` ("...") icon button on the far right.
+3. **CurrentWorkCard — Content Typography**:
+   - **Academic Title**: Prominent **Source Serif 4 Bold** (`fontFamilies.serifBold`), 18px with tight, disciplined line height (24px), letter spacing -0.3, in `colors.textPrimary`.
+   - **Description Snippet**: Clean **Inter-Regular** (`fontFamilies.sansRegular`), 14px with comfortable 21px line height in `colors.textSecondary`.
+4. **CurrentWorkCard — Minimalist Unified Topic Tags**:
+   - Removed contextual pastel background logic (`getTopicStyles`).
+   - Unified all topic pills with a full capsule pill radius (`borderRadius: 9999`), subtle surface background (`colors.surfaceSubtle`), and hairline border (`colors.borderSubtle`).
+   - Prefixed topic strings with `#` (e.g., `#NLP`, `#MachineLearning`, `#BanglaNLP`), colored uniformly with `colors.textSecondary` in `Inter-Medium` (12px).
+5. **CurrentWorkCard — Faint Divider & Outline Action Row**:
+   - Added a faint 1px horizontal divider (`colors.borderSubtle`) directly above the action row.
+   - **Left Alignment**: Like button with outline `<Heart size={18} />` + count and comment button `<MessageSquare size={18} />` + count.
+   - **Right Alignment**: Bookmark `<Bookmark size={18} />` and share `<Share2 size={18} />` icon buttons.
+   - Styled all action controls with `colors.textSecondary` (with dynamic active highlights when liked or bookmarked).
+6. **Card Container & Ambient Shadows**:
+   - Set background to `colors.surface` with 1px `colors.borderSubtle` stroke and `radius.lg` (20px).
+   - Minimal ambient shadow (`shadowColor: '#071A3E'`, `shadowRadius: 12`, `shadowOpacity: 0.03`, `elevation: 1` in light mode, disabled in dark mode).
+
+---
+
+## Part 12: UI Redesign — Minimalist Publication Card (`PublicationCard.tsx`)
+
+### Objective
+Redesign the "Recent Publications" card on the Home Feed (and Explore/Search screens) to match the new minimalist, typography-first aesthetic recently applied to the Current Work cards. Strip away heavy colored pill badges, high-contrast backgrounds, and visual clutter in favor of an elegant, academic, typography-first presentation.
+
+### Work Completed & Styling Specifics
+1. **Card Container & Ambient Shadows**:
+   - Background set to `colors.surface` with a 1px border using `colors.borderSubtle`.
+   - Corner radius set to 20px (`radius.lg`).
+   - Soft, minimal ambient shadow in light mode (`shadowColor: '#071A3E'`, `shadowRadius: 12`, `shadowOpacity: 0.04`, `elevation: 1`), suppressed to `0` opacity and `0` elevation in dark mode.
+2. **Streamlined Metadata Row (Venue & Year)**:
+   - Completely stripped all colored pill badge containers (conference/journal type badges).
+   - Replaced with a single, clean inline string: `[publication.venue || publication.type, publication.year].filter(Boolean).join(' • ')` (e.g., "IEEE ICCIT • 2023").
+   - Styled with `colors.textSecondary` in `Inter-SemiBold` (12.5px, letterSpacing: 0.2).
+3. **Content Typography**:
+   - **Prominent Title**: Rendered in **Source Serif 4 Bold** (`fontFamilies.serifBold`), 17px with tight line height (23px) and slight negative letter spacing (-0.2) in `colors.textPrimary`.
+   - **Author Byline**: Clean **Inter-Regular** (`fontFamilies.sansRegular`), 13px with 18px line height in `colors.textSecondary`, displaying full author list separated by commas.
+   - **Abstract / Overview**: Clean **Inter-Regular** (13.5px, 20px line height) in `colors.textSecondary` clamped cleanly to 2 lines.
+4. **Faint Divider**:
+   - Added a 1px horizontal hairline divider using `colors.borderSubtle` above the card footer.
+5. **Unified Topic Tags**:
+   - Rendered as minimalist capsule pills (`borderRadius: 9999`) using `colors.surfaceSubtle` and `colors.borderSubtle`.
+   - Formatted cleanly with `#` prefixes in `Inter-Medium` (11.5px) in `colors.textSecondary`.
+6. **Minimalist External Links & Action Controls**:
+   - Replaced heavy buttons with a minimalist text link: "View Paper" accompanied by an `ArrowUpRight` icon (14px) in `colors.primary`.
+   - Icon actions (`Bookmark` and `Share2`, 16px) styled in `colors.textSecondary` with active primary fill/stroke for bookmarked state.
+   - Integrated native sharing fallback (`Share.share`) and external URL resolution (`Linking.openURL`) supporting both direct URLs and DOI resolution (`https://doi.org/...`).
+7. **Dark Mode Compliance**:
+   - Verified strict token compliance across both Scholarly Crisp (Light) and Deep Scholar Slate (Dark) modes. All backgrounds, borders, typography, and actions dynamically resolve semantic theme values.
+
+---
+
 ## Files Changed Across Day 07
+* `src/components/cards/PublicationCard.tsx`: Complete minimalist redesign (inline venue • year metadata, 17px Source Serif 4 title, Inter author byline and abstract snippet, faint divider, unified `#` topic pills, and minimalist "View Paper ↗" link with Bookmark & Share actions).
+* `src/components/cards/CurrentWorkCard.tsx`: Complete minimalist redesign (clean author row with verified badge, `Department • Lab/Role` subtitle, More icon, 18px Source Serif 4 title, unified `#` pill tags, faint divider, outline Heart/Message/Bookmark/Share action row).
+* `src/components/common/SectionHeader.tsx`: Removed capsule container from badge, rendering minimal green dot + "Live feed" text.
+* `src/app/(tabs)/index.tsx`: Removed blue indicator pill from "People are working on" SectionHeader, updated badge text to "Live feed".
 * `src/components/feedback/SuccessModal.tsx`: [NEW] Created reusable modern auth feedback modal with fade animation, mint success badge, Source Serif 4 title, and full-width CTA.
 * `src/components/feedback/index.ts`: Re-exported `SuccessModal`.
 * `src/app/(auth)/login.tsx`: Added `SuccessModal` integration for Email/Password and Google sign-in flows before redirecting to onboarding.
 * `src/app/(auth)/sign-up.tsx`: Added `SuccessModal` integration for registration and Google sign-up flows before email verification.
 * `src/components/cards/ResearcherCard.tsx`: Standardized default state to solid primary pill, removed hardcoded user/index styles, added prop-based dynamic state rendering (`connectionState`, `isPending`, `isConnected`), and applied semantic tokens for both light and dark modes.
-* `src/app/(tabs)/index.tsx`: Removed hardcoded `isOutlineButton={index === 1}`, updated scroll container with `paddingBottom: 120`.
 * `src/data/researchers.ts`: Updated Tanvir Ahmed's default mock status to `connectionStatus: 'none'` for initial carousel uniformity.
 * `src/app/(tabs)/_layout.tsx`: Configured icon-only floating capsule tab bar (no labels, left/right 20px margins, dynamic bottom clearance, borderRadius 32, centered Share button).
 * `src/app/(tabs)/profile.tsx`: Added `contentContainerStyle` with `paddingBottom: 120` to eliminate content cutoff behind the floating tab bar.
 * `src/app/(tabs)/explore.tsx`: Updated `scrollContent` with `paddingBottom: 120` to ensure all discovery cards scroll clear of the floating tab bar.
-* `src/app/(auth)/sign-up.tsx`: Re-enclosed form inside `styles.card` (24px radius, ambient shadow), stacked Department and Batch fields vertically, removed floating drop shadows from nested inputs.
 * `src/components/auth/AuthInput.tsx`: Maintained clean base input styling with dynamic focus state and optional floating support.
 * `src/components/auth/SocialAuthButton.tsx`: Centered flexbox, lineHeight 20 + includeFontPadding false, 100% width, dynamic dark mode elevation suppression.
 * `src/components/common/Button.tsx`: Added tertiary variant, textSecondary for ghost/tertiary, generous hitSlop defaults, and vertical text alignment normalization.
 * `src/components/common/index.ts`: Re-exported `SocialAuthButton`.
 * `src/components/auth/AuthHeader.tsx`: Preserved `Source Serif 4` heading, modernized squircle badge container with theme-aware background/border.
-* `src/app/(auth)/login.tsx`: Refined card enclosure (24px radius, 24px padding, ambient shadow), theme-aware shadow suppression in dark mode, and `Inter` footer typography.
 
 ---
 
@@ -271,11 +337,12 @@ Implement a reusable, modern success confirmation modal (`SuccessModal.tsx`) tha
    - Command: `npx tsc --noEmit`
    - Result: **0 errors** (Clean compilation).
 2. **Production Bundler Verification**:
-   - Command: `npx expo export --output-dir /tmp/test-export-auth-modal`
-   - Result: **Success (Exit code 0)** — Android HBC (`5.47 MB`), iOS HBC (`5.47 MB`), and Web (`3.44 MB`) bundles generated cleanly with 99 assets.
-3. **Web Distribution**:
+   - Command: `npx expo export --output-dir /tmp/test-export-minimal-pubs`
+   - Result: **Success (Exit code 0)** — Android HBC (`5.47 MB`), iOS HBC (`5.47 MB`), and Web (`3.45 MB`) bundles generated cleanly with 99 assets.
+3. **Web Distribution Sync**:
    - Command: `npx expo export -p web`
-   - Result: **Success (Exit code 0)** — Updated `./dist` with latest feedback modal and auth screens.
+   - Result: **Success (Exit code 0)** — Updated `./dist` with minimal publication cards and feed components.
 
 ---
 *Signed off by: Senior React Native Developer & UI/UX Systems Engineer*
+

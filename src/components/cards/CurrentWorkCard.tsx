@@ -1,12 +1,12 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Share } from 'react-native';
-import { ThumbsUp, MessageSquare, Bookmark, Share2, Clock } from 'lucide-react-native';
+import { Heart, MessageSquare, Bookmark, Share2, CheckCircle2, MoreHorizontal } from 'lucide-react-native';
 import { CurrentWork } from '../../types';
 import { spacing, radius, typography, fontFamilies, shadows } from '../../constants';
 import { useTheme } from '@/context/ThemeContext';
 import { Avatar } from '../common/Avatar';
 
-interface CurrentWorkCardProps {
+export interface CurrentWorkCardProps {
   work: CurrentWork;
   authorName: string;
   authorBatch?: string;
@@ -49,41 +49,29 @@ export const CurrentWorkCard: React.FC<CurrentWorkCardProps> = ({
     }
   };
 
-  // Helper for topic chip color variation
-  const getTopicStyles = (topic: string) => {
-    const t = topic.toLowerCase();
-    if (t.includes('nlp') || t.includes('edge') || t.includes('ai')) {
-      return {
-        bg: isDark ? '#152A54' : '#EEF3FD',
-        border: isDark ? '#244585' : '#D4E2FB',
-        text: isDark ? '#82B1FF' : '#2471E7',
-      };
+  // Format single line: Department • Lab/Role
+  const getAuthorSubtitle = () => {
+    let dept = 'CSE';
+    if (authorBatch) {
+      const parts = authorBatch.split('•');
+      dept = parts[0].trim();
+      const secondaryPart = parts[1]?.trim();
+      if (authorRole) {
+        return `${dept} • ${authorRole}`;
+      }
+      if (secondaryPart) {
+        return `${dept} • ${secondaryPart}`;
+      }
+      return dept;
     }
-    if (t.includes('linguistics') || t.includes('vision') || t.includes('bio')) {
-      return {
-        bg: isDark ? '#0C2B1C' : '#E8F8F5',
-        border: isDark ? '#1B5438' : '#C7EFE6',
-        text: isDark ? '#6EDD7C' : '#00755E',
-      };
+    if (authorRole) {
+      return `${dept} • ${authorRole}`;
     }
-    if (t.includes('security') || t.includes('crypto') || t.includes('cloud')) {
-      return {
-        bg: isDark ? '#3A140F' : '#FEF0EE',
-        border: isDark ? '#6E2519' : '#FCD7D2',
-        text: isDark ? '#FFB59F' : '#E04F36',
-      };
+    if (work.stage) {
+      return `${dept} • ${work.stage}`;
     }
-    // Default Slate
-    return {
-      bg: isDark ? '#172542' : '#F1F4F9',
-      border: isDark ? '#263B66' : '#E2E7F0',
-      text: isDark ? '#A5B0C8' : '#334155',
-    };
+    return dept;
   };
-
-  const timeString = work.updatedAt
-    ? '2h ago'
-    : 'Recently';
 
   return (
     <TouchableOpacity
@@ -94,12 +82,14 @@ export const CurrentWorkCard: React.FC<CurrentWorkCardProps> = ({
         {
           backgroundColor: colors.surface,
           borderColor: colors.borderSubtle,
+          shadowOpacity: isDark ? 0 : 0.03,
+          elevation: isDark ? 0 : 1,
         },
       ]}
       accessibilityRole="button"
       accessibilityLabel={`Research work: ${work.title} by ${authorName}`}
     >
-      {/* Author Header */}
+      {/* Author Header Row */}
       <View style={styles.header}>
         <TouchableOpacity
           activeOpacity={0.8}
@@ -108,82 +98,64 @@ export const CurrentWorkCard: React.FC<CurrentWorkCardProps> = ({
         >
           <Avatar name={authorName} uri={authorAvatar} size="md" />
           <View style={styles.authorInfo}>
-            <Text style={[styles.authorName, { color: colors.textPrimary }]} numberOfLines={1}>
-              {authorName}
-            </Text>
-            <View style={styles.authorMetaRow}>
-              {authorBatch ? (
-                <Text style={[styles.authorBatch, { color: colors.textSecondary }]}>
-                  {authorBatch}
-                </Text>
-              ) : null}
-              {authorBatch && (authorRole || work.stage) ? (
-                <Text style={[styles.dotSeparator, { color: colors.textMuted }]}>•</Text>
-              ) : null}
-              {authorRole ? (
-                <View
-                  style={[
-                    styles.roleBadge,
-                    {
-                      backgroundColor:
-                        authorRole.toLowerCase().includes('faculty')
-                          ? isDark ? '#152A54' : '#E5EEFF'
-                          : isDark ? '#0C2B1C' : '#E8F8F5',
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.roleText,
-                      {
-                        color:
-                          authorRole.toLowerCase().includes('faculty')
-                            ? isDark ? '#82B1FF' : '#2471E7'
-                            : isDark ? '#6EDD7C' : '#00755E',
-                      },
-                    ]}
-                  >
-                    {authorRole}
-                  </Text>
-                </View>
-              ) : work.stage ? (
-                <Text style={[styles.stageInlineText, { color: colors.primaryDark }]}>
-                  {work.stage}
-                </Text>
-              ) : null}
+            <View style={styles.authorNameRow}>
+              <Text
+                style={[styles.authorName, { color: colors.textPrimary }]}
+                numberOfLines={1}
+              >
+                {authorName}
+              </Text>
+              <CheckCircle2
+                size={14}
+                color={colors.primary}
+                style={styles.verifiedIcon}
+              />
             </View>
+            <Text
+              style={[styles.authorSubtitle, { color: colors.textSecondary }]}
+              numberOfLines={1}
+            >
+              {getAuthorSubtitle()}
+            </Text>
           </View>
         </TouchableOpacity>
 
-        {/* Time Pill Badge */}
-        <View
-          style={[
-            styles.timeBadge,
-            {
-              backgroundColor: isDark ? '#172542' : '#EAF0FC',
-            },
-          ]}
+        {/* More Options Icon Button on far right */}
+        <TouchableOpacity
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          style={styles.moreButton}
+          onPress={() => {}}
+          accessibilityRole="button"
+          accessibilityLabel="More options"
         >
-          <Clock size={12} color={colors.primary} />
-          <Text style={[styles.timeText, { color: colors.primary }]}>{timeString}</Text>
-        </View>
+          <MoreHorizontal size={20} color={colors.textSecondary} />
+        </TouchableOpacity>
       </View>
 
-      {/* Title */}
-      <Text style={[styles.title, { color: colors.textPrimary }]} numberOfLines={2}>
+      {/* Prominent Academic Title (Source Serif 4, 18px) */}
+      <Text
+        style={[styles.title, { color: colors.textPrimary }]}
+        numberOfLines={2}
+      >
         {work.title}
       </Text>
 
-      {/* Description Snippet */}
-      <Text style={[styles.description, { color: colors.textSecondary }]} numberOfLines={3}>
+      {/* Description Snippet (Inter, 14px / 21px line height) */}
+      <Text
+        style={[styles.description, { color: colors.textSecondary }]}
+        numberOfLines={3}
+      >
         {work.shortDescription || work.description}
       </Text>
 
-      {/* Topic Chips */}
+      {/* Minimalist # Tags (Topics) */}
       {work.topics && work.topics.length > 0 ? (
         <View style={styles.topicsRow}>
           {work.topics.map((topic, index) => {
-            const topicColors = getTopicStyles(topic);
+            const formattedTag = topic.startsWith('#')
+              ? topic
+              : `#${topic.replace(/\s+/g, '')}`;
+
             return (
               <TouchableOpacity
                 key={`${topic}-${index}`}
@@ -192,35 +164,47 @@ export const CurrentWorkCard: React.FC<CurrentWorkCardProps> = ({
                 style={[
                   styles.topicPill,
                   {
-                    backgroundColor: topicColors.bg,
-                    borderColor: topicColors.border,
+                    backgroundColor: colors.surfaceSubtle,
+                    borderColor: colors.borderSubtle,
                   },
                 ]}
               >
-                <Text style={[styles.topicPillText, { color: topicColors.text }]}>{topic}</Text>
+                <Text
+                  style={[styles.topicPillText, { color: colors.textSecondary }]}
+                >
+                  {formattedTag}
+                </Text>
               </TouchableOpacity>
             );
           })}
         </View>
       ) : null}
 
-      {/* Interaction Footer */}
-      <View style={[styles.footer, { borderTopColor: colors.borderSubtle }]}>
+      {/* Faint Horizontal Divider */}
+      <View
+        style={[styles.divider, { backgroundColor: colors.borderSubtle }]}
+      />
+
+      {/* Interaction Footer / Action Row */}
+      <View style={styles.footer}>
+        {/* Left: Like (Heart) + Count & Comment + Count */}
         <View style={styles.footerLeft}>
           <TouchableOpacity
             onPress={onLikePress}
             style={styles.actionButton}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityRole="button"
+            accessibilityLabel={`Like, ${work.likesCount || 0} likes`}
           >
-            <ThumbsUp
-              size={16}
-              color={isLiked ? colors.primary : colors.textSecondary}
-              fill={isLiked ? colors.primary : 'transparent'}
+            <Heart
+              size={18}
+              color={isLiked ? colors.accent : colors.textSecondary}
+              fill={isLiked ? colors.accent : 'transparent'}
             />
             <Text
               style={[
                 styles.actionText,
-                { color: isLiked ? colors.primary : colors.textSecondary },
+                { color: isLiked ? colors.accent : colors.textSecondary },
               ]}
             >
               {work.likesCount || 0}
@@ -231,19 +215,24 @@ export const CurrentWorkCard: React.FC<CurrentWorkCardProps> = ({
             onPress={onCommentPress}
             style={styles.actionButton}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityRole="button"
+            accessibilityLabel={`Comments, ${work.commentsCount || 0} comments`}
           >
-            <MessageSquare size={16} color={colors.textSecondary} />
+            <MessageSquare size={18} color={colors.textSecondary} />
             <Text style={[styles.actionText, { color: colors.textSecondary }]}>
-              {work.commentsCount || 0} Comments
+              {work.commentsCount || 0}
             </Text>
           </TouchableOpacity>
         </View>
 
+        {/* Right: Bookmark & Share */}
         <View style={styles.footerRight}>
           <TouchableOpacity
             onPress={onBookmarkPress}
             style={styles.iconOnlyButton}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityRole="button"
+            accessibilityLabel="Bookmark work"
           >
             <Bookmark
               size={18}
@@ -256,6 +245,8 @@ export const CurrentWorkCard: React.FC<CurrentWorkCardProps> = ({
             onPress={handleShare}
             style={styles.iconOnlyButton}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityRole="button"
+            accessibilityLabel="Share research work"
           >
             <Share2 size={18} color={colors.textSecondary} />
           </TouchableOpacity>
@@ -271,13 +262,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: spacing.md,
     marginBottom: spacing.md,
-    ...shadows.card,
+    shadowColor: '#071A3E',
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 12,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: spacing.sm + 2,
+    marginBottom: spacing.sm + 4,
   },
   authorContainer: {
     flexDirection: 'row',
@@ -286,104 +279,79 @@ const styles = StyleSheet.create({
     marginRight: spacing.sm,
   },
   authorInfo: {
-    marginLeft: spacing.sm,
+    marginLeft: spacing.sm + 2,
     flex: 1,
+  },
+  authorNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   authorName: {
     fontSize: 15,
-    fontFamily: fontFamilies.sansBold,
-    fontWeight: '700',
+    fontFamily: fontFamilies.sansSemiBold,
+    fontWeight: '600',
   },
-  authorMetaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 2,
-    flexWrap: 'wrap',
+  verifiedIcon: {
+    marginLeft: 2,
   },
-  authorBatch: {
-    fontSize: 12,
+  authorSubtitle: {
+    fontSize: 13,
     fontFamily: fontFamilies.sansRegular,
+    marginTop: 2,
   },
-  dotSeparator: {
-    marginHorizontal: 5,
-    fontSize: 12,
-  },
-  roleBadge: {
-    paddingHorizontal: 7,
-    paddingVertical: 1.5,
-    borderRadius: radius.full,
-  },
-  roleText: {
-    fontSize: 11,
-    fontFamily: fontFamilies.sansSemiBold,
-    fontWeight: '600',
-  },
-  stageInlineText: {
-    fontSize: 11,
-    fontFamily: fontFamilies.sansSemiBold,
-    fontWeight: '600',
-  },
-  timeBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: radius.full,
-    gap: 4,
-  },
-  timeText: {
-    fontSize: 11,
-    fontFamily: fontFamilies.sansSemiBold,
-    fontWeight: '600',
+  moreButton: {
+    padding: 4,
   },
   title: {
-    fontSize: 16,
-    fontFamily: fontFamilies.sansBold,
+    fontSize: 18,
+    fontFamily: fontFamilies.serifBold,
     fontWeight: '700',
-    lineHeight: 22,
-    marginBottom: 6,
-    letterSpacing: -0.2,
+    lineHeight: 24,
+    marginBottom: 8,
+    letterSpacing: -0.3,
   },
   description: {
-    fontSize: 13.5,
+    fontSize: 14,
     fontFamily: fontFamilies.sansRegular,
-    lineHeight: 20,
-    marginBottom: spacing.sm + 2,
+    lineHeight: 21,
+    marginBottom: spacing.sm + 4,
   },
   topicsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-    marginBottom: spacing.sm + 2,
+    marginBottom: spacing.sm + 4,
   },
   topicPill: {
     paddingHorizontal: 12,
     paddingVertical: 5,
-    borderRadius: radius.full,
+    borderRadius: 9999,
     borderWidth: 1,
   },
   topicPillText: {
     fontSize: 12,
-    fontFamily: fontFamilies.sansSemiBold,
-    fontWeight: '600',
+    fontFamily: fontFamilies.sansMedium,
+  },
+  divider: {
+    height: 1,
+    width: '100%',
+    marginBottom: spacing.sm + 4,
   },
   footer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderTopWidth: 1,
-    paddingTop: spacing.sm,
-    marginTop: 2,
   },
   footerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md + 4,
+    gap: spacing.lg,
   },
   footerRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
+    gap: spacing.md + 4,
   },
   actionButton: {
     flexDirection: 'row',
@@ -391,10 +359,10 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   actionText: {
-    fontSize: 12.5,
+    fontSize: 13,
     fontFamily: fontFamilies.sansMedium,
   },
   iconOnlyButton: {
-    padding: 2,
+    padding: 4,
   },
 });

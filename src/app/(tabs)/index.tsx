@@ -183,8 +183,7 @@ export default function HomeFeedScreen() {
           <View style={styles.sectionHeaderWrapper}>
             <SectionHeader
               title="People are working on"
-              indicatorColor="#2471E7"
-              badge={{ text: 'Live Feed', dotColor: colors.success }}
+              badge={{ text: 'Live feed', dotColor: colors.secondary }}
               actionLabel={selectedTopic ? 'Clear filter' : undefined}
               onActionPress={selectedTopic ? () => setSelectedTopic(null) : undefined}
             />
