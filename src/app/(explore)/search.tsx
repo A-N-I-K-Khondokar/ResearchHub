@@ -128,8 +128,8 @@ export default function GlobalSearchScreen() {
                 style={[
                   styles.categoryChip,
                   {
-                    backgroundColor: isSelected ? colors.primaryMuted : colors.surface,
-                    borderColor: isSelected ? colors.primary : colors.border,
+                    backgroundColor: isSelected ? colors.primary : colors.surfaceSubtle,
+                    borderColor: isSelected ? colors.primary : colors.borderSubtle,
                   },
                 ]}
                 accessibilityRole="button"
@@ -139,7 +139,7 @@ export default function GlobalSearchScreen() {
                   style={[
                     styles.categoryText,
                     {
-                      color: isSelected ? colors.primary : colors.textSecondary,
+                      color: isSelected ? '#FFFFFF' : colors.textSecondary,
                     },
                     isSelected && styles.categoryTextSelected,
                   ]}
@@ -335,7 +335,7 @@ const styles = StyleSheet.create({
   categoryScroll: {
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs + 2,
-    gap: spacing.xs,
+    gap: 8,
   },
   categoryChip: {
     paddingHorizontal: spacing.md,

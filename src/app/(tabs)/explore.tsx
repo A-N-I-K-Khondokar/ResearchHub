@@ -28,11 +28,21 @@ import { ResearcherDiscoveryCard } from '@/components/cards/ResearcherDiscoveryC
 import { CurrentWorkCard } from '@/components/cards/CurrentWorkCard';
 import { PublicationCard } from '@/components/cards/PublicationCard';
 
+type ExploreFilterType = 'all' | 'people' | 'work' | 'topics' | 'papers';
+
+const filterCategories: { key: ExploreFilterType; label: string }[] = [
+  { key: 'all', label: 'All' },
+  { key: 'people', label: 'People' },
+  { key: 'work', label: 'Current Work' },
+  { key: 'topics', label: 'Topics' },
+  { key: 'papers', label: 'Previous Research' },
+];
+
 export default function ExploreScreen() {
   const router = useRouter();
   const { colors, isDark } = useTheme();
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedTypeFilter, setSelectedTypeFilter] = useState<'all' | 'people' | 'work' | 'papers'>('all');
+  const [selectedTypeFilter, setSelectedTypeFilter] = useState<ExploreFilterType>('all');
 
   const [connectionStates, setConnectionStates] = useState<Record<string, 'none' | 'pending' | 'connected'>>(() => {
     const initial: Record<string, 'none' | 'pending' | 'connected'> = {};
@@ -110,99 +120,44 @@ export default function ExploreScreen() {
         </TouchableOpacity>
 
         {/* Quick Category Filter Pills */}
-        <View style={styles.filterRow}>
-          <TouchableOpacity
-            onPress={() => setSelectedTypeFilter('all')}
-            style={[
-              styles.filterPill,
-              {
-                backgroundColor: selectedTypeFilter === 'all' ? colors.primaryMuted : colors.surface,
-                borderColor: selectedTypeFilter === 'all' ? colors.primary : colors.border,
-              },
-            ]}
-          >
-            <Text
-              style={[
-                styles.filterPillText,
-                {
-                  color: selectedTypeFilter === 'all' ? colors.primary : colors.textSecondary,
-                },
-                selectedTypeFilter === 'all' && styles.filterPillTextActive,
-              ]}
-            >
-              All
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => setSelectedTypeFilter('people')}
-            style={[
-              styles.filterPill,
-              {
-                backgroundColor: selectedTypeFilter === 'people' ? colors.primaryMuted : colors.surface,
-                borderColor: selectedTypeFilter === 'people' ? colors.primary : colors.border,
-              },
-            ]}
-          >
-            <Text
-              style={[
-                styles.filterPillText,
-                {
-                  color: selectedTypeFilter === 'people' ? colors.primary : colors.textSecondary,
-                },
-                selectedTypeFilter === 'people' && styles.filterPillTextActive,
-              ]}
-            >
-              People
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => setSelectedTypeFilter('work')}
-            style={[
-              styles.filterPill,
-              {
-                backgroundColor: selectedTypeFilter === 'work' ? colors.primaryMuted : colors.surface,
-                borderColor: selectedTypeFilter === 'work' ? colors.primary : colors.border,
-              },
-            ]}
-          >
-            <Text
-              style={[
-                styles.filterPillText,
-                {
-                  color: selectedTypeFilter === 'work' ? colors.primary : colors.textSecondary,
-                },
-                selectedTypeFilter === 'work' && styles.filterPillTextActive,
-              ]}
-            >
-              Current Work
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => setSelectedTypeFilter('papers')}
-            style={[
-              styles.filterPill,
-              {
-                backgroundColor: selectedTypeFilter === 'papers' ? colors.primaryMuted : colors.surface,
-                borderColor: selectedTypeFilter === 'papers' ? colors.primary : colors.border,
-              },
-            ]}
-          >
-            <Text
-              style={[
-                styles.filterPillText,
-                {
-                  color: selectedTypeFilter === 'papers' ? colors.primary : colors.textSecondary,
-                },
-                selectedTypeFilter === 'papers' && styles.filterPillTextActive,
-              ]}
-            >
-              Previous Research
-            </Text>
-          </TouchableOpacity>
-        </View>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.filterScrollView}
+          contentContainerStyle={styles.filterScrollContent}
+        >
+          {filterCategories.map((cat) => {
+            const isSelected = selectedTypeFilter === cat.key;
+            return (
+              <TouchableOpacity
+                key={cat.key}
+                activeOpacity={0.8}
+                onPress={() => setSelectedTypeFilter(cat.key)}
+                style={[
+                  styles.filterPill,
+                  {
+                    backgroundColor: isSelected ? colors.primary : colors.surfaceSubtle,
+                    borderColor: isSelected ? colors.primary : colors.borderSubtle,
+                  },
+                ]}
+                accessibilityRole="button"
+                accessibilityState={{ selected: isSelected }}
+              >
+                <Text
+                  style={[
+                    styles.filterPillText,
+                    {
+                      color: isSelected ? '#FFFFFF' : colors.textSecondary,
+                    },
+                    isSelected && styles.filterPillTextActive,
+                  ]}
+                >
+                  {cat.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
       </View>
 
       <ScrollView
@@ -219,7 +174,7 @@ export default function ExploreScreen() {
         }
       >
         {/* 1. RESEARCH TOPICS (Grid of Topic Chips) */}
-        {(selectedTypeFilter === 'all' || selectedTypeFilter === 'people') && (
+        {(selectedTypeFilter === 'all' || selectedTypeFilter === 'topics') && (
           <View style={styles.sectionContainer}>
             <View
               style={[
@@ -365,10 +320,13 @@ const styles = StyleSheet.create({
     fontSize: 28,
     lineHeight: 34,
   },
-  filterRow: {
-    flexDirection: 'row',
-    gap: spacing.xs,
+  filterScrollView: {
+    marginHorizontal: -spacing.md,
     marginTop: spacing.sm,
+  },
+  filterScrollContent: {
+    paddingHorizontal: spacing.md,
+    gap: 8,
   },
   filterPill: {
     paddingHorizontal: spacing.md,

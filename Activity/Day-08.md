@@ -214,10 +214,41 @@ Refine the "Smart Autofill from PDF" button in the Current Work onboarding scree
 
 ---
 
+## Part 7: UI Refinement — Explore Section Tags & Simplified Researcher Cards
+
+### Objective
+Explore Section UI Fixes: Scrollable Tags & Simplified Cards. Enhance scanning and usability by making the Explore category filter tags horizontally scrollable with a distinct solid blue default active state, and simplify the `ResearcherDiscoveryCard` callout to display exclusively the "Currently working on" header and the paper/project title.
+
+### Work Completed & Technical Implementation
+
+1. **Horizontally Scrollable Category Filter Tags**:
+   - **Explore Hub (`src/app/(tabs)/explore.tsx`)**:
+     - Replaced the static `<View style={styles.filterRow}>` container with a horizontal `<ScrollView horizontal showsHorizontalScrollIndicator={false}>`.
+     - Configured `styles.filterScrollView` (`marginHorizontal: -spacing.md`, `marginTop: spacing.sm`) and `contentContainerStyle={styles.filterScrollContent}` with `paddingHorizontal: spacing.md` (16px) and `gap: 8` for edge-to-edge scroll bleed while retaining aligned margin paddings.
+     - **Active State**: Ensured `'all'` is the default selected category in state.
+     - **Styling**:
+       - **Active Tag**: Solid blue background (`backgroundColor: colors.primary`), matching border (`borderColor: colors.primary`), and bold white text (`color: '#FFFFFF'`).
+       - **Inactive Tag**: Subtle surface (`backgroundColor: colors.surfaceSubtle`), muted border (`borderColor: colors.borderSubtle`), and muted text (`color: colors.textSecondary`).
+     - Added `'topics'` to `ExploreFilterType` alongside `'all'`, `'people'`, `'work'`, and `'papers'`, providing single-tap focus to the Research Topics grid.
+   - **Global Search Hub (`src/app/(explore)/search.tsx`)**:
+     - Upgraded the category chips within the horizontal header scroll view to share the identical solid blue active styling (`backgroundColor: colors.primary`, `color: '#FFFFFF'`) and `colors.surfaceSubtle` inactive state with `gap: 8`.
+
+2. **Simplified Researcher Discovery Cards (`src/components/cards/ResearcherDiscoveryCard.tsx`)**:
+   - Located the "Currently Working On" callout block rendered across Explore, Search, and Topic-Researchers discovery feeds.
+   - **Simplification**: Removed the multi-line description/abstract (`currentWork.description`), tag chips, and extraneous metadata badges from this callout block.
+   - **Kept**: Retained strictly the `"Currently working on"` header label (`styles.workLabel` in `colors.primary`) and the project/paper **Title** (`styles.workTitle` in `colors.textPrimary` with `fontFamily: fontFamilies.sansSemiBold` / `Inter-SemiBold`, `14px`, `lineHeight: 20`, `fontWeight: '600'`).
+   - Cleaned up obsolete styles (`workDescription`).
+
+3. **Theme & Dark Mode Compliance**:
+   - Dynamic semantic tokens (`colors.primary`, `colors.surfaceSubtle`, `colors.borderSubtle`, `colors.textPrimary`, `colors.textSecondary`) ensure high contrast in both Scholarly Crisp (Light) and Deep Scholar Slate (Dark) themes with zero color hardcoding.
+
+---
+
 ## Files Changed
-* `src/app/(onboarding)/current-work.tsx`: [UPDATED] Removed AI badge from the Autofill from PDF button, refactored button flexbox to use `gap: 8` for symmetrical centering.
-* `src/app/(tabs)/share.tsx`: [UPDATED] Replaced generic title lockup with Identity-First header row (Avatar + Name + Status text) and structural divider, wired to `activeUser`.
-* `Activity/Day-08.md`: [UPDATED] Documented Part 4 Identity-First header, Part 5 Smart Autofill from PDF, and Part 6 AI badge removal.
+* `src/components/cards/ResearcherDiscoveryCard.tsx`: [UPDATED] Simplified "Currently working on" callout block to show exclusively the header label and paper/project title in `Inter-SemiBold` (`colors.textPrimary`), stripping descriptions and tags.
+* `src/app/(tabs)/explore.tsx`: [UPDATED] Wrapped category filter pills in horizontal `ScrollView` with `gap: 8` and `paddingHorizontal: 16`. Updated active state to solid blue background with white text (`#FFFFFF`) and inactive state to `surfaceSubtle`. Defaulted state to `'all'` and added `'topics'` filter type.
+* `src/app/(explore)/search.tsx`: [UPDATED] Updated category chips to match the solid blue active state (`colors.primary` / `#FFFFFF`) and `colors.surfaceSubtle` inactive state with `gap: 8`.
+* `Activity/Day-08.md`: [UPDATED] Documented Part 7 Explore section UI fixes and verification results.
 
 ---
 
@@ -228,12 +259,13 @@ Refine the "Smart Autofill from PDF" button in the Current Work onboarding scree
    - Result: **0 errors** (Clean compilation).
 
 2. **Production Bundler Verification**:
-   - Command: `npx expo export --output-dir /tmp/test-export-autofill-tweak`
+   - Command: `npx expo export --output-dir /tmp/test-export-explore-fixes`
    - Result: **Success (Exit code 0)** — Generated Android HBC (`5.49 MB`), iOS HBC (`5.49 MB`), and Web (`3.46 MB`) bundles with 99 assets.
 
 3. **Web Distribution Sync**:
    - Command: `npx expo export -p web`
-   - Result: **Success (Exit code 0)** — Synchronized `./dist` with latest onboarding updates.
+   - Result: **Success (Exit code 0)** — Synchronized `./dist` with latest Explore and Researcher card updates.
 
 ---
 *Signed off by: Senior React Native Developer & UI/UX Systems Engineer*
+

@@ -86,15 +86,10 @@ export const ResearcherDiscoveryCard: React.FC<ResearcherDiscoveryCardProps> = (
             },
           ]}
         >
-          <Text style={[styles.workLabel, { color: colors.primary }]}>CURRENTLY WORKING ON</Text>
+          <Text style={[styles.workLabel, { color: colors.primary }]}>Currently working on</Text>
           <Text style={[styles.workTitle, { color: colors.textPrimary }]} numberOfLines={2}>
             {currentWork.title}
           </Text>
-          {currentWork.description ? (
-            <Text style={[styles.workDescription, { color: colors.textSecondary }]} numberOfLines={2}>
-              {currentWork.description}
-            </Text>
-          ) : null}
         </TouchableOpacity>
       ) : null}
 
@@ -201,13 +196,10 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   workTitle: {
-    ...typography.bodyMedium,
+    fontFamily: fontFamilies.sansSemiBold,
+    fontSize: 14,
+    lineHeight: 20,
     fontWeight: '600',
-  },
-  workDescription: {
-    ...typography.bodySmall,
-    marginTop: 2,
-    lineHeight: 18,
   },
   footerActions: {
     flexDirection: 'row',
