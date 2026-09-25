@@ -162,9 +162,62 @@ Redesign the Share screen header (`src/app/(tabs)/share.tsx`) from a generic "Sh
 
 ---
 
+## Part 5: UI/UX Feature — "Smart Autofill from PDF" in Onboarding
+
+### Objective
+Implement a "Smart Autofill from PDF" feature on the Current Work onboarding screen (`src/app/(onboarding)/current-work.tsx`). The feature provides researchers with a secondary action button that simulates uploading a research draft or abstract PDF to automatically parse, extract, and populate the project title, overview description, and stage.
+
+### Work Completed & Technical Implementation
+
+1. **Autofill Button UI & Placement**:
+   - Placed an outline/secondary action button directly at the top of the form card, prominently positioned above "Project / Thesis Title" without competing with the primary "Next" CTA.
+   - Styled with subtle background (`colors.surfaceSubtle` / `colors.surface`) and crisp 1.2px outline border (`colors.border`).
+   - Features modern vector line-art icons from `lucide-react-native`:
+     - Default state: `<UploadCloud size={16} strokeWidth={2} color={colors.primary} />` paired with an `"AI"` badge pill.
+     - Extracting state: `<ActivityIndicator size="small" color={colors.primary} />` and label "Scanning document...".
+     - Success state: `<Check size={16} strokeWidth={2.4} color={colors.secondary} />` with "Autofilled from PDF" and a mint "Ready" pill.
+   - Inserted a hairline divider below the action ("or enter details manually") for clear visual separation.
+
+2. **Mock Extraction Logic**:
+   - **Trigger**: Tapping the button sets `isExtracting: true`, disables re-triggering, and displays active spinner feedback.
+   - **Simulation Delay**: Uses a 1500ms `setTimeout` to emulate document scanning and text extraction.
+   - **Payload Population**:
+     - **Title**: `"Optimizing Large Language Models for Low-Resource Bengali Dialects"`
+     - **Overview**: `"This research focuses on cross-lingual transfer learning and parameter-efficient fine-tuning for Bengali dialectal texts, specifically low-resource Sylheti and Chittagonian varieties."`
+     - **Stage**: Set to `'Experimentation'`.
+   - **Success Transition**: Sets `isExtracting: false` and `isExtracted: true`, transitioning the button border to `colors.secondary` (Mint Sage) with mint background tint (`colors.secondaryLight`).
+
+3. **Theme & Dark Mode Compliance**:
+   - Dynamically binds to semantic tokens (`colors.surface`, `colors.surfaceSubtle`, `colors.border`, `colors.borderSubtle`, `colors.secondary`, `colors.secondaryLight`, `colors.primary`, `colors.textPrimary`, `colors.textSecondary`).
+   - Suppressed elevation artifacts in dark mode (`shadowOpacity: isDark ? 0 : 0.04`, `elevation: isDark ? 0 : 1`).
+
+---
+
+## Part 6: UI Refinement — Removed AI Badge from Autofill Button
+
+### Objective
+Refine the "Smart Autofill from PDF" button in the Current Work onboarding screen (`src/app/(onboarding)/current-work.tsx`) by removing the inline "AI" badge/pill, ensuring symmetrical centering of the button label and icon across all interactive states.
+
+### Work Completed & Technical Implementation
+
+1. **AI Badge Removal**:
+   - Completely removed the inline `<View style={styles.aiBadge}>` element, including the nested `<Sparkles />` icon and `"AI"` text.
+   - Cleaned up unused styles (`aiBadge`, `aiBadgeText`, `successPill`, `successPillText`, and `autofillIcon`).
+
+2. **Button Layout & Symmetry Optimization**:
+   - Updated `styles.autofillButton` with flexbox centering: `justifyContent: 'center'`, `alignItems: 'center'`, and `gap: 8`.
+   - The `<UploadCloud />` icon (or `<ActivityIndicator />` / `<Check />`) and button text remain centered along the horizontal axis with no asymmetric trailing empty space.
+
+3. **Logic & Theme Preservation**:
+   - Retained the simulated 1500ms extraction delay, mock academic data population, and Mint Sage success outline.
+   - Full dark mode and token compliance strictly preserved.
+
+---
+
 ## Files Changed
+* `src/app/(onboarding)/current-work.tsx`: [UPDATED] Removed AI badge from the Autofill from PDF button, refactored button flexbox to use `gap: 8` for symmetrical centering.
 * `src/app/(tabs)/share.tsx`: [UPDATED] Replaced generic title lockup with Identity-First header row (Avatar + Name + Status text) and structural divider, wired to `activeUser`.
-* `Activity/Day-08.md`: [UPDATED] Documented Part 4 Identity-First header implementation and test results.
+* `Activity/Day-08.md`: [UPDATED] Documented Part 4 Identity-First header, Part 5 Smart Autofill from PDF, and Part 6 AI badge removal.
 
 ---
 
@@ -175,12 +228,12 @@ Redesign the Share screen header (`src/app/(tabs)/share.tsx`) from a generic "Sh
    - Result: **0 errors** (Clean compilation).
 
 2. **Production Bundler Verification**:
-   - Command: `npx expo export --output-dir /tmp/test-export-phase2d-identity-header`
+   - Command: `npx expo export --output-dir /tmp/test-export-autofill-tweak`
    - Result: **Success (Exit code 0)** — Generated Android HBC (`5.49 MB`), iOS HBC (`5.49 MB`), and Web (`3.46 MB`) bundles with 99 assets.
 
 3. **Web Distribution Sync**:
    - Command: `npx expo export -p web`
-   - Result: **Success (Exit code 0)** — Synchronized `./dist` with latest Share tab.
+   - Result: **Success (Exit code 0)** — Synchronized `./dist` with latest onboarding updates.
 
 ---
 *Signed off by: Senior React Native Developer & UI/UX Systems Engineer*

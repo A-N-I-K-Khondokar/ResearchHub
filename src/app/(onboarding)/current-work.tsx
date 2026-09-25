@@ -1,7 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  StyleSheet,
+  TouchableOpacity,
+  ActivityIndicator,
+} from 'react-native';
 import { useRouter } from 'expo-router';
-import { ArrowRight, Info } from 'lucide-react-native';
+import { ArrowRight, Info, UploadCloud, Check } from 'lucide-react-native';
 import {
   ScreenContainer,
   Button,
@@ -9,7 +16,7 @@ import {
   OnboardingHeader,
   OnboardingProgress,
 } from '@/components';
-import { radius, spacing, typography } from '@/constants';
+import { radius, spacing, typography, fontFamilies } from '@/constants';
 import { useTheme } from '@/context/ThemeContext';
 
 const STAGE_OPTIONS = [
@@ -22,10 +29,32 @@ const STAGE_OPTIONS = [
 
 export default function CurrentWorkScreen() {
   const router = useRouter();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [selectedStage, setSelectedStage] = useState('Experimentation');
+
+  // Smart Autofill PDF State
+  const [isExtracting, setIsExtracting] = useState(false);
+  const [isExtracted, setIsExtracted] = useState(false);
+
+  const handleAutofillPDF = () => {
+    if (isExtracting) return;
+
+    setIsExtracting(true);
+    setIsExtracted(false);
+
+    // Simulated Extraction Process (1500ms)
+    setTimeout(() => {
+      setTitle('Optimizing Large Language Models for Low-Resource Bengali Dialects');
+      setDescription(
+        'This research focuses on cross-lingual transfer learning and parameter-efficient fine-tuning for Bengali dialectal texts, specifically low-resource Sylheti and Chittagonian varieties.'
+      );
+      setSelectedStage('Experimentation');
+      setIsExtracting(false);
+      setIsExtracted(true);
+    }, 1500);
+  };
 
   const handleNext = () => {
     router.push('/(onboarding)/external-profiles' as any);
@@ -58,12 +87,92 @@ export default function CurrentWorkScreen() {
             styles.card,
             {
               backgroundColor: colors.surface,
-              borderColor: colors.border,
+              borderColor: isExtracted ? colors.secondary : colors.border,
+              shadowOpacity: isDark ? 0 : 0.04,
+              elevation: isDark ? 0 : 1,
             },
           ]}
         >
+          {/* Smart Autofill from PDF Action */}
+          <View style={styles.autofillContainer}>
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={handleAutofillPDF}
+              disabled={isExtracting}
+              style={[
+                styles.autofillButton,
+                {
+                  backgroundColor: isExtracted
+                    ? isDark
+                      ? colors.surfaceSubtle
+                      : colors.secondaryLight
+                    : isDark
+                    ? colors.surfaceSubtle
+                    : colors.surface,
+                  borderColor: isExtracted ? colors.secondary : colors.border,
+                },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel="Autofill from PDF"
+            >
+              {isExtracting ? (
+                <ActivityIndicator
+                  size="small"
+                  color={colors.primary}
+                />
+              ) : isExtracted ? (
+                <Check
+                  size={16}
+                  strokeWidth={2.4}
+                  color={colors.secondary}
+                />
+              ) : (
+                <UploadCloud
+                  size={16}
+                  strokeWidth={2}
+                  color={colors.primary}
+                />
+              )}
+
+              <Text
+                style={[
+                  styles.autofillButtonText,
+                  {
+                    color: isExtracted
+                      ? colors.secondary
+                      : isExtracting
+                      ? colors.primary
+                      : colors.textPrimary,
+                  },
+                ]}
+              >
+                {isExtracting
+                  ? 'Scanning document...'
+                  : isExtracted
+                  ? 'Autofilled from PDF'
+                  : 'Autofill from PDF'}
+              </Text>
+            </TouchableOpacity>
+
+            {/* Subtle Divider */}
+            <View style={styles.dividerRow}>
+              <View
+                style={[styles.dividerLine, { backgroundColor: colors.borderSubtle }]}
+              />
+              <Text style={[styles.dividerText, { color: colors.textSecondary }]}>
+                or enter details manually
+              </Text>
+              <View
+                style={[styles.dividerLine, { backgroundColor: colors.borderSubtle }]}
+              />
+            </View>
+          </View>
+
+          {/* Project Title Field */}
           <View style={styles.inputGroup}>
-            <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>Project / Thesis Title</Text>
+            <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>
+              Project / Thesis Title
+            </Text>
             <TextInput
               value={title}
               onChangeText={setTitle}
@@ -72,7 +181,7 @@ export default function CurrentWorkScreen() {
               style={[
                 styles.textInput,
                 {
-                  backgroundColor: colors.surface,
+                  backgroundColor: isDark ? colors.surfaceSubtle : colors.surface,
                   borderColor: colors.border,
                   color: colors.textPrimary,
                 },
@@ -80,8 +189,11 @@ export default function CurrentWorkScreen() {
             />
           </View>
 
+          {/* Overview / Focus Field */}
           <View style={styles.inputGroup}>
-            <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>Short Overview / Focus</Text>
+            <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>
+              Short Overview / Focus
+            </Text>
             <TextInput
               value={description}
               onChangeText={setDescription}
@@ -94,7 +206,7 @@ export default function CurrentWorkScreen() {
                 styles.textInput,
                 styles.textArea,
                 {
-                  backgroundColor: colors.surface,
+                  backgroundColor: isDark ? colors.surfaceSubtle : colors.surface,
                   borderColor: colors.border,
                   color: colors.textPrimary,
                 },
@@ -104,7 +216,9 @@ export default function CurrentWorkScreen() {
 
           {/* Current Stage */}
           <View style={styles.inputGroup}>
-            <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>Current Research Stage</Text>
+            <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>
+              Current Research Stage
+            </Text>
             <View style={styles.stageRow}>
               {STAGE_OPTIONS.map((stage) => (
                 <TopicChip
@@ -130,7 +244,8 @@ export default function CurrentWorkScreen() {
           >
             <Info size={18} color={colors.primary} style={styles.infoIcon} />
             <Text style={[styles.infoText, { color: colors.primaryDark }]}>
-              Sharing Current Work is temporary momentum, not a publication. It helps departmental peers collaborate with you early.
+              Sharing Current Work is temporary momentum, not a publication. It helps
+              departmental peers collaborate with you early.
             </Text>
           </View>
         </View>
@@ -188,11 +303,41 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: spacing.cardPadding,
     marginBottom: spacing.lg,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowColor: '#071A3E',
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 6,
+  },
+  autofillContainer: {
+    marginBottom: spacing.xs,
+  },
+  autofillButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderWidth: 1.2,
+    borderRadius: radius.sm,
+    paddingVertical: 11,
+    paddingHorizontal: spacing.md,
+  },
+  autofillButtonText: {
+    fontSize: 13.5,
+    fontFamily: fontFamilies.sansSemiBold,
+    letterSpacing: 0.1,
+  },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: spacing.md,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+  },
+  dividerText: {
+    fontSize: 11.5,
+    fontFamily: fontFamilies.sansRegular,
+    marginHorizontal: spacing.sm,
   },
   inputGroup: {
     marginBottom: spacing.md,
