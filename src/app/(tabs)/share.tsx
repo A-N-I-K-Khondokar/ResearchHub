@@ -9,7 +9,7 @@ import {
   Platform,
   KeyboardAvoidingView,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import {
   PenLine,
@@ -55,6 +55,7 @@ const RESEARCH_STAGES = [
 
 export default function ShareTab() {
   const { colors, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
 
   // Form State
   const [title, setTitle] = useState('');
@@ -172,10 +173,7 @@ export default function ShareTab() {
   };
 
   return (
-    <SafeAreaView
-      edges={['top', 'left', 'right']}
-      style={[styles.safeArea, { backgroundColor: colors.background }]}
-    >
+    <View style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <StatusBar style={isDark ? 'light' : 'dark'} backgroundColor={colors.background} />
 
       <KeyboardAvoidingView
@@ -184,7 +182,7 @@ export default function ShareTab() {
       >
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 16 }]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
@@ -532,7 +530,7 @@ export default function ShareTab() {
         message="Your current work has been posted to the CSE departmental feed. Peers and faculty can now review and connect."
         buttonText="Back to Feed"
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -549,7 +547,6 @@ const styles = StyleSheet.create({
   // CRITICAL: 120px bottom padding so content clears the floating pill tab bar
   scrollContent: {
     paddingHorizontal: spacing.screenHorizontal,
-    paddingTop: spacing.md,
     paddingBottom: 120,
   },
   identityHeader: {

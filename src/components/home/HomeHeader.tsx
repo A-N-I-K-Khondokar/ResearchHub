@@ -1,6 +1,6 @@
 import React from 'react';
 // 1. Swap TouchableOpacity for Pressable
-import { View, Text, StyleSheet, Pressable } from 'react-native'; 
+import { View, Text, StyleSheet, Pressable, StyleProp, ViewStyle } from 'react-native'; 
 import { Sun, Moon, Search, Bell } from 'lucide-react-native';
 import { spacing, radius, typography, fontFamilies } from '../../constants';
 import { useTheme } from '@/context/ThemeContext';
@@ -13,6 +13,7 @@ interface HomeHeaderProps {
   onAvatarPress?: () => void;
   onSearchPress?: () => void;
   onNotificationPress?: () => void;
+  style?: StyleProp<ViewStyle>;
 }
 
 export const HomeHeader: React.FC<HomeHeaderProps> = ({
@@ -22,6 +23,7 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
   onAvatarPress,
   onSearchPress,
   onNotificationPress,
+  style,
 }) => {
   const { colors, isDark, toggleTheme } = useTheme();
 
@@ -42,6 +44,7 @@ export const HomeHeader: React.FC<HomeHeaderProps> = ({
           backgroundColor: colors.surface,
           borderBottomColor: colors.borderSubtle,
         },
+        style,
       ]}
     >
       {/* User Greeting & Avatar */}

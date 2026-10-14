@@ -1,14 +1,16 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import { Sun, Moon, Smartphone, Sparkles, BookOpen, Users, Compass, Layers } from 'lucide-react-native';
 import { spacing, radius, typography, fontFamilies, shadows } from '@/constants';
 import { useTheme, ThemeMode } from '@/context/ThemeContext';
-import { ScreenContainer } from '@/components/layout/ScreenContainer';
 import { Avatar } from '@/components/common/Avatar';
 import { activeUser } from '@/data/researchers';
 
 export default function ProfileTab() {
   const { colors, themeMode, isDark, setThemeMode } = useTheme();
+  const insets = useSafeAreaInsets();
 
   const themeOptions: { mode: ThemeMode; label: string; icon: React.ReactNode; desc: string }[] = [
     {
@@ -32,21 +34,23 @@ export default function ProfileTab() {
   ];
 
   return (
-    <ScreenContainer
-      scrollable
-      contentContainerStyle={styles.scrollContent}
-      statusBarStyle={isDark ? 'light' : 'dark'}
-    >
-      {/* User Header Profile Card */}
-      <View
-        style={[
-          styles.profileCard,
-          {
-            backgroundColor: colors.surface,
-            borderColor: colors.border,
-          },
-        ]}
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar style={isDark ? 'light' : 'dark'} backgroundColor={colors.background} />
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 16 }]}
+        showsVerticalScrollIndicator={false}
       >
+        {/* User Header Profile Card */}
+        <View
+          style={[
+            styles.profileCard,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+            },
+          ]}
+        >
         <Avatar name={activeUser.name} uri={activeUser.photoURL} size="xl" />
         <Text style={[styles.userName, { color: colors.textPrimary }]}>{activeUser.name}</Text>
         <Text style={[styles.userRole, { color: colors.primary }]}>{activeUser.designation}</Text>
@@ -164,12 +168,20 @@ export default function ProfileTab() {
           ))}
         </View>
       </View>
-    </ScreenContainer>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  scroll: {
+    flex: 1,
+  },
   scrollContent: {
+    paddingHorizontal: spacing.screenHorizontal,
     paddingBottom: 120,
   },
   profileCard: {
@@ -178,7 +190,7 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     alignItems: 'center',
     marginBottom: spacing.md,
-    marginTop: spacing.sm,
+    marginTop: 0,
     ...shadows.card,
   },
   userName: {

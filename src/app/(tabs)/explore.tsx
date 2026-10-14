@@ -7,7 +7,7 @@ import {
   RefreshControl,
   TouchableOpacity,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Compass, Sparkles, Filter, X } from 'lucide-react-native';
 import { spacing, radius, typography, fontFamilies, shadows } from '@/constants';
@@ -41,6 +41,7 @@ const filterCategories: { key: ExploreFilterType; label: string }[] = [
 export default function ExploreScreen() {
   const router = useRouter();
   const { colors, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
   const [refreshing, setRefreshing] = useState(false);
   const [selectedTypeFilter, setSelectedTypeFilter] = useState<ExploreFilterType>('all');
 
@@ -87,10 +88,7 @@ export default function ExploreScreen() {
   };
 
   return (
-    <SafeAreaView
-      style={[styles.safeArea, { backgroundColor: colors.surface }]}
-      edges={['top']}
-    >
+    <View style={[styles.safeArea, { backgroundColor: colors.surface }]}>
       {/* Search Header Container */}
       <View
         style={[
@@ -98,6 +96,7 @@ export default function ExploreScreen() {
           {
             backgroundColor: colors.surface,
             borderBottomColor: colors.borderSubtle,
+            paddingTop: insets.top + 16,
           },
         ]}
       >
@@ -298,7 +297,7 @@ export default function ExploreScreen() {
 
         <View style={styles.bottomSpacer} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -308,7 +307,6 @@ const styles = StyleSheet.create({
   },
   headerContainer: {
     paddingHorizontal: spacing.md,
-    paddingTop: spacing.xs,
     paddingBottom: spacing.sm,
     borderBottomWidth: 1,
   },

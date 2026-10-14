@@ -101,6 +101,55 @@ Configured 8 rich mock items demonstrating:
 * `src/app/(tabs)/notifications.tsx`: [UPDATED] Replaced placeholder with full SectionList notification feed, scrollable filter chips, unread dot indicators, actionable connection buttons, and floating tab clearance.
 * `Activity/Day-09.md`: [CREATED] Documented Phase 2E implementation, architecture, and verification results.
 
+## Part 2: UI Bug Fix — Standardize Global Header Top Padding
+
+### Objective
+Standardize the top padding across all tab screens (`index.tsx`, `explore.tsx`, `notifications.tsx`, `share.tsx`, `profile.tsx`) so that all screen titles and headers align symmetrically on the vertical Y-axis, eliminating platform-dependent `SafeAreaView` variances and disparate static offsets.
+
+### Work Completed & Technical Implementation
+
+1. **Standardized Formula**:
+   - Inspected `src/app/(tabs)/index.tsx` and `HomeHeader.tsx` which previously relied on platform `SafeAreaView` plus `15px`/`16px` (`spacing.md`) padding.
+   - Replaced platform-variable `SafeAreaView` with standard React Native `View` containers on all screens.
+   - Used explicit insets calculation sourced from `useSafeAreaInsets()`:
+     $$\text{paddingTop} = \text{insets.top} + 16$$
+   - This guarantees that on every platform (iOS with notch/Dynamic Island, Android with status bars, and Web), all headers start at the exact same Y coordinate.
+
+2. **Screen-by-Screen Alignment**:
+   - **Home (`src/app/(tabs)/index.tsx`)**:
+     - Swapped `<SafeAreaView>` for `<View>`.
+     - Passed `style={{ paddingTop: insets.top + 16 }}` to `HomeHeader`.
+     - Enabled optional `style` prop in [`HomeHeader.tsx`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/src/components/home/HomeHeader.tsx).
+   - **Explore (`src/app/(tabs)/explore.tsx`)**:
+     - Swapped `<SafeAreaView>` for `<View>`.
+     - Applied `paddingTop: insets.top + 16` directly to `styles.headerContainer`.
+     - Removed obsolete `paddingTop: spacing.xs` (4px).
+   - **Alerts / Notifications (`src/app/(tabs)/notifications.tsx`)**:
+     - Swapped `<SafeAreaView>` for `<View>`.
+     - Applied `paddingTop: insets.top + 16` directly to `styles.headerContainer`.
+     - Removed obsolete `paddingTop: spacing.xs` (4px).
+     - The "Alerts" title now matches the exact vertical baseline of "Explore" and Home's header elements.
+   - **Share (`src/app/(tabs)/share.tsx`)**:
+     - Swapped `<SafeAreaView>` for `<View>`.
+     - Applied `paddingTop: insets.top + 16` directly to `ScrollView`'s `contentContainerStyle`.
+     - Strictly preserved `paddingBottom: 120` for floating tab bar clearance.
+   - **Profile (`src/app/(tabs)/profile.tsx`)**:
+     - Replaced `ScreenContainer` with standard `<View>` and `<ScrollView>`.
+     - Applied `paddingTop: insets.top + 16` directly to `ScrollView`'s `contentContainerStyle`.
+     - Set `marginTop: 0` on `profileCard` to avoid double-offsetting.
+     - Strictly preserved `paddingBottom: 120` for floating tab bar clearance.
+
+---
+
+## Files Changed
+* `src/components/home/HomeHeader.tsx`: [UPDATED] Extended `HomeHeaderProps` with `style?: StyleProp<ViewStyle>` and merged it into the container.
+* `src/app/(tabs)/index.tsx`: [UPDATED] Replaced `SafeAreaView` with `View`, imported `useSafeAreaInsets`, passed `paddingTop: insets.top + 16` to `HomeHeader`.
+* `src/app/(tabs)/explore.tsx`: [UPDATED] Replaced `SafeAreaView` with `View`, applied `paddingTop: insets.top + 16` to `headerContainer`.
+* `src/app/(tabs)/notifications.tsx`: [UPDATED] Replaced `SafeAreaView` with `View`, applied `paddingTop: insets.top + 16` to `headerContainer`.
+* `src/app/(tabs)/share.tsx`: [UPDATED] Replaced `SafeAreaView` with `View`, applied `paddingTop: insets.top + 16` to scroll content, retained `paddingBottom: 120`.
+* `src/app/(tabs)/profile.tsx`: [UPDATED] Replaced `ScreenContainer` with standard `View` + `ScrollView`, applied `paddingTop: insets.top + 16`, retained `paddingBottom: 120`.
+* `Activity/Day-09.md`: [UPDATED] Documented Part 2 Global Header Top Padding standardization and verification results.
+
 ---
 
 ## Testing Results
@@ -110,12 +159,12 @@ Configured 8 rich mock items demonstrating:
    - Result: **0 errors** (Clean compilation).
 
 2. **Production Bundler Verification**:
-   - Command: `npx expo export --output-dir /tmp/test-export-phase2e`
+   - Command: `npx expo export --output-dir /tmp/test-export-padding-fix`
    - Result: **Success (Exit code 0)** — Generated Android HBC (`5.50 MB`), iOS HBC (`5.51 MB`), and Web (`3.47 MB`) bundles with 99 assets.
 
 3. **Web Distribution Sync**:
    - Command: `npx expo export -p web`
-   - Result: **Success (Exit code 0)** — Synchronized `./dist` with latest Phase 2E alerts feed.
+   - Result: **Success (Exit code 0)** — Synchronized `./dist` with latest standardized header layout.
 
 ---
 *Signed off by: Senior React Native Developer & UI/UX Systems Engineer*

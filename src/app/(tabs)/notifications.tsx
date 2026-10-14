@@ -8,7 +8,7 @@ import {
   ScrollView,
   RefreshControl,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Bell,
   BellOff,
@@ -42,6 +42,7 @@ const FILTER_OPTIONS: FilterOption[] = [
 
 export default function NotificationsTab() {
   const { colors, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
   const [alerts, setAlerts] = useState<AppNotification[]>(mockNotifications);
   const [activeFilter, setActiveFilter] = useState<AlertFilter>('all');
   const [refreshing, setRefreshing] = useState(false);
@@ -339,10 +340,7 @@ export default function NotificationsTab() {
   );
 
   return (
-    <SafeAreaView
-      style={[styles.safeArea, { backgroundColor: colors.surface }]}
-      edges={['top']}
-    >
+    <View style={[styles.safeArea, { backgroundColor: colors.surface }]}>
       {/* Header Container */}
       <View
         style={[
@@ -350,6 +348,7 @@ export default function NotificationsTab() {
           {
             backgroundColor: colors.surface,
             borderBottomColor: colors.borderSubtle,
+            paddingTop: insets.top + 16,
           },
         ]}
       >
@@ -513,7 +512,7 @@ export default function NotificationsTab() {
           </View>
         }
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -523,7 +522,6 @@ const styles = StyleSheet.create({
   },
   headerContainer: {
     paddingHorizontal: spacing.md,
-    paddingTop: spacing.xs,
     paddingBottom: spacing.sm,
     borderBottomWidth: 1,
   },

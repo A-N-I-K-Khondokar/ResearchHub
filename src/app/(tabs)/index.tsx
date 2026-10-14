@@ -8,7 +8,7 @@ import {
   FlatList,
   TouchableOpacity,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { spacing, radius, typography, fontFamilies, shadows } from '../../constants';
 import { useTheme } from '@/context/ThemeContext';
@@ -34,6 +34,7 @@ import { SectionHeader } from '../../components/common/SectionHeader';
 export default function HomeFeedScreen() {
   const router = useRouter();
   const { colors, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
   const [refreshing, setRefreshing] = useState(false);
   const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
 
@@ -134,10 +135,7 @@ export default function HomeFeedScreen() {
   };
 
   return (
-    <SafeAreaView
-      style={[styles.safeArea, { backgroundColor: colors.surface }]}
-      edges={['top']}
-    >
+    <View style={[styles.safeArea, { backgroundColor: colors.surface }]}>
       {/* Header */}
       <HomeHeader
         userName={currentUser.name}
@@ -146,6 +144,7 @@ export default function HomeFeedScreen() {
         onAvatarPress={() => router.push('/(tabs)/profile' as any)}
         onSearchPress={() => router.push('/(explore)/search' as any)}
         onNotificationPress={() => router.push('/(tabs)/notifications' as any)}
+        style={{ paddingTop: insets.top + 16 }}
       />
 
       <ScrollView
@@ -363,7 +362,7 @@ export default function HomeFeedScreen() {
         {/* Bottom padding */}
         <View style={styles.bottomSpacer} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
