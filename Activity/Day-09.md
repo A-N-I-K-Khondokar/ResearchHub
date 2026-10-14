@@ -167,4 +167,65 @@ Standardize the top padding across all tab screens (`index.tsx`, `explore.tsx`, 
    - Result: **Success (Exit code 0)** — Synchronized `./dist` with latest standardized header layout.
 
 ---
+
+## Part 3: Content Redesign — Minimalist Notification Data
+
+### Objective
+Achieve strict *content minimalism* in the notifications and alerts feed (`src/app/(tabs)/notifications.tsx`). Eliminate visual clutter—specifically indented comment previews, quotation boxes, and secondary target work titles on separate lines—consolidating every notification row into a clean, single-sentence structure alongside its timestamp and compact connection action controls.
+
+### Work Completed & Technical Implementation
+
+1. **Elimination of Secondary Content Blocks from UI**:
+   - Located and removed `{item.targetTitle ? ... : null}` which previously rendered target paper and current work titles on a distinct line in `colors.textPrimary`.
+   - Located and removed `{item.commentPreview ? ... : null}` which rendered indented callout blocks with left accent borders and italicized body quotes.
+   - Cleaned up obsolete styles (`targetTitle`, `commentBox`, `commentText`) from `StyleSheet.create`.
+
+2. **Consolidation to a Single-Sentence Structure**:
+   - Merged researcher identity and action description into a unified text sentence inside `<Text style={styles.messageText}>`:
+     - **Researcher Name**: Bolded using `fontFamilies.sansSemiBold` (`Inter-SemiBold`) and `colors.textPrimary`.
+     - **Action Description**: Clean regular weight using `fontFamilies.sansRegular` (`Inter-Regular`) and `colors.textSecondary`.
+   - Updated `src/data/notifications.ts` mock alerts with concise, minimalist `actionText` and `message` properties:
+     - `"Dr. Rafiqul Islam commented on your work."`
+     - `"Sarah Jin liked your update."`
+     - `"Tanvir Ahmed accepted your connection request."`
+     - `"Mou Tusi wants to connect."`
+     - `"Nadia Ali wants to connect."`
+     - `"Elena Vance commented on your publication."`
+     - `"Mou Tusi liked your publication."`
+     - `"Dr. Rafiqul Islam published new work in #BanglaNLP."`
+
+3. **Preservation of Core Indicators & Compact Action Buttons**:
+   - **Unread Status**: Maintained the 7px circular dot (`width: 7, height: 7, borderRadius: 3.5`) in `colors.primary`.
+   - **Timestamp**: Retained short relative timestamps (`10m`, `35m`, `2h`, `4h`, `1d`, etc.) on the far right in `colors.textMuted`.
+   - **Connection Actions**: Preserved inline, compact "Accept" and "Decline" buttons for pending connection requests without breaking status transition logic.
+
+4. **Strict Clearance & Frozen Areas Preserved**:
+   - **Header Top Clearance**: Preserved `paddingTop: insets.top + 16` on `styles.headerContainer`.
+   - **Floating Tab Bar Clearance**: Preserved `paddingBottom: 120` on `SectionList`'s `contentContainerStyle`.
+   - **Frozen Screens**: No modifications made to Home, Explore, Share, or Profile tabs.
+
+---
+
+## Files Changed
+* `src/data/notifications.ts`: [UPDATED] Cleaned mock notification data to provide single concise sentences (`actionText` / `message`).
+* `src/app/(tabs)/notifications.tsx`: [UPDATED] Removed `targetTitle` and `commentPreview` rendering blocks; removed unused styles (`targetTitle`, `commentBox`, `commentText`); preserved unread dot, timestamp, and layout clearances.
+* `Activity/Day-09.md`: [UPDATED] Documented Part 3 Content Redesign and verification results.
+
+---
+
+## Testing Results
+
+1. **TypeScript Type Check**:
+   - Command: `npx tsc --noEmit`
+   - Result: **0 errors** (Clean compilation).
+
+2. **Production Bundler Verification**:
+   - Command: `npx expo export --output-dir /tmp/test-export-minimal-data-alerts`
+   - Result: **Success (Exit code 0)** — Generated Android HBC (`5.5 MB`), iOS HBC (`5.5 MB`), and Web (`3.47 MB`) bundles with 99 assets.
+
+3. **Web Distribution Sync**:
+   - Command: `npx expo export -p web`
+   - Result: **Success (Exit code 0)** — Synchronized `./dist` with minimalist notifications feed.
+
+---
 *Signed off by: Senior React Native Developer & UI/UX Systems Engineer*

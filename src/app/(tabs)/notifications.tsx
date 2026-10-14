@@ -216,36 +216,6 @@ export default function NotificationsTab() {
             </Text>
           </View>
 
-          {/* Target Title (if research / paper / current work) */}
-          {item.targetTitle ? (
-            <Text
-              style={[styles.targetTitle, { color: colors.textPrimary }]}
-              numberOfLines={1}
-            >
-              {item.targetTitle}
-            </Text>
-          ) : null}
-
-          {/* Comment Preview Quote */}
-          {item.commentPreview ? (
-            <View
-              style={[
-                styles.commentBox,
-                {
-                  backgroundColor: colors.surfaceSubtle,
-                  borderColor: colors.borderSubtle,
-                },
-              ]}
-            >
-              <Text
-                style={[styles.commentText, { color: colors.textSecondary }]}
-                numberOfLines={2}
-              >
-                "{item.commentPreview}"
-              </Text>
-            </View>
-          ) : null}
-
           {/* Actionable Connection Request Buttons */}
           {item.type === 'connection_request' && (
             <View style={styles.actionContainer}>
@@ -655,25 +625,6 @@ const styles = StyleSheet.create({
   actionText: {
     fontSize: 14,
     fontFamily: fontFamilies.sansRegular,
-  },
-  targetTitle: {
-    fontSize: 13,
-    fontFamily: fontFamilies.sansMedium,
-    lineHeight: 18,
-    marginTop: 2,
-  },
-  commentBox: {
-    borderLeftWidth: 2,
-    borderRadius: radius.sm,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 5,
-    marginTop: 6,
-  },
-  commentText: {
-    fontSize: 12.5,
-    fontFamily: fontFamilies.sansRegular,
-    fontStyle: 'italic',
-    lineHeight: 17,
   },
   actionContainer: {
     marginTop: 8,
