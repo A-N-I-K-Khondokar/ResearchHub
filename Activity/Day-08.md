@@ -1,4 +1,4 @@
-# Day 08: Phase 2D — Share & Current Work Creation Experience
+ # Day 08: Phase 2D — Share & Current Work Creation Experience
 
 ## Phase 2D Objective
 Implement the "Share Current Work" creation flow (`src/app/(tabs)/share.tsx`) allowing researchers, faculty, and students in the CSE department to post live, text-based research updates, thesis milestones, and ongoing experiments. 

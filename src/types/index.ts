@@ -93,14 +93,26 @@ export interface ConnectionRequest {
   createdAt: string;
 }
 
+export type NotificationType =
+  | 'connection_request'
+  | 'connection_accepted'
+  | 'comment'
+  | 'like'
+  | 'research_mention'
+  | 'topic_activity';
+
 export interface AppNotification {
   id: string;
   userId: string;
-  type: 'connection_request' | 'connection_accepted' | 'research_mention' | 'topic_activity';
+  type: NotificationType;
   title: string;
   message: string;
   read: boolean;
   createdAt: string;
   sender?: UserProfile;
   targetId?: string;
+  targetTitle?: string;
+  commentPreview?: string;
+  status?: 'pending' | 'accepted' | 'declined';
+  actionText?: string;
 }
