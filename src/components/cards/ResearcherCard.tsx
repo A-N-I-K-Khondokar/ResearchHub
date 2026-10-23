@@ -96,7 +96,10 @@ export const ResearcherCard: React.FC<ResearcherCardProps> = ({
             { backgroundColor: colors.primary },
           ]}
         />
-        <Text style={[styles.sharedText, { color: colors.primary }]}>
+        <Text
+          style={[styles.sharedText, { color: colors.primary }]}
+          numberOfLines={1}
+        >
           {topicCount} shared topics
         </Text>
       </View>
@@ -140,12 +143,22 @@ export const ResearcherCard: React.FC<ResearcherCardProps> = ({
         {isConnected ? (
           <>
             <Check size={14} color={colors.secondary} strokeWidth={2.5} />
-            <Text style={[styles.connectText, { color: colors.secondary }]}>Connected</Text>
+            <Text
+              style={[styles.connectText, { color: colors.secondary }]}
+              numberOfLines={1}
+            >
+              Connected
+            </Text>
           </>
         ) : isPending ? (
           <>
             <Clock size={14} color={colors.textSecondary} strokeWidth={2} />
-            <Text style={[styles.connectText, { color: colors.textSecondary }]}>Pending</Text>
+            <Text
+              style={[styles.connectText, { color: colors.textSecondary }]}
+              numberOfLines={1}
+            >
+              Pending
+            </Text>
           </>
         ) : (
           <>
@@ -159,6 +172,7 @@ export const ResearcherCard: React.FC<ResearcherCardProps> = ({
                 styles.connectText,
                 { color: isOutlineButton ? colors.primary : colors.textInverse },
               ]}
+              numberOfLines={1}
             >
               Connect
             </Text>
@@ -190,12 +204,14 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textAlign: 'center',
     marginBottom: 3,
+    maxWidth: '100%',
   },
   designation: {
     fontSize: 12,
     fontFamily: fontFamilies.sansRegular,
     textAlign: 'center',
     marginBottom: spacing.sm,
+    maxWidth: '100%',
   },
   sharedBadge: {
     flexDirection: 'row',
@@ -205,17 +221,20 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
     borderWidth: 1,
     marginBottom: spacing.md,
+    maxWidth: '100%',
   },
   sharedDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
     marginRight: 6,
+    flexShrink: 0,
   },
   sharedText: {
     fontSize: 11.5,
     fontFamily: fontFamilies.sansSemiBold,
     fontWeight: '600',
+    flexShrink: 1,
   },
   connectButton: {
     flexDirection: 'row',
@@ -225,10 +244,12 @@ const styles = StyleSheet.create({
     height: 38,
     borderRadius: radius.full,
     width: '100%',
+    paddingHorizontal: spacing.sm,
   },
   connectText: {
     fontSize: 12.5,
     fontFamily: fontFamilies.sansSemiBold,
     fontWeight: '600',
+    flexShrink: 1,
   },
 });

@@ -43,7 +43,7 @@ export const mockTopics: Topic[] = [
   },
   {
     id: 'topic-iot',
-    name: 'Internet of Things (IoT)',
+    name: 'IoT',
     slug: 'iot',
     category: 'Systems & Hardware',
     iconName: 'Cpu',

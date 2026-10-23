@@ -54,7 +54,7 @@ export const mockPublications: ResearchPublication[] = [
     year: 2024,
     externalURL: 'https://dl.acm.org',
     doi: '10.1145/3641234',
-    topics: ['Internet of Things (IoT)', 'Cybersecurity'],
+    topics: ['IoT', 'Cybersecurity'],
     isBookmarked: false,
     createdAt: '2024-12-05',
   },

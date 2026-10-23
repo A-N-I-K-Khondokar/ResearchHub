@@ -356,7 +356,11 @@ export default function ShareTab() {
                       accessibilityLabel={`Remove tag ${tag}`}
                       accessibilityHint="Double tap to remove"
                     >
-                      <Text style={[styles.tagPillText, { color: colors.textPrimary }]}>
+                      <Text
+                        style={[styles.tagPillText, { color: colors.textPrimary }]}
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
+                      >
                         {tag}
                       </Text>
                       <View style={styles.tagCloseIconWrapper}>
@@ -413,6 +417,8 @@ export default function ShareTab() {
                                 : fontFamilies.sansRegular,
                             },
                           ]}
+                          numberOfLines={1}
+                          ellipsizeMode="tail"
                         >
                           {isAlreadySelected ? `${tag} ✓` : tag}
                         </Text>
@@ -472,6 +478,8 @@ export default function ShareTab() {
                               : fontFamilies.sansMedium,
                           },
                         ]}
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
                       >
                         {stage.label}
                       </Text>
@@ -669,10 +677,13 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: radius.full,
     borderWidth: 1,
+    maxWidth: '100%',
+    flexShrink: 1,
   },
   tagPillText: {
     fontSize: 12.5,
     fontFamily: fontFamilies.sansMedium,
+    flexShrink: 1,
   },
   tagCloseIconWrapper: {
     alignItems: 'center',
@@ -696,9 +707,12 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: radius.full,
     borderWidth: 1,
+    maxWidth: '100%',
+    flexShrink: 1,
   },
   suggestedPillText: {
     fontSize: 12,
+    flexShrink: 1,
   },
   stagesGrid: {
     flexDirection: 'row',
@@ -713,6 +727,8 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: radius.full,
     borderWidth: 1,
+    maxWidth: '100%',
+    flexShrink: 1,
   },
   stageIconWrapper: {
     alignItems: 'center',
@@ -720,5 +736,6 @@ const styles = StyleSheet.create({
   },
   stagePillText: {
     fontSize: 12,
+    flexShrink: 1,
   },
 });

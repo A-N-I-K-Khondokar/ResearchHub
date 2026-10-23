@@ -143,7 +143,7 @@ export const CurrentWorkCard: React.FC<CurrentWorkCardProps> = ({
       {/* Description Snippet (Inter, 14px / 21px line height) */}
       <Text
         style={[styles.description, { color: colors.textSecondary }]}
-        numberOfLines={3}
+        numberOfLines={2}
       >
         {work.shortDescription || work.description}
       </Text>
@@ -171,6 +171,8 @@ export const CurrentWorkCard: React.FC<CurrentWorkCardProps> = ({
               >
                 <Text
                   style={[styles.topicPillText, { color: colors.textSecondary }]}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
                 >
                   {formattedTag}
                 </Text>
@@ -276,32 +278,39 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+    flexShrink: 1,
     marginRight: spacing.sm,
   },
   authorInfo: {
     marginLeft: spacing.sm + 2,
     flex: 1,
+    flexShrink: 1,
   },
   authorNameRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    flexShrink: 1,
   },
   authorName: {
     fontSize: 15,
     fontFamily: fontFamilies.sansSemiBold,
     fontWeight: '600',
+    flexShrink: 1,
   },
   verifiedIcon: {
     marginLeft: 2,
+    flexShrink: 0,
   },
   authorSubtitle: {
     fontSize: 13,
     fontFamily: fontFamilies.sansRegular,
     marginTop: 2,
+    flexShrink: 1,
   },
   moreButton: {
     padding: 4,
+    flexShrink: 0,
   },
   title: {
     fontSize: 18,
@@ -328,10 +337,13 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     borderRadius: 9999,
     borderWidth: 1,
+    maxWidth: '100%',
+    flexShrink: 1,
   },
   topicPillText: {
     fontSize: 12,
     fontFamily: fontFamilies.sansMedium,
+    flexShrink: 1,
   },
   divider: {
     height: 1,
@@ -347,11 +359,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.lg,
+    flexShrink: 1,
   },
   footerRight: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md + 4,
+    flexShrink: 0,
   },
   actionButton: {
     flexDirection: 'row',

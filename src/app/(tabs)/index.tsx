@@ -181,7 +181,7 @@ export default function HomeFeedScreen() {
         <View style={styles.sectionContainer}>
           <View style={styles.sectionHeaderWrapper}>
             <SectionHeader
-              title="People are working on"
+              title="People Are Working On"
               badge={{ text: 'Live feed', dotColor: colors.secondary }}
               actionLabel={selectedTopic ? 'Clear filter' : undefined}
               onActionPress={selectedTopic ? () => setSelectedTopic(null) : undefined}
@@ -262,7 +262,7 @@ export default function HomeFeedScreen() {
         <View style={styles.researchersSection}>
           <View style={styles.sectionHeaderWrapper}>
             <SectionHeader
-              title="Researchers to Follow"
+              title="Researchers To Follow"
               indicatorColor="#FF7145"
               actionLabel="Discover"
               onActionPress={() => router.push('/(tabs)/explore' as any)}
@@ -385,7 +385,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
   sectionHeaderWrapper: {
-    marginBottom: spacing.xs,
+    marginBottom: 0,
   },
   researchersSection: {
     marginTop: spacing.md,

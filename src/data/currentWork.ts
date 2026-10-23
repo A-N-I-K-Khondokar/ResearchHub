@@ -38,7 +38,7 @@ export const mockCurrentWorks: CurrentWork[] = [
     title: 'Real-time Anomaly Detection in IoT Edge Devices',
     description:
       'Developing lightweight quantization pipelines for anomaly detection algorithms on resource-constrained ARM Cortex microcontrollers. Achieved a 40% reduction in inference latency without dropping classification accuracy on smart grid benchmarks.',
-    topics: ['Internet of Things (IoT)', 'Cybersecurity', 'Distributed Systems'],
+    topics: ['IoT', 'Cybersecurity', 'Distributed Systems'],
     stage: 'Drafting',
     likesCount: 38,
     commentsCount: 9,

@@ -55,7 +55,7 @@ export const mockResearchers: UserProfile[] = [
     designation: 'Associate Professor',
     bio: 'Directing the Edge AI & IoT Systems Lab. Researching hardware-aware quantization and anomaly detection on edge microcontrollers.',
     photoURL: RAFIQ_PHOTO_URI,
-    interests: ['Internet of Things (IoT)', 'Cybersecurity', 'Distributed Systems'],
+    interests: ['IoT', 'Cybersecurity', 'Distributed Systems'],
     currentWorkIds: ['work-002'],
     publicationIds: ['pub-003'],
     connectionsCount: 92,

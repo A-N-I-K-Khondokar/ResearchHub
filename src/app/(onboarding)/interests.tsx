@@ -19,7 +19,7 @@ const TOPIC_OPTIONS = [
   'Artificial Intelligence',
   'Cybersecurity',
   'Cloud Computing',
-  'Internet of Things (IoT)',
+  'IoT',
   'Data Science & Analytics',
   'Human-Computer Interaction',
   'Software Engineering',

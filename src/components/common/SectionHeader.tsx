@@ -35,11 +35,19 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
           <View style={[styles.indicator, { backgroundColor: indicatorColor }]} />
         ) : null}
         <View style={styles.titleContainer}>
-          <Text style={[styles.title, { color: colors.textPrimary }]}>
-            {indicatorColor ? title.toUpperCase() : title}
+          <Text
+            style={[styles.title, { color: colors.textPrimary }]}
+            numberOfLines={1}
+          >
+            {title}
           </Text>
           {subtitle && (
-            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{subtitle}</Text>
+            <Text
+              style={[styles.subtitle, { color: colors.textSecondary }]}
+              numberOfLines={1}
+            >
+              {subtitle}
+            </Text>
           )}
         </View>
       </View>
@@ -75,27 +83,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: spacing.sm + 4,
+    marginBottom: spacing.md,
   },
   leftRow: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+    flexShrink: 1,
+    marginRight: spacing.sm,
   },
   indicator: {
     width: 4,
     height: 18,
     borderRadius: radius.full,
     marginRight: spacing.sm,
+    flexShrink: 0,
   },
   titleContainer: {
     flex: 1,
+    flexShrink: 1,
   },
   title: {
-    fontFamily: fontFamilies.sansBold,
-    fontSize: 14,
-    fontWeight: '700',
-    letterSpacing: 0.4,
+    ...typography.sectionHeader,
   },
   subtitle: {
     ...typography.subhead,
@@ -104,6 +113,7 @@ const styles = StyleSheet.create({
   badgeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexShrink: 0,
   },
   badgeDot: {
     width: 6,
@@ -121,6 +131,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xs,
     paddingLeft: spacing.sm,
     gap: 4,
+    flexShrink: 0,
   },
   actionLabel: {
     fontSize: 13,

@@ -334,7 +334,11 @@ export default function ProfileTab() {
                     },
                   ]}
                 >
-                  <Text style={[styles.topicChipText, { color: colors.primary }]}>
+                  <Text
+                    style={[styles.topicChipText, { color: colors.primary }]}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
                     {topic}
                   </Text>
                 </View>
@@ -384,6 +388,8 @@ export default function ProfileTab() {
                 />
                 <Text
                   style={[styles.statusBadgeText, { color: colors.primary }]}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
                 >
                   Active Project
                 </Text>
@@ -1050,11 +1056,14 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: radius.full,
     borderWidth: 1,
+    maxWidth: '100%',
+    flexShrink: 1,
   },
   topicChipText: {
     fontSize: 12.5,
     fontFamily: fontFamilies.sansMedium,
     letterSpacing: 0.1,
+    flexShrink: 1,
   },
 
   // Section 3: Currently Working On

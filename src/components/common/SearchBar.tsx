@@ -102,9 +102,12 @@ const styles = StyleSheet.create({
   },
   searchIcon: {
     marginRight: spacing.sm,
+    flexShrink: 0,
   },
   input: {
     flex: 1,
+    flexShrink: 1,
+    minWidth: 0,
     height: '100%',
     ...typography.body,
     paddingVertical: 0,
@@ -112,9 +115,11 @@ const styles = StyleSheet.create({
   iconButton: {
     padding: spacing.xs,
     marginLeft: spacing.xs,
+    flexShrink: 0,
   },
   filterButton: {
     borderLeftWidth: 1,
     paddingLeft: spacing.sm,
+    flexShrink: 0,
   },
 });

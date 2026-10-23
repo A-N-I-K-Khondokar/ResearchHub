@@ -86,7 +86,7 @@ export const ResearcherDiscoveryCard: React.FC<ResearcherDiscoveryCardProps> = (
             },
           ]}
         >
-          <Text style={[styles.workLabel, { color: colors.primary }]}>Currently working on</Text>
+          <Text style={[styles.workLabel, { color: colors.primary }]}>Currently Working On</Text>
           <Text style={[styles.workTitle, { color: colors.textPrimary }]} numberOfLines={2}>
             {currentWork.title}
           </Text>
@@ -106,7 +106,9 @@ export const ResearcherDiscoveryCard: React.FC<ResearcherDiscoveryCardProps> = (
             },
           ]}
         >
-          <Text style={[styles.viewProfileText, { color: colors.textPrimary }]}>View Profile</Text>
+          <Text style={[styles.viewProfileText, { color: colors.textPrimary }]} numberOfLines={1}>
+            View Profile
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -130,17 +132,23 @@ export const ResearcherDiscoveryCard: React.FC<ResearcherDiscoveryCardProps> = (
           {connectionStatus === 'connected' ? (
             <>
               <Check size={16} color={colors.secondary} />
-              <Text style={[styles.connectTextConnected, { color: colors.secondary }]}>Connected</Text>
+              <Text style={[styles.connectTextConnected, { color: colors.secondary }]} numberOfLines={1}>
+                Connected
+              </Text>
             </>
           ) : connectionStatus === 'pending' ? (
             <>
               <Clock size={16} color={colors.textSecondary} />
-              <Text style={[styles.connectTextPending, { color: colors.textSecondary }]}>Pending</Text>
+              <Text style={[styles.connectTextPending, { color: colors.textSecondary }]} numberOfLines={1}>
+                Pending
+              </Text>
             </>
           ) : (
             <>
               <UserPlus size={16} color={colors.textInverse} />
-              <Text style={[styles.connectText, { color: colors.textInverse }]}>Connect</Text>
+              <Text style={[styles.connectText, { color: colors.textInverse }]} numberOfLines={1}>
+                Connect
+              </Text>
             </>
           )}
         </TouchableOpacity>
@@ -161,18 +169,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: spacing.sm,
+    flexShrink: 1,
   },
   headerInfo: {
     flex: 1,
+    flexShrink: 1,
     marginLeft: spacing.md,
   },
   name: {
     ...typography.title,
     marginBottom: 2,
+    flexShrink: 1,
   },
   subhead: {
     ...typography.caption,
     marginBottom: spacing.xs,
+    flexShrink: 1,
   },
   chipsRow: {
     flexDirection: 'row',
@@ -182,12 +194,15 @@ const styles = StyleSheet.create({
   chip: {
     paddingVertical: 2,
     paddingHorizontal: spacing.sm,
+    maxWidth: '100%',
+    flexShrink: 1,
   },
   workCallout: {
     borderRadius: radius.sm,
     borderLeftWidth: 3,
     padding: spacing.sm + 2,
     marginVertical: spacing.xs,
+    flexShrink: 1,
   },
   workLabel: {
     fontSize: 10,
@@ -210,6 +225,7 @@ const styles = StyleSheet.create({
   },
   viewProfileButton: {
     flex: 1,
+    flexShrink: 1,
     height: 40,
     borderRadius: radius.sm,
     borderWidth: 1,
@@ -222,6 +238,7 @@ const styles = StyleSheet.create({
   },
   connectButton: {
     flex: 1,
+    flexShrink: 1,
     height: 40,
     borderRadius: radius.sm,
     flexDirection: 'row',

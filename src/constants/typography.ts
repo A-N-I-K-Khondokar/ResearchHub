@@ -67,6 +67,13 @@ export const typography: Record<string, TextStyle> = {
   },
 
   // Sans-Serif UI & Body Scale
+  sectionHeader: {
+    fontFamily: fontFamilies.sansBold,
+    fontSize: 15,
+    lineHeight: 20,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
   title: {
     fontFamily: fontFamilies.sansSemiBold,
     fontSize: 17,

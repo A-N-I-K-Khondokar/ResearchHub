@@ -378,6 +378,8 @@ const styles = StyleSheet.create({
   },
   topicChip: {
     marginBottom: spacing.xs,
+    maxWidth: '100%',
+    flexShrink: 1,
   },
   resultsFeed: {
     gap: spacing.md,

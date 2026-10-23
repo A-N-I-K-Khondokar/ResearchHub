@@ -157,6 +157,8 @@ export const PublicationCard: React.FC<PublicationCardProps> = ({
                 >
                   <Text
                     style={[styles.topicPillText, { color: colors.textSecondary }]}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
                   >
                     {formattedTag}
                   </Text>
@@ -234,6 +236,7 @@ const styles = StyleSheet.create({
     fontSize: 12.5,
     fontFamily: fontFamilies.sansSemiBold,
     letterSpacing: 0.2,
+    flexShrink: 1,
   },
   title: {
     fontSize: 17,
@@ -248,6 +251,7 @@ const styles = StyleSheet.create({
     fontFamily: fontFamilies.sansRegular,
     lineHeight: 18,
     marginBottom: 6,
+    flexShrink: 1,
   },
   overview: {
     fontSize: 13.5,
@@ -270,6 +274,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 6,
     flex: 1,
+    flexShrink: 1,
     marginRight: spacing.sm,
   },
   topicPill: {
@@ -277,10 +282,13 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 9999,
     borderWidth: 1,
+    maxWidth: '100%',
+    flexShrink: 1,
   },
   topicPillText: {
     fontSize: 11.5,
     fontFamily: fontFamilies.sansMedium,
+    flexShrink: 1,
   },
   flexSpacer: {
     flex: 1,
@@ -289,12 +297,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    flexShrink: 0,
   },
   viewLink: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
     paddingVertical: 2,
+    flexShrink: 0,
   },
   viewLinkText: {
     fontSize: 12.5,
@@ -302,5 +312,6 @@ const styles = StyleSheet.create({
   },
   actionIcon: {
     padding: 2,
+    flexShrink: 0,
   },
 });

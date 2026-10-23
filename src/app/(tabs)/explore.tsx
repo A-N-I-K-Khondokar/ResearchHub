@@ -150,6 +150,8 @@ export default function ExploreScreen() {
                     },
                     isSelected && styles.filterPillTextActive,
                   ]}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
                 >
                   {cat.label}
                 </Text>
@@ -331,10 +333,13 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: radius.full,
     borderWidth: 1,
+    maxWidth: '100%',
+    flexShrink: 1,
   },
   filterPillText: {
     ...typography.caption,
     fontFamily: fontFamilies.sansMedium,
+    flexShrink: 1,
   },
   filterPillTextActive: {
     fontFamily: fontFamilies.sansSemiBold,
@@ -377,6 +382,8 @@ const styles = StyleSheet.create({
   },
   topicChipItem: {
     marginBottom: spacing.xs,
+    maxWidth: '100%',
+    flexShrink: 1,
   },
   bottomSpacer: {
     height: 48,

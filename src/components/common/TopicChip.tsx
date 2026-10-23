@@ -110,7 +110,9 @@ export const TopicChip: React.FC<TopicChipProps> = ({
   const Content = (
     <View style={styles.contentRow}>
       {icon && <View style={styles.iconContainer}>{icon}</View>}
-      <Text style={getLabelStyles()}>{label}</Text>
+      <Text style={getLabelStyles()} numberOfLines={1} ellipsizeMode="tail">
+        {label}
+      </Text>
       {count !== undefined && (
         <View
           style={[
@@ -157,10 +159,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'transparent',
     alignSelf: 'flex-start',
+    maxWidth: '100%',
+    flexShrink: 1,
   },
   contentRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    maxWidth: '100%',
+    flexShrink: 1,
   },
   iconContainer: {
     marginRight: spacing.xs,
@@ -168,6 +174,7 @@ const styles = StyleSheet.create({
   baseLabel: {
     ...typography.caption,
     fontWeight: '500',
+    flexShrink: 1,
   },
   countBadge: {
     marginLeft: spacing.xs,

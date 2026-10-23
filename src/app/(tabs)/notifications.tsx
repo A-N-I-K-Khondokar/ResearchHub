@@ -398,6 +398,8 @@ export default function NotificationsTab() {
                     },
                     isSelected && styles.filterPillTextActive,
                   ]}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
                 >
                   {filter.label}
                   {filter.key === 'unread' && unreadCount > 0
@@ -547,10 +549,13 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: radius.full,
     borderWidth: 1,
+    maxWidth: '100%',
+    flexShrink: 1,
   },
   filterPillText: {
     ...typography.caption,
     fontFamily: fontFamilies.sansMedium,
+    flexShrink: 1,
   },
   filterPillTextActive: {
     fontFamily: fontFamilies.sansSemiBold,
