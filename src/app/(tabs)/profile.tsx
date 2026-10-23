@@ -8,6 +8,9 @@ import {
   Modal,
   Alert,
   Linking,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -28,6 +31,8 @@ import {
   Moon,
   Smartphone,
   X,
+  Camera,
+  Lock,
 } from 'lucide-react-native';
 import { spacing, radius, typography, fontFamilies } from '@/constants';
 import { useTheme, ThemeMode } from '@/context/ThemeContext';
@@ -39,6 +44,53 @@ export default function ProfileTab() {
   const insets = useSafeAreaInsets();
 
   const [isSettingsModalVisible, setIsSettingsModalVisible] = useState(false);
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+
+  // Profile Data State
+  const [profileName, setProfileName] = useState('Anik Khondokar');
+  const [profileDepartment, setProfileDepartment] = useState('CSE');
+  const [profileBatch] = useState('Batch 14');
+  const [profileBio, setProfileBio] = useState(
+    'Focusing on applied machine learning and computer vision with an emphasis on low-resource Bangla NLP.'
+  );
+  const [profilePhotoUri, setProfilePhotoUri] = useState(ANIK_PHOTO_URI);
+
+  // Edit Modal Form State
+  const [editName, setEditName] = useState(profileName);
+  const [editDepartment, setEditDepartment] = useState(profileDepartment);
+  const [editBio, setEditBio] = useState(profileBio);
+
+  const handleOpenEditModal = () => {
+    setEditName(profileName);
+    setEditDepartment(profileDepartment);
+    setEditBio(profileBio);
+    setIsEditModalVisible(true);
+  };
+
+  const handleSaveProfile = () => {
+    setProfileName(editName.trim() || 'Anik Khondokar');
+    setProfileDepartment(editDepartment.trim() || 'CSE');
+    setProfileBio(editBio.trim());
+    setIsEditModalVisible(false);
+    console.log('Profile saved locally:', {
+      name: editName,
+      department: editDepartment,
+      bio: editBio,
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditModalVisible(false);
+  };
+
+  const handleChangePhoto = () => {
+    Alert.alert(
+      'Change Photo',
+      'Device photo library selection hook triggered. Photo selection will be enabled in future phases.',
+      [{ text: 'OK' }]
+    );
+    console.log('Photo picker requested');
+  };
 
   // Theme Picker Options
   const themeOptions: { mode: ThemeMode; label: string; icon: React.ReactNode; desc: string }[] = [
@@ -129,8 +181,8 @@ export default function ProfileTab() {
             {/* Avatar First (88x88 with Verified Badge) */}
             <View style={styles.avatarContainer}>
               <Avatar
-                name="Anik Khondokar"
-                uri={ANIK_PHOTO_URI}
+                name={profileName}
+                uri={profilePhotoUri}
                 size="xl"
                 style={styles.avatarImage}
               />
@@ -151,7 +203,7 @@ export default function ProfileTab() {
             {/* Info Underneath (Centered Text) */}
             <View style={styles.heroInfoCentered}>
               <Text style={[styles.heroName, { color: colors.textPrimary }]}>
-                Anik Khondokar
+                {profileName}
               </Text>
 
               <View style={styles.credentialsRow}>
@@ -164,12 +216,12 @@ export default function ProfileTab() {
                 <Text
                   style={[styles.credentialsText, { color: colors.textSecondary }]}
                 >
-                  CSE • Batch 14 • Dept of CS & Engineering
+                  {profileDepartment ? `${profileDepartment} • ${profileBatch}` : profileBatch}
                 </Text>
               </View>
 
               <Text style={[styles.bioText, { color: colors.textSecondary }]}>
-                Focusing on applied machine learning and computer vision with an emphasis on low-resource Bangla NLP.
+                {profileBio}
               </Text>
             </View>
           </View>
@@ -178,12 +230,7 @@ export default function ProfileTab() {
           <View style={styles.heroActionRow}>
             <TouchableOpacity
               activeOpacity={0.8}
-              onPress={() =>
-                Alert.alert(
-                  'Edit Profile',
-                  'Profile editing form is ready. Bio, credentials, and research interests can be updated.'
-                )
-              }
+              onPress={handleOpenEditModal}
               style={[
                 styles.editProfileButton,
                 {
@@ -627,6 +674,217 @@ export default function ProfileTab() {
           </View>
         </View>
       </Modal>
+
+      {/* ======================================================== */}
+      {/* EDIT PROFILE MODAL                                       */}
+      {/* ======================================================== */}
+      <Modal
+        visible={isEditModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={handleCancelEdit}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.editModalOverlay}
+        >
+          <View
+            style={[
+              styles.editModalCard,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.borderSubtle,
+              },
+            ]}
+          >
+            {/* Header: Cancel, Title, Save */}
+            <View
+              style={[
+                styles.editModalHeaderRow,
+                { borderBottomColor: colors.borderSubtle },
+              ]}
+            >
+              <TouchableOpacity
+                onPress={handleCancelEdit}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                accessibilityRole="button"
+                accessibilityLabel="Cancel editing profile"
+              >
+                <Text style={[styles.editModalCancelText, { color: colors.textSecondary }]}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+
+              <Text style={[styles.editModalTitle, { color: colors.textPrimary }]}>
+                Edit Profile
+              </Text>
+
+              <TouchableOpacity
+                onPress={handleSaveProfile}
+                style={[
+                  styles.editModalSaveBtn,
+                  { backgroundColor: colors.primary },
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel="Save profile changes"
+              >
+                <Text style={styles.editModalSaveText}>Save</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.editModalScrollContent}
+              keyboardShouldPersistTaps="handled"
+            >
+              {/* Photo Picker Hook */}
+              <View style={styles.photoPickerContainer}>
+                <View style={styles.photoPickerAvatarWrapper}>
+                  <Avatar
+                    name={editName || profileName}
+                    uri={profilePhotoUri}
+                    size="xl"
+                    style={styles.avatarImage}
+                  />
+                  <TouchableOpacity
+                    activeOpacity={0.85}
+                    onPress={handleChangePhoto}
+                    style={[
+                      styles.photoPickerBadge,
+                      {
+                        backgroundColor: colors.primary,
+                        borderColor: colors.surface,
+                      },
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityLabel="Change profile photo"
+                  >
+                    <Camera size={13} color="#FFFFFF" strokeWidth={2.2} />
+                  </TouchableOpacity>
+                </View>
+
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={handleChangePhoto}
+                  style={[
+                    styles.changePhotoBtn,
+                    {
+                      backgroundColor: colors.surfaceSubtle,
+                      borderColor: colors.borderSubtle,
+                    },
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel="Change Photo"
+                >
+                  <Camera size={13} color={colors.primary} strokeWidth={2} />
+                  <Text style={[styles.changePhotoText, { color: colors.primary }]}>
+                    Change Photo
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Form Fields */}
+              <View style={styles.editFormFields}>
+                {/* Field 1: Name */}
+                <View style={styles.inputGroup}>
+                  <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>
+                    Full Name
+                  </Text>
+                  <TextInput
+                    value={editName}
+                    onChangeText={setEditName}
+                    placeholder="Enter your full name"
+                    placeholderTextColor={colors.textMuted}
+                    style={[
+                      styles.textInput,
+                      {
+                        backgroundColor: colors.surfaceSubtle,
+                        borderColor: colors.borderSubtle,
+                        color: colors.textPrimary,
+                      },
+                    ]}
+                  />
+                </View>
+
+                {/* Field 2: Department */}
+                <View style={styles.inputGroup}>
+                  <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>
+                    Department
+                  </Text>
+                  <TextInput
+                    value={editDepartment}
+                    onChangeText={setEditDepartment}
+                    placeholder="e.g. CSE"
+                    placeholderTextColor={colors.textMuted}
+                    style={[
+                      styles.textInput,
+                      {
+                        backgroundColor: colors.surfaceSubtle,
+                        borderColor: colors.borderSubtle,
+                        color: colors.textPrimary,
+                      },
+                    ]}
+                  />
+                </View>
+
+                {/* Field 3: Batch (Locked / Read-only) */}
+                <View style={styles.inputGroup}>
+                  <View style={styles.inputLabelRow}>
+                    <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>
+                      Batch / Cohort
+                    </Text>
+                    <View style={styles.lockedBadge}>
+                      <Lock size={10} color={colors.textMuted} strokeWidth={2.4} />
+                      <Text style={[styles.lockedText, { color: colors.textMuted }]}>
+                        Locked
+                      </Text>
+                    </View>
+                  </View>
+                  <TextInput
+                    value={profileBatch}
+                    editable={false}
+                    selectTextOnFocus={false}
+                    style={[
+                      styles.textInput,
+                      styles.disabledInput,
+                      {
+                        backgroundColor: colors.surfaceSubtle,
+                        borderColor: colors.borderSubtle,
+                        color: colors.textMuted,
+                      },
+                    ]}
+                  />
+                </View>
+
+                {/* Field 4: Bio (Multiline) */}
+                <View style={styles.inputGroup}>
+                  <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>
+                    Bio & Research Focus
+                  </Text>
+                  <TextInput
+                    value={editBio}
+                    onChangeText={setEditBio}
+                    placeholder="Write a brief overview of your academic focus..."
+                    placeholderTextColor={colors.textMuted}
+                    multiline={true}
+                    numberOfLines={4}
+                    textAlignVertical="top"
+                    style={[
+                      styles.textInput,
+                      styles.bioInput,
+                      {
+                        backgroundColor: colors.surfaceSubtle,
+                        borderColor: colors.borderSubtle,
+                        color: colors.textPrimary,
+                      },
+                    ]}
+                  />
+                </View>
+              </View>
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
@@ -1001,5 +1259,123 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontFamily: fontFamilies.sansSemiBold,
+  },
+
+  // Edit Profile Modal
+  editModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    justifyContent: 'flex-end',
+  },
+  editModalCard: {
+    maxHeight: '90%',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    overflow: 'hidden',
+  },
+  editModalHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.md,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+  },
+  editModalCancelText: {
+    fontSize: 15,
+    fontFamily: fontFamilies.sansRegular,
+  },
+  editModalTitle: {
+    fontSize: 17,
+    fontFamily: fontFamilies.sansBold,
+  },
+  editModalSaveBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 7,
+    borderRadius: radius.full,
+  },
+  editModalSaveText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontFamily: fontFamilies.sansSemiBold,
+  },
+  editModalScrollContent: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xxl,
+  },
+  photoPickerContainer: {
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+  },
+  photoPickerAvatarWrapper: {
+    position: 'relative',
+    width: 88,
+    height: 88,
+    marginBottom: 8,
+  },
+  photoPickerBadge: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  changePhotoBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: radius.full,
+    borderWidth: 1,
+  },
+  changePhotoText: {
+    fontSize: 12.5,
+    fontFamily: fontFamilies.sansSemiBold,
+  },
+  editFormFields: {
+    gap: spacing.md,
+  },
+  inputGroup: {
+    gap: 6,
+  },
+  inputLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  inputLabel: {
+    fontSize: 13,
+    fontFamily: fontFamilies.sansSemiBold,
+  },
+  lockedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  lockedText: {
+    fontSize: 11,
+    fontFamily: fontFamilies.sansMedium,
+  },
+  textInput: {
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    fontSize: 14,
+    fontFamily: fontFamilies.sansRegular,
+  },
+  disabledInput: {
+    opacity: 0.7,
+  },
+  bioInput: {
+    minHeight: 88,
+    paddingTop: 12,
   },
 });

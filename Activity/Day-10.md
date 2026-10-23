@@ -188,4 +188,60 @@ Remove the redundant top screen header ("Profile") and restructure the Hero Card
    - Result: **Success (Exit code 0)** — Synchronized `./dist` with centered hero profile screen.
 
 ---
+
+## Part 5: UI Polish — Edit Profile Flow & Credentials Cleanup
+
+### Objective
+Update the credentials text on the scholar profile hero card to remove redundant department text, and connect the "Edit Profile" button to a functional bottom-sheet editing modal supporting local state synchronization and device photo selection hooks.
+
+### Work Completed & Technical Implementation
+
+1. **Credentials Text Cleanup (`profile.tsx`)**:
+   - Located the credentials text in the Hero Card.
+   - **Changed** text from: `"CSE • Batch 14 • Dept of CS & Engineering"`
+   - **To**: `"CSE • Batch 14"` (Dynamically wired as `{profileDepartment ? `${profileDepartment} • ${profileBatch}` : profileBatch}`, eliminating the redundant "Dept of CS & Engineering" string).
+
+2. **Edit Profile Modal Flow**:
+   - Replaced static Alert dialog with interactive `<Modal visible={isEditModalVisible} animationType="slide">`.
+   - Wired the "Edit Profile" button's `onPress` handler to `handleOpenEditModal()`, initializing edit form state with current profile values.
+   - Enclosed inside `KeyboardAvoidingView` (`Platform.OS === 'ios' ? 'padding' : undefined`) to ensure smooth usability on iOS, Android, and Web when virtual keyboards appear.
+
+3. **Edit Profile UI & Layout**:
+   - **Modal Header**:
+     - Left action: "Cancel" button (`colors.textSecondary`), discarding unsaved changes and closing the modal.
+     - Center title: "Edit Profile" in 17px semi-bold (`fontFamilies.sansBold`, `colors.textPrimary`).
+     - Right action: "Save" primary button (`backgroundColor: colors.primary`, white text `#FFFFFF`), persisting edited values to local profile state and updating the Hero Card instantly.
+   - **Photo Picker UI Hook**:
+     - Large circular avatar preview reflecting the current scholar avatar.
+     - Integrated camera badge overlay (`backgroundColor: colors.primary`, `<Camera size={13} color="#FFFFFF" />`) at the bottom-right corner.
+     - "Change Photo" pill button (`backgroundColor: colors.surfaceSubtle`, `borderColor: colors.borderSubtle`, `<Camera size={13} color={colors.primary} />`) triggering the device photo selection hook alert.
+   - **Form Fields (System Tokens)**:
+     - All inputs styled with `backgroundColor: colors.surfaceSubtle`, `borderColor: colors.borderSubtle`, `padding: 12`, `borderRadius: 8`, and `color: colors.textPrimary`:
+       1. **Full Name**: Single-line text input (default: `"Anik Khondokar"`).
+       2. **Department**: Single-line text input (default: `"CSE"`).
+       3. **Batch / Cohort**: Locked / read-only input with subtle `<Lock size={10} />` badge and disabled opacity (`Batch 14`).
+       4. **Bio & Research Focus**: Multiline text input (`multiline={true}`, `numberOfLines={4}`, `minHeight: 88`, `textAlignVertical: 'top'`) initialized with the researcher's bio.
+
+4. **Strict Isolation & Layout Clearances**:
+   - Maintained global top clearance (`paddingTop: insets.top + 16`) and floating tab bar clearance (`contentContainerStyle={{ paddingBottom: 120 }}`).
+   - Did not alter Academic Links, Publications, or Currently Working On sections.
+
+---
+
+## Testing Results
+
+1. **TypeScript Type Check**:
+   - Command: `npx tsc --noEmit`
+   - Result: **0 errors** (Clean compilation).
+
+2. **Production Bundler Verification**:
+   - Command: `npx expo export --output-dir /tmp/test-export-edit-profile`
+   - Result: **Success (Exit code 0)** — Generated Android HBC (`5.52 MB`), iOS HBC (`5.52 MB`), and Web (`3.49 MB`) bundles with 99 assets.
+
+3. **Web Distribution Sync**:
+   - Command: `npx expo export -p web`
+   - Result: **Success (Exit code 0)** — Synchronized `./dist` with edited profile flow.
+
+---
 *Signed off by: Senior React Native Developer & UI/UX Systems Engineer*
+
