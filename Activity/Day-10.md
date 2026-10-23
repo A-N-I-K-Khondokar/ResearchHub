@@ -145,4 +145,47 @@ Resolve typography scale inconsistencies, fix action buttons for a proper "Self-
    - Result: **Success (Exit code 0)** — Synchronized `./dist` with polished profile screen.
 
 ---
+
+## Part 4: UI Polish — Centered Hero Layout & Header Removal
+
+### Objective
+Remove the redundant top screen header ("Profile") and restructure the Hero Card's top section from a horizontal row into a centered, vertical stack (Avatar $\rightarrow$ Name $\rightarrow$ Credentials $\rightarrow$ Bio), improving visual balance and giving the scholar identity a focal, personalized presentation.
+
+### Work Completed & Technical Implementation
+
+1. **Removal of Redundant Screen Title**:
+   - Completely deleted the top screen title block (`<View style={styles.topBar}>...<Text style={styles.screenTitle}>Profile</Text></View>`).
+   - Cleaned up obsolete `topBar` and `screenTitle` styles from `StyleSheet.create`.
+   - Outermost padding `paddingTop: insets.top + 16` now flows directly into the top of the Hero Card.
+
+2. **Centered Vertical Hero Stack**:
+   - Converted the top section container (`styles.heroCenteredTop`) to a vertical flex stack with `alignItems: 'center'`.
+   - **Avatar First**: Centered the 88×88 circular profile picture at the top of the card with its absolute positioned "Verified" check badge (`backgroundColor: colors.primary`, white check icon) attached cleanly to the bottom-right corner.
+   - **Info Underneath**: Positioned scholar details directly below the avatar with `marginTop: 12` and `gap: 4`:
+     - **Name**: Rendered in 24px **Source Serif 4 Bold** (`fontFamilies.serifBold`) with `textAlign: 'center'`.
+     - **Credentials**: "CSE • Batch 14 • Dept of CS & Engineering" with `<GraduationCap size={14} />` centered horizontally (`justifyContent: 'center'`, `textAlign: 'center'`).
+     - **Bio**: "Focusing on applied machine learning and computer vision with an emphasis on low-resource Bangla NLP." centered with `textAlign: 'center'` and subtle horizontal padding.
+
+3. **Preservation of Existing Sections & Clearances**:
+   - Kept all action controls (Edit Profile, Settings icon button), Stats strip (Connections 148, Publications 6, Open Projects 4), Research Interests, Currently Working On, Research & Publications, and the unified vertical Academic Links card completely intact.
+   - Maintained global top clearance (`paddingTop: insets.top + 16`) and floating tab bar clearance (`paddingBottom: 120`).
+   - Scope isolated strictly to `src/app/(tabs)/profile.tsx`.
+
+---
+
+## Testing Results
+
+1. **TypeScript Type Check**:
+   - Command: `npx tsc --noEmit`
+   - Result: **0 errors** (Clean compilation).
+
+2. **Production Bundler Verification**:
+   - Command: `npx expo export --output-dir /tmp/test-export-profile-centered`
+   - Result: **Success (Exit code 0)** — Generated Android HBC (`5.51 MB`), iOS HBC (`5.52 MB`), and Web (`3.48 MB`) bundles with 99 assets.
+
+3. **Web Distribution Sync**:
+   - Command: `npx expo export -p web`
+   - Result: **Success (Exit code 0)** — Synchronized `./dist` with centered hero profile screen.
+
+---
 *Signed off by: Senior React Native Developer & UI/UX Systems Engineer*

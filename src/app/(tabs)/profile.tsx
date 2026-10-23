@@ -113,16 +113,7 @@ export default function ProfileTab() {
         showsVerticalScrollIndicator={false}
       >
         {/* ======================================================== */}
-        {/* TOP BAR / SCREEN HEADER                                  */}
-        {/* ======================================================== */}
-        <View style={styles.topBar}>
-          <Text style={[styles.screenTitle, { color: colors.textPrimary }]}>
-            Profile
-          </Text>
-        </View>
-
-        {/* ======================================================== */}
-        {/* SECTION 1: THE HERO CARD                                 */}
+        {/* SECTION 1: THE HERO CARD (CENTERED VERTICAL STACK)       */}
         {/* ======================================================== */}
         <View
           style={[
@@ -133,9 +124,9 @@ export default function ProfileTab() {
             },
           ]}
         >
-          {/* Top Row: Avatar (with Verified Badge) + Info */}
-          <View style={styles.heroTopRow}>
-            {/* Avatar Column with Fixed FlexShrink */}
+          {/* Centered Top Stack: Avatar -> Info */}
+          <View style={styles.heroCenteredTop}>
+            {/* Avatar First (88x88 with Verified Badge) */}
             <View style={styles.avatarContainer}>
               <Avatar
                 name="Anik Khondokar"
@@ -157,12 +148,9 @@ export default function ProfileTab() {
               </View>
             </View>
 
-            {/* Info Column with Text Wrap */}
-            <View style={styles.heroInfoColumn}>
-              <Text
-                style={[styles.heroName, { color: colors.textPrimary }]}
-                numberOfLines={1}
-              >
+            {/* Info Underneath (Centered Text) */}
+            <View style={styles.heroInfoCentered}>
+              <Text style={[styles.heroName, { color: colors.textPrimary }]}>
                 Anik Khondokar
               </Text>
 
@@ -175,16 +163,12 @@ export default function ProfileTab() {
                 />
                 <Text
                   style={[styles.credentialsText, { color: colors.textSecondary }]}
-                  numberOfLines={2}
                 >
                   CSE • Batch 14 • Dept of CS & Engineering
                 </Text>
               </View>
 
-              <Text
-                style={[styles.bioText, { color: colors.textSecondary }]}
-                numberOfLines={3}
-              >
+              <Text style={[styles.bioText, { color: colors.textSecondary }]}>
                 Focusing on applied machine learning and computer vision with an emphasis on low-resource Bangla NLP.
               </Text>
             </View>
@@ -658,17 +642,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.screenHorizontal,
   },
 
-  // Top Bar
-  topBar: {
-    marginBottom: spacing.md,
-  },
-  screenTitle: {
-    ...typography.display,
-    fontSize: 28,
-    lineHeight: 34,
-    fontFamily: fontFamilies.serifBold,
-  },
-
   // Section 1: Hero Card
   heroCard: {
     borderRadius: 16,
@@ -676,16 +649,16 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     marginBottom: spacing.lg,
   },
-  heroTopRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 14,
+  heroCenteredTop: {
+    alignItems: 'center',
+    paddingVertical: spacing.xs,
   },
   avatarContainer: {
     position: 'relative',
-    flexShrink: 0, // CRITICAL: mobile-first flexbox fix to preserve circular avatar
     width: 88,
     height: 88,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   avatarImage: {
     width: 88,
@@ -703,35 +676,40 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  heroInfoColumn: {
-    flex: 1,
-    flexShrink: 1, // CRITICAL: text wraps cleanly without pushing the avatar
+  heroInfoCentered: {
+    alignItems: 'center',
+    marginTop: 12,
+    gap: 4,
+    width: '100%',
+    paddingHorizontal: spacing.xs,
   },
   heroName: {
     fontSize: 24,
     lineHeight: 30,
     fontFamily: fontFamilies.serifBold,
+    textAlign: 'center',
   },
   credentialsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 4,
+    justifyContent: 'center',
   },
   credentialsIcon: {
     marginRight: 5,
-    flexShrink: 0,
   },
   credentialsText: {
     fontSize: 14,
     fontFamily: fontFamilies.sansMedium,
     lineHeight: 20,
-    flex: 1,
+    textAlign: 'center',
   },
   bioText: {
     fontSize: 14,
     fontFamily: fontFamilies.sansRegular,
     lineHeight: 20,
-    marginTop: 6,
+    textAlign: 'center',
+    paddingHorizontal: spacing.sm,
+    marginTop: 2,
   },
 
   // Hero Self-Profile Actions
