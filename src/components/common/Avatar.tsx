@@ -9,6 +9,8 @@ export interface AvatarProps {
   uri?: string | null;
   name?: string;
   size?: AvatarSize;
+  shape?: 'circle' | 'rounded';
+  borderRadius?: number;
   badge?: boolean;
   badgeColor?: string;
   style?: ViewStyle;
@@ -33,13 +35,29 @@ export const Avatar: React.FC<AvatarProps> = ({
   uri,
   name,
   size = 'md',
+  shape = 'circle',
+  borderRadius: customRadius,
   badge = false,
   badgeColor,
   style,
 }) => {
   const { colors } = useTheme();
-  const { dimension, fontSize, radius: borderRadius } = sizeMap[size];
+  const { dimension: defaultDimension, fontSize, radius: defaultRadius } = sizeMap[size];
   const [hasError, setHasError] = React.useState(false);
+
+  const dimension =
+    style && 'width' in style && typeof style.width === 'number'
+      ? style.width
+      : defaultDimension;
+
+  const effectiveRadius =
+    customRadius !== undefined
+      ? customRadius
+      : style && 'borderRadius' in style && typeof style.borderRadius === 'number'
+      ? style.borderRadius
+      : shape === 'rounded'
+      ? 12
+      : defaultRadius;
 
   const effectiveBadgeColor = badgeColor || colors.success;
 
@@ -56,8 +74,9 @@ export const Avatar: React.FC<AvatarProps> = ({
     {
       width: dimension,
       height: dimension,
-      borderRadius,
+      borderRadius: effectiveRadius,
       backgroundColor: colors.surfaceSubtle,
+      overflow: 'hidden' as const,
     },
     style,
   ];
@@ -67,7 +86,15 @@ export const Avatar: React.FC<AvatarProps> = ({
       {imageSource ? (
         <Image
           source={imageSource}
-          style={[styles.image, { width: dimension, height: dimension, borderRadius, backgroundColor: colors.surfaceSubtle }]}
+          style={[
+            styles.image,
+            {
+              width: dimension,
+              height: dimension,
+              borderRadius: effectiveRadius,
+              backgroundColor: colors.surfaceSubtle,
+            },
+          ]}
           resizeMode="cover"
           onError={() => setHasError(true)}
         />
@@ -78,7 +105,7 @@ export const Avatar: React.FC<AvatarProps> = ({
             {
               width: dimension,
               height: dimension,
-              borderRadius,
+              borderRadius: effectiveRadius,
               backgroundColor: colors.primaryLight,
               borderColor: colors.border,
             },
