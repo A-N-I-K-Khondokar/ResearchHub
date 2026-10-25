@@ -936,6 +936,68 @@ Update strictly the **Research Topics** section on the Explore screen (`src/app/
 ---
 *Signed off by: Senior UI/UX Systems Engineer & React Native Architect*
 
+---
+
+## Final UI Verification — Academic Cobalt Gradient & Floating Buttons QA
+
+**Date:** October 26, 2026  
+**Phase:** Phase 2 Button System Visual QA & Touch-Target Verification  
+**Status:** Pass with noted platform implementation characteristics
+
+### 1. Screens & Components Audited
+*   **Explore Feed & Discovery:**
+    *   `src/components/cards/ResearcherDiscoveryCard.tsx`: Connect (primary floating) and View Profile (clean secondary surface); active research callout, topic tags.
+    *   `src/components/cards/ResearcherCard.tsx`: Connect (primary floating), outline state (secondary surface), connected and pending states.
+    *   `src/app/(tabs)/explore.tsx`: `viewActivityFeedBtn` (secondary floating action button), search bar trigger.
+*   **Notifications:**
+    *   `src/app/(tabs)/notifications.tsx`: Connection request Accept (primary floating) and Decline (secondary surface).
+*   **Profile & Modals:**
+    *   `src/app/(tabs)/profile.tsx`: Edit Profile and Settings (secondary surfaces with restrained elevation), Settings Modal Done button (primary floating), Edit Profile Modal Save button (primary floating).
+*   **Authentication & Onboarding:**
+    *   `src/components/common/Button.tsx`: Centralized primary, secondary, outline, ghost, loading, and disabled states.
+    *   `src/app/(auth)/login.tsx`, `sign-up.tsx`, `forgot-password.tsx`, `verify-email.tsx`: Full-width primary CTA buttons and Google auth secondary container.
+*   **Routing & Not-Found:**
+    *   `src/app/+not-found.tsx`: Back to Research Hub primary floating link.
+
+### 2. Confirmed Defects & Targeted Fixes
+1.  **`src/components/cards/ResearcherCard.tsx` (Connected/Pending State Style Leakage on Web):**
+    *   *Defect:* `floatingButtonTokens.primary` was previously placed unconditionally before conditional overrides in the style array. On React Native Web, CSS `background-image` takes precedence over `background-color`, and `shadowOpacity: 0` does not clear `boxShadow`. As a result, connected/pending buttons on Web could retain the cobalt gradient background and shadow.
+    *   *Fix:* Converted styling to a mutually exclusive ternary pattern matching `ResearcherDiscoveryCard.tsx`. `floatingButtonTokens.primary` is strictly applied only when unconnected and not pending.
+2.  **`src/app/(tabs)/notifications.tsx` (Minimum Touch-Target Accessibility):**
+    *   *Defect:* Accept and Decline action buttons had compact padding (`paddingVertical: 7`) without explicit touch target expansion.
+    *   *Fix:* Added `hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}` to both buttons, expanding the effective hit area comfortably to $\ge 44\text{dp}$.
+3.  **`src/app/(tabs)/profile.tsx` (Modal Save Action Hit Slop):**
+    *   *Fix:* Added `hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}` to `editModalSaveBtn` to guarantee accessibility compliance.
+4.  **`src/components/cards/ResearcherCard.tsx` (Connect Button Hit Slop):**
+    *   *Fix:* Added `hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}` to `connectButton`.
+
+### 3. Platform & Theme Verification Notes
+*   **Web:**
+    *   Renders authentic `linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)` via CSS `backgroundImage` with diffused soft cobalt `boxShadow: 0 4px 14px rgba(37, 99, 235, 0.35)`.
+    *   Press feedback applies darker gradient `linear-gradient(135deg, #1D4ED8 0%, #1E40AF 100%)` with reduced shadow (`0 2px 6px rgba(37, 99, 235, 0.25)`).
+*   **iOS & Android Native:**
+    *   Because `expo-linear-gradient` is not installed (prompt forbids introducing unnecessary dependencies), native builds use solid Academic Cobalt `#2563EB` with platform-native cobalt diffused shadow (`shadowColor: '#2563EB'`, `shadowOpacity: 0.35`, `elevation: 4`). On press, background darkens to `#1D4ED8` with reduced elevation (`elevation: 2`, `shadowOpacity: 0.22`).
+    *   *Assessment:* Institutional character and floating elevation are consistent with zero runtime overhead or native linking complexity.
+*   **Dark Mode Compatibility:**
+    *   Secondary buttons switch cleanly to `colors.surfaceContainer` with `colors.borderSubtle` and `colors.textPrimary` (`#FAF8FF`), preventing harsh white borders or unwanted bright glows. Primary cobalt buttons maintain high optical weight against dark oceanic backgrounds.
+
+### 4. Verification Commands & Actual Results
+1.  **TypeScript Static Compilation:**
+    *   Command: `npx tsc --noEmit`
+    *   Exit Status: `0` (Success, 0 errors).
+2.  **Expo Production Bundle Export:**
+    *   Command: `npx expo export --output-dir /tmp/cse-research-hub-ui-qa`
+    *   Exit Status: `0` (Success).
+    *   Generated Bundles:
+        *   Web: `_expo/static/js/web/entry-9b1a110805d643918aaf33b8b7411ab0.js` (`3.5 MB`)
+        *   Android: `_expo/static/js/android/entry-fcfae7193e4f7267829ee570fe5e9675.hbc` (`5.53 MB` Hermes Bytecode)
+        *   iOS: `_expo/static/js/ios/entry-97d1cb26ca9e0a3cdb263b02a3e1b853.hbc` (`5.53 MB` Hermes Bytecode)
+        *   Static Assets: 99 assets resolved and bundled.
+    *   Temporary directory `/tmp/cse-research-hub-ui-qa` cleanly removed after verification.
+
+---
+*Signed off by: Senior UI/UX Systems Engineer & React Native Architect*
+
 
 
 

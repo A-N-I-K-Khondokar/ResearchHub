@@ -108,35 +108,30 @@ export const ResearcherCard: React.FC<ResearcherCardProps> = ({
         <TouchableOpacity
           activeOpacity={0.8}
           onPress={onConnectPress}
+          hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
           style={[
             styles.connectButton,
-            // 1. Default state: Academic Cobalt floating button
-            floatingButtonTokens.primary,
-            // 2. Explicit outline override: Clean surface secondary button
-            isOutlineButton && !isConnected && !isPending && [
-              {
-                backgroundColor: isDark ? colors.surfaceContainer : colors.surface,
-                borderWidth: 1,
-                borderColor: isDark ? colors.borderSubtle : '#D4D8E2',
-              },
-              floatingButtonTokens.secondary,
-            ],
-            // 3. Pending / Requested state: Subtle surface
-            isPending && {
-              backgroundColor: isDark ? colors.surfaceSubtle : colors.surface,
-              borderWidth: 1,
-              borderColor: colors.borderSubtle,
-              shadowOpacity: 0,
-              elevation: 0,
-            },
-            // 4. Connected state: Soft secondary container with mint outline
-            isConnected && {
-              backgroundColor: colors.secondaryLight,
-              borderWidth: 1,
-              borderColor: colors.secondary,
-              shadowOpacity: 0,
-              elevation: 0,
-            },
+            isConnected
+              ? {
+                  backgroundColor: colors.secondaryLight,
+                  borderWidth: 1,
+                  borderColor: colors.secondary,
+                }
+              : isPending
+              ? {
+                  backgroundColor: isDark ? colors.surfaceSubtle : colors.surface,
+                  borderWidth: 1,
+                  borderColor: colors.borderSubtle,
+                }
+              : isOutlineButton
+              ? [
+                  {
+                    backgroundColor: isDark ? colors.surfaceContainer : colors.surface,
+                    borderColor: isDark ? colors.borderSubtle : '#D4D8E2',
+                  },
+                  floatingButtonTokens.secondary,
+                ]
+              : floatingButtonTokens.primary,
           ]}
           accessibilityRole="button"
         accessibilityLabel={

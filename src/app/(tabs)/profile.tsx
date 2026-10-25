@@ -732,6 +732,7 @@ export default function ProfileTab() {
               <TouchableOpacity
                 onPress={handleSaveProfile}
                 activeOpacity={0.8}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 style={[
                   styles.editModalSaveBtn,
                   floatingButtonTokens.primary,

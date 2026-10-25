@@ -242,6 +242,7 @@ export default function NotificationsTab() {
                   <TouchableOpacity
                     activeOpacity={0.8}
                     onPress={() => handleAcceptConnection(item.id)}
+                    hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                     style={[
                       styles.acceptButton,
                       floatingButtonTokens.primary,
@@ -255,6 +256,7 @@ export default function NotificationsTab() {
                   <TouchableOpacity
                     activeOpacity={0.8}
                     onPress={() => handleDeclineConnection(item.id)}
+                    hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                     style={[
                       styles.declineButton,
                       {
