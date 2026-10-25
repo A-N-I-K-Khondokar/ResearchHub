@@ -567,7 +567,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   listContent: {
-    paddingBottom: 120, // CRITICAL: floating bottom tab bar clearance
+    paddingBottom: 32,
   },
   sectionHeaderContainer: {
     paddingHorizontal: spacing.md,

@@ -161,7 +161,7 @@ export default function ProfileTab() {
 
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: 120 }]} // CRITICAL: Tab Bar Clearance
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: 32 }]}
         showsVerticalScrollIndicator={false}
       >
         {/* ======================================================== */}

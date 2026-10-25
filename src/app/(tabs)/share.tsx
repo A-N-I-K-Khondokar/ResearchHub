@@ -552,10 +552,10 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-  // CRITICAL: 120px bottom padding so content clears the floating pill tab bar
+  // Bottom padding to provide clean clearance above classic bottom tab bar
   scrollContent: {
     paddingHorizontal: spacing.screenHorizontal,
-    paddingBottom: 120,
+    paddingBottom: 32,
   },
   identityHeader: {
     flexDirection: 'row',

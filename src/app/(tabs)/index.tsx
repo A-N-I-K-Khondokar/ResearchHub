@@ -138,13 +138,7 @@ export default function HomeFeedScreen() {
     <View style={[styles.safeArea, { backgroundColor: colors.surface }]}>
       {/* Header */}
       <HomeHeader
-        userName={currentUser.name}
-        userAvatar={currentUser.photoURL || currentUser.avatar}
-        unreadNotificationsCount={unreadNotificationsCount}
-        onAvatarPress={() => router.push('/(tabs)/profile' as any)}
         onSearchPress={() => router.push('/(explore)/search' as any)}
-        onNotificationPress={() => router.push('/(tabs)/notifications' as any)}
-        style={{ paddingTop: insets.top + 16 }}
       />
 
       <ScrollView
@@ -374,7 +368,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 120,
+    paddingBottom: 32,
   },
   topicSection: {
     borderBottomWidth: 1,
@@ -423,6 +417,6 @@ const styles = StyleSheet.create({
     fontFamily: fontFamilies.sansSemiBold,
   },
   bottomSpacer: {
-    height: 40,
+    height: 16,
   },
 });

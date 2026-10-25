@@ -1,54 +1,53 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Tabs } from 'expo-router';
-import { Home, Compass, Plus, Bell, User } from 'lucide-react-native';
+import { Home, Compass, PlusCircle, Bell, User } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/ThemeContext';
+import { fontFamilies } from '@/constants';
 
 export default function TabLayout() {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
 
-  const bottomMargin = insets.bottom > 0 ? insets.bottom + 8 : 20;
+  const bottomInset = insets.bottom > 0 ? insets.bottom : 6;
+  const barHeight = 60 + bottomInset;
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarShowLabel: false,
-        tabBarLabelPosition: 'beside-icon',
-        tabBarActiveTintColor: colors.primary,
+        tabBarShowLabel: true,
+        tabBarLabelPosition: 'below-icon',
+        tabBarActiveTintColor: '#2563EB', // Academic Cobalt
         tabBarInactiveTintColor: colors.textSecondary,
         tabBarStyle: {
-          position: 'absolute',
-          bottom: bottomMargin,
-          left: 20,
-          right: 20,
-          height: 64,
           backgroundColor: colors.surface,
-          borderRadius: 32,
-          borderWidth: 1,
-          borderColor: colors.borderSubtle,
           borderTopWidth: 1,
           borderTopColor: colors.borderSubtle,
-          shadowColor: '#071A3E',
-          shadowOffset: { width: 0, height: 6 },
-          shadowOpacity: isDark ? 0 : 0.08,
-          shadowRadius: 16,
-          elevation: isDark ? 0 : 4,
-          paddingBottom: 0,
-          paddingTop: 0,
+          borderWidth: 0,
+          height: barHeight,
+          paddingBottom: bottomInset,
+          paddingTop: 4,
+          elevation: 0,
+          shadowOpacity: 0,
+        },
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontFamily: fontFamilies.sansMedium,
+          fontWeight: '500',
+          lineHeight: 14,
+          marginTop: 2,
+          marginBottom: 0,
         },
         tabBarItemStyle: {
-          height: 64,
           justifyContent: 'center',
           alignItems: 'center',
+          paddingVertical: 2,
         },
         tabBarIconStyle: {
-          width: 44,
-          height: 44,
-          justifyContent: 'center',
-          alignItems: 'center',
+          width: 24,
+          height: 24,
         },
       }}
     >
@@ -58,7 +57,7 @@ export default function TabLayout() {
           title: 'Home',
           tabBarIcon: ({ color, focused }) => (
             <View style={styles.tabIconWrapper}>
-              <Home size={24} color={color} strokeWidth={focused ? 2.5 : 2} />
+              <Home size={22} color={color} strokeWidth={focused ? 2.3 : 1.8} />
             </View>
           ),
         }}
@@ -69,7 +68,7 @@ export default function TabLayout() {
           title: 'Explore',
           tabBarIcon: ({ color, focused }) => (
             <View style={styles.tabIconWrapper}>
-              <Compass size={24} color={color} strokeWidth={focused ? 2.5 : 2} />
+              <Compass size={22} color={color} strokeWidth={focused ? 2.3 : 1.8} />
             </View>
           ),
         }}
@@ -78,24 +77,9 @@ export default function TabLayout() {
         name="share"
         options={{
           title: 'Share',
-          tabBarIcon: () => (
-            <View
-              style={[
-                styles.centerButton,
-                {
-                  backgroundColor: colors.primary,
-                  shadowColor: colors.primary,
-                  shadowOpacity: isDark ? 0 : 0.25,
-                  elevation: isDark ? 0 : 3,
-                },
-              ]}
-            >
-              <Plus
-                size={24}
-                color="#FFFFFF"
-                strokeWidth={2.6}
-                style={styles.centerIcon}
-              />
+          tabBarIcon: ({ color, focused }) => (
+            <View style={styles.tabIconWrapper}>
+              <PlusCircle size={22} color={color} strokeWidth={focused ? 2.3 : 1.8} />
             </View>
           ),
         }}
@@ -103,11 +87,11 @@ export default function TabLayout() {
       <Tabs.Screen
         name="notifications"
         options={{
-          title: 'Alerts',
+          title: 'Notifications',
           tabBarIcon: ({ color, focused }) => (
             <View style={styles.tabIconWrapper}>
               <View style={styles.iconWithBadge}>
-                <Bell size={24} color={color} strokeWidth={focused ? 2.5 : 2} />
+                <Bell size={22} color={color} strokeWidth={focused ? 2.3 : 1.8} />
                 <View
                   style={[
                     styles.notificationDot,
@@ -125,7 +109,7 @@ export default function TabLayout() {
           title: 'Profile',
           tabBarIcon: ({ color, focused }) => (
             <View style={styles.tabIconWrapper}>
-              <User size={24} color={color} strokeWidth={focused ? 2.5 : 2} />
+              <User size={22} color={color} strokeWidth={focused ? 2.3 : 1.8} />
             </View>
           ),
         }}
@@ -136,27 +120,10 @@ export default function TabLayout() {
 
 const styles = StyleSheet.create({
   tabIconWrapper: {
-    width: 44,
-    height: 44,
+    width: 28,
+    height: 24,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  centerButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 0,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  centerIcon: {
-    alignSelf: 'center',
-    margin: 0,
-    padding: 0,
   },
   iconWithBadge: {
     position: 'relative',
@@ -165,10 +132,10 @@ const styles = StyleSheet.create({
   },
   notificationDot: {
     position: 'absolute',
-    top: 0,
-    right: 0,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    top: -1,
+    right: -2,
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
   },
 });

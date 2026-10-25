@@ -998,9 +998,108 @@ Update strictly the **Research Topics** section on the Explore screen (`src/app/
 ---
 *Signed off by: Senior UI/UX Systems Engineer & React Native Architect*
 
+---
 
+## Global Navigation Redesign — Institutional Header & Institutional Classic Bottom Navigation
 
+**Date:** October 26, 2026  
+**Objective:** Redesign the application's global top navigation and bottom navigation to create a cohesive, polished, professional academic research platform conforming to **Option A (Institutional Header)** and **Option 17 (Institutional Classic Bottom Navigation)**.
 
+### 1. Navigation Components Modified & Implemented
+*   **`src/components/layout/InstitutionalHeader.tsx` (New Component):**
+    *   Implements **Option A — Institutional Header** with a clean, solid surface adhering to active light and dark themes.
+    *   **Left Branding:** Academic crest/monogram badge (`GraduationCap` icon in Academic Cobalt `#2563EB` inside soft container `#EFF6FF` / dark container `rgba(37, 99, 235, 0.16)`), authoritative Title ("CSE Research Hub"), and institutional subtitle ("Department of CSE").
+    *   **Right Utility Actions:** Compact cluster containing Theme Toggle (`Sun`/`Moon`), Search (`Search`), Notifications (`Bell` with unread count badge), and Profile Avatar (`Avatar` size `sm`).
+    *   **Divider & Elevation:** Hairline divider (`borderBottomWidth: 1, borderBottomColor: colors.borderSubtle`), minimal ambient shadow (`elevation: 0`).
+    *   **Responsive Layout:** Automatically handles `insets.top`, centers on desktop/web with `maxWidth: 1200`, and enforces flex shrink bounds on mobile viewports.
+*   **`src/components/home/HomeHeader.tsx`:**
+    *   Refactored to cleanly wrap and delegate to `InstitutionalHeader`, preserving all existing props and event handlers (`userName`, `userAvatar`, `unreadNotificationsCount`, `onAvatarPress`, `onSearchPress`, `onNotificationPress`).
+*   **`src/components/layout/index.ts`:**
+    *   Exported `InstitutionalHeader` for centralized reusability across layouts.
+*   **`src/app/(tabs)/_layout.tsx`:**
+    *   Implements **Option 17 — Institutional Classic Bottom Navigation**.
+    *   Replaced floating rounded pill (`position: absolute`, `borderRadius: 32`, `bottom: 20`, heavy shadow) with an anchored, full-width solid bar (`colors.surface`, `borderTopWidth: 1`, `borderTopColor: colors.borderSubtle`, `borderRadius: 0`).
+    *   Configured exact 5 tabs in canonical order: 1. Home, 2. Explore, 3. Share, 4. Notifications, 5. Profile.
+    *   `tabBarShowLabel: true`, `tabBarLabelPosition: 'below-icon'`, `tabBarActiveTintColor: '#2563EB'`, `tabBarInactiveTintColor: colors.textSecondary`.
+    *   **Share Tab:** Replaced oversized floating circle with an even, standard navigation tab item (`PlusCircle` size 22, label "Share").
+    *   **Notifications Tab:** Preserved notification indicator dot badge (`colors.accent`) on the `Bell` icon.
+    *   Safe-area compliance: Dynamic height (`60 + insets.bottom`) ensuring full accessibility across notch and home-indicator devices.
+*   **Tab Screen Clearances (`index.tsx`, `explore.tsx`, `share.tsx`, `notifications.tsx`, `profile.tsx`):**
+    *   Tightened `scrollContent` bottom padding from `120` to `32` across all five tabs to eliminate redundant dead space previously required by the floating pill.
 
+### 2. Screens, Platforms & Themes Inspected
+*   **Screens Verified:**
+    *   Home Feed (`(tabs)/index.tsx`)
+    *   Explore Discovery Hub (`(tabs)/explore.tsx`)
+    *   Share Work Tab (`(tabs)/share.tsx`)
+    *   Notifications Center (`(tabs)/notifications.tsx`)
+    *   Profile View (`(tabs)/profile.tsx`)
+    *   Contextual Screen: Unified Search (`(explore)/search.tsx`) — verified back button & search input preserved.
+    *   Authentication Screen: Login (`(auth)/login.tsx`) — verified global navigation is omitted as required.
+*   **Platforms & Dimensions Inspected:**
+    *   Desktop / Web Viewport (`1440x755`): Full-width anchored classic bar, centered max-width layout.
+    *   Mobile Viewport (`390x844`): Compact header cluster, single-line brand title, evenly distributed 5-tab bar with below-icon labels.
+*   **Themes Inspected:**
+    *   Light Mode: Solid white surface, low-contrast subtle border, Academic Cobalt active accents.
+    *   Dark Mode: Deep navy slate surface, subtle dark border, amber Sun toggle, cobalt active tab highlights.
 
+### 3. Verification Commands & Actual Results
+1.  **TypeScript Compilation:**
+    *   Command: `npx tsc --noEmit`
+    *   Exit Status: `0` (Success, 0 errors).
+2.  **Expo Production Bundle Export:**
+    *   Command: `npx expo export --output-dir /tmp/cse-research-hub-navigation-qa`
+    *   Exit Status: `0` (Success).
+    *   Bundles Generated:
+        *   Web: `_expo/static/js/web/entry-974a78aa23f06f29d82d402664222164.js` (`3.5 MB`)
+        *   iOS: `_expo/static/js/ios/entry-4cee78e257b71b7e0b8f1a1fed79b417.hbc` (`5.54 MB` Hermes Bytecode)
+        *   Android: `_expo/static/js/android/entry-b8d16c03dbb7bcef2a090c9f669087dd.hbc` (`5.54 MB` Hermes Bytecode)
+        *   Static Assets: 99 assets bundled.
+    *   Temporary directory `/tmp/cse-research-hub-navigation-qa` cleanly removed.
+3.  **Visual Runtime Evidence (Screenshots Saved in Brain Directory):**
+    *   `home_tab_1792957830689.png`: Desktop Home tab with Institutional Header & Classic Bottom Bar.
+    *   `explore_tab_1792957847573.png`: Explore tab with active Academic Cobalt tab highlight.
+    *   `share_tab_1792957865963.png`: Share tab with even tab styling.
+    *   `notifications_tab_1792957877002.png`: Notifications tab with active indicator dot and badge.
+    *   `profile_tab_1792957888744.png`: Profile tab.
+    *   `dark_mode_nav_1792957925149.png`: Dark mode theme verification.
+    *   `search_screen_1792957996091.png`: Contextual search screen preserving back button.
+    *   `login_screen_1792958000550.png`: Auth screen without global navigation.
+    *   `mobile_home_tab_1792958028604.png`: Mobile 390x844 layout.
 
+### 4. Remaining Limitations
+*   Phase 3 backend integrations (Firebase Auth, Cloud Firestore) are deferred until explicitly requested.
+*   All data displayed remains grounded in the local Phase 2 academic mock datasets.
+
+---
+*Signed off by: Senior UI/UX Systems Engineer & React Native Architect*
+
+---
+
+## Global Navigation Correction — Top Header Actions Order & Visibility
+
+**Date:** October 26, 2026  
+**Objective:** Correct the global top header actions order and visibility in `src/components/layout/InstitutionalHeader.tsx` and `src/components/home/HomeHeader.tsx`:
+- **Left:** Existing CSE Research Hub branding (crest badge, title, subtitle).
+- **Right:**
+  1. Light/dark theme toggle (`Sun` / `Moon`).
+  2. Search icon/button (`Search`).
+- Theme toggle appears immediately before Search; Search is the last action on the right.
+- Removed Notification bell/badge and Profile avatar from the global top header (preserving Notifications and Profile tabs, screens, and badges elsewhere).
+
+### 1. Files Modified
+*   `src/components/layout/InstitutionalHeader.tsx`: Removed notification and profile actions from the header utility cluster. Reordered right actions to strictly: 1. Theme toggle, 2. Search button.
+*   `src/components/home/HomeHeader.tsx`: Delegated directly to `InstitutionalHeader`.
+*   `src/app/(tabs)/index.tsx`: Cleaned up unused header props, retaining `onSearchPress`.
+
+### 2. Validation & Quality Assurance
+1.  **TypeScript Static Compilation:**
+    *   Command: `npx tsc --noEmit`
+    *   Exit Status: `0` (0 errors).
+2.  **Expo Production Bundle Export:**
+    *   Command: `npx expo export --output-dir /tmp/cse-research-hub-navigation-final`
+    *   Exit Status: `0` (Success: Web 3.5 MB, iOS 5.53 MB, Android 5.53 MB, 99 assets bundled).
+    *   Temporary output directory `/tmp/cse-research-hub-navigation-final` cleaned up.
+
+---
+*Signed off by: Senior UI/UX Systems Engineer & React Native Architect*
