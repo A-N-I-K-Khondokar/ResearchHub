@@ -19,7 +19,7 @@ import {
   Check,
   CheckCheck,
 } from 'lucide-react-native';
-import { spacing, radius, typography, fontFamilies } from '@/constants';
+import { spacing, radius, typography, fontFamilies, floatingButtonTokens } from '@/constants';
 import { useTheme } from '@/context/ThemeContext';
 import { Avatar } from '@/components/common/Avatar';
 import { mockNotifications } from '@/data';
@@ -244,7 +244,7 @@ export default function NotificationsTab() {
                     onPress={() => handleAcceptConnection(item.id)}
                     style={[
                       styles.acceptButton,
-                      { backgroundColor: colors.primary },
+                      floatingButtonTokens.primary,
                     ]}
                     accessibilityRole="button"
                     accessibilityLabel="Accept connection request"
@@ -258,9 +258,10 @@ export default function NotificationsTab() {
                     style={[
                       styles.declineButton,
                       {
-                        backgroundColor: colors.surfaceSubtle,
-                        borderColor: colors.borderSubtle,
+                        backgroundColor: isDark ? colors.surfaceContainer : colors.surface,
+                        borderColor: isDark ? colors.borderSubtle : '#D4D8E2',
                       },
+                      floatingButtonTokens.secondary,
                     ]}
                     accessibilityRole="button"
                     accessibilityLabel="Decline connection request"
@@ -268,7 +269,7 @@ export default function NotificationsTab() {
                     <Text
                       style={[
                         styles.declineButtonText,
-                        { color: colors.textSecondary },
+                        { color: colors.textPrimary },
                       ]}
                     >
                       Decline
@@ -640,8 +641,8 @@ const styles = StyleSheet.create({
   },
   acceptButton: {
     paddingHorizontal: spacing.md,
-    paddingVertical: 6,
-    borderRadius: radius.full,
+    paddingVertical: 7,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -652,15 +653,16 @@ const styles = StyleSheet.create({
   },
   declineButton: {
     paddingHorizontal: spacing.md,
-    paddingVertical: 6,
-    borderRadius: radius.full,
+    paddingVertical: 7,
+    borderRadius: 12,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   declineButtonText: {
     fontSize: 12.5,
-    fontFamily: fontFamilies.sansMedium,
+    fontFamily: fontFamilies.sansSemiBold,
+    fontWeight: '600',
   },
   statusConfirmedRow: {
     flexDirection: 'row',

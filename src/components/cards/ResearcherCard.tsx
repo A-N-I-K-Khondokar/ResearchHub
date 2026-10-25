@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { UserPlus, Check, Clock } from 'lucide-react-native';
 import { UserProfile } from '../../types';
-import { spacing, radius, typography, fontFamilies, shadows } from '../../constants';
+import { spacing, radius, typography, fontFamilies, shadows, floatingButtonTokens } from '../../constants';
 import { useTheme } from '@/context/ThemeContext';
 import { Avatar } from '../common/Avatar';
 
@@ -105,33 +105,40 @@ export const ResearcherCard: React.FC<ResearcherCardProps> = ({
       </View>
 
       {/* Connect Button */}
-      <TouchableOpacity
-        activeOpacity={0.8}
-        onPress={onConnectPress}
-        style={[
-          styles.connectButton,
-          // 1. Default state: Solid primary pill
-          { backgroundColor: colors.primary },
-          // 2. Explicit outline override (only if explicitly enabled for Connect)
-          isOutlineButton && !isConnected && !isPending && {
-            backgroundColor: colors.surface,
-            borderWidth: 1.5,
-            borderColor: colors.primary,
-          },
-          // 3. Pending / Requested state: Outline pill with subtle surface
-          isPending && {
-            backgroundColor: isDark ? colors.surfaceSubtle : colors.surface,
-            borderWidth: 1.5,
-            borderColor: colors.border,
-          },
-          // 4. Connected state: Soft secondary container with mint outline
-          isConnected && {
-            backgroundColor: colors.secondaryLight,
-            borderWidth: 1,
-            borderColor: colors.secondary,
-          },
-        ]}
-        accessibilityRole="button"
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={onConnectPress}
+          style={[
+            styles.connectButton,
+            // 1. Default state: Academic Cobalt floating button
+            floatingButtonTokens.primary,
+            // 2. Explicit outline override: Clean surface secondary button
+            isOutlineButton && !isConnected && !isPending && [
+              {
+                backgroundColor: isDark ? colors.surfaceContainer : colors.surface,
+                borderWidth: 1,
+                borderColor: isDark ? colors.borderSubtle : '#D4D8E2',
+              },
+              floatingButtonTokens.secondary,
+            ],
+            // 3. Pending / Requested state: Subtle surface
+            isPending && {
+              backgroundColor: isDark ? colors.surfaceSubtle : colors.surface,
+              borderWidth: 1,
+              borderColor: colors.borderSubtle,
+              shadowOpacity: 0,
+              elevation: 0,
+            },
+            // 4. Connected state: Soft secondary container with mint outline
+            isConnected && {
+              backgroundColor: colors.secondaryLight,
+              borderWidth: 1,
+              borderColor: colors.secondary,
+              shadowOpacity: 0,
+              elevation: 0,
+            },
+          ]}
+          accessibilityRole="button"
         accessibilityLabel={
           isConnected
             ? `Connected with ${researcher.name}`
@@ -242,7 +249,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
     height: 38,
-    borderRadius: radius.full,
+    borderRadius: 12,
     width: '100%',
     paddingHorizontal: spacing.sm,
   },

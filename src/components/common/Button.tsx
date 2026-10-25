@@ -8,8 +8,9 @@ import {
   TextStyle,
   View,
   Insets,
+  Platform,
 } from 'react-native';
-import { radius, spacing, typography, fontFamilies } from '@/constants';
+import { radius, spacing, typography, fontFamilies, floatingButtonTokens } from '@/constants';
 import { useTheme } from '@/context/ThemeContext';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'tertiary' | 'destructive';
@@ -56,20 +57,34 @@ export const Button: React.FC<ButtonProps> = ({
 
     switch (variant) {
       case 'primary':
-        list.push({ backgroundColor: pressed ? colors.primaryPressed : colors.primary });
+        list.push(
+          pressed ? floatingButtonTokens.primaryPressed : floatingButtonTokens.primary
+        );
         break;
       case 'secondary':
-        list.push({
-          backgroundColor: pressed ? colors.surfaceHover : colors.secondaryLight,
-          borderWidth: 1,
-          borderColor: colors.secondaryLight,
-        });
+        list.push(
+          {
+            backgroundColor: pressed
+              ? isDark
+                ? colors.surfaceHover
+                : colors.surfaceSubtle
+              : isDark
+              ? colors.surfaceContainer
+              : colors.surface,
+            borderColor: isDark ? colors.borderSubtle : '#D4D8E2',
+          },
+          floatingButtonTokens.secondary
+        );
         break;
       case 'outline':
         list.push({
-          backgroundColor: pressed ? colors.surfaceSubtle : 'transparent',
+          backgroundColor: pressed
+            ? isDark
+              ? colors.surfaceHover
+              : colors.surfaceSubtle
+            : 'transparent',
           borderWidth: 1.5,
-          borderColor: colors.border,
+          borderColor: isDark ? colors.borderSubtle : colors.border,
         });
         break;
       case 'ghost':
@@ -83,15 +98,28 @@ export const Button: React.FC<ButtonProps> = ({
         });
         break;
       case 'destructive':
-        list.push({ backgroundColor: pressed ? colors.error : colors.error });
+        list.push({
+          backgroundColor: pressed ? colors.error : colors.error,
+          shadowColor: colors.error,
+          shadowOffset: { width: 0, height: 3 },
+          shadowOpacity: 0.25,
+          shadowRadius: 6,
+          elevation: 2,
+        });
         break;
     }
 
     if (disabled) {
       list.push({
-        backgroundColor: colors.surfaceSubtle,
-        borderColor: colors.border,
-        opacity: 0.6,
+        backgroundColor: isDark ? colors.surfaceContainerLow : colors.surfaceSubtle,
+        borderColor: colors.borderSubtle,
+        borderWidth: 1,
+        opacity: 0.55,
+        shadowOpacity: 0,
+        elevation: 0,
+        ...(Platform.OS === 'web'
+          ? ({ backgroundImage: 'none', boxShadow: 'none' } as any)
+          : {}),
       });
     }
 
@@ -110,7 +138,7 @@ export const Button: React.FC<ButtonProps> = ({
         list.push({ color: colors.textInverse });
         break;
       case 'secondary':
-        list.push({ color: colors.secondaryDark });
+        list.push({ color: colors.textPrimary });
         break;
       case 'outline':
         list.push({ color: colors.textPrimary });
@@ -144,7 +172,7 @@ export const Button: React.FC<ButtonProps> = ({
       return colors.textInverse;
     }
     if (variant === 'secondary') {
-      return colors.secondaryDark;
+      return colors.textPrimary;
     }
     return colors.primary;
   };
@@ -161,7 +189,7 @@ export const Button: React.FC<ButtonProps> = ({
       hitSlop={hitSlop ?? defaultHitSlop}
       style={({ pressed }) => [
         ...getContainerStyles(pressed),
-        pressed && { opacity: 0.92, transform: [{ scale: 0.992 }] },
+        pressed && { opacity: 0.94, transform: [{ scale: 0.985 }] },
       ]}
     >
       {loading ? (
@@ -202,14 +230,17 @@ const styles = StyleSheet.create({
   // Sizes
   size_sm: {
     height: 36,
+    borderRadius: 12,
     paddingHorizontal: spacing.md,
   },
   size_md: {
     height: 48,
+    borderRadius: 14,
     paddingHorizontal: spacing.lg,
   },
   size_lg: {
     height: 50,
+    borderRadius: 14,
     paddingHorizontal: spacing.xl,
   },
 

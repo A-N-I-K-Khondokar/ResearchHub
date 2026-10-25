@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { UserPlus, Check, Clock, FlaskConical } from 'lucide-react-native';
 import { UserProfile, CurrentWork } from '@/types';
-import { typography, fontFamilies } from '@/constants';
+import { typography, fontFamilies, floatingButtonTokens } from '@/constants';
 import { useTheme } from '@/context/ThemeContext';
 import { Avatar } from '../common/Avatar';
 
@@ -233,17 +233,23 @@ export const ResearcherDiscoveryCard: React.FC<ResearcherDiscoveryCardProps> = (
           hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
           style={[
             styles.connectButton,
-            { backgroundColor: colors.primary },
-            connectionStatus === 'connected' && {
-              backgroundColor: colors.secondaryLight,
-              borderWidth: 1,
-              borderColor: colors.secondary,
-            },
-            connectionStatus === 'pending' && {
-              backgroundColor: colors.surfaceContainerHigh,
-              borderWidth: 1,
-              borderColor: colors.borderSubtle,
-            },
+            connectionStatus === 'connected'
+              ? {
+                  backgroundColor: colors.secondaryLight,
+                  borderWidth: 1,
+                  borderColor: colors.secondary,
+                  shadowOpacity: 0,
+                  elevation: 0,
+                }
+              : connectionStatus === 'pending'
+              ? {
+                  backgroundColor: colors.surfaceContainerHigh,
+                  borderWidth: 1,
+                  borderColor: colors.borderSubtle,
+                  shadowOpacity: 0,
+                  elevation: 0,
+                }
+              : floatingButtonTokens.primary,
           ]}
           accessibilityRole="button"
           accessibilityLabel={
@@ -297,9 +303,10 @@ export const ResearcherDiscoveryCard: React.FC<ResearcherDiscoveryCardProps> = (
           style={[
             styles.viewProfileButton,
             {
-              backgroundColor: 'transparent',
+              backgroundColor: isDark ? colors.surfaceContainer : colors.surface,
               borderColor: isDark ? colors.borderSubtle : '#D4D8E2',
             },
+            floatingButtonTokens.secondary,
           ]}
           accessibilityRole="button"
           accessibilityLabel={`View profile of ${researcher.name}`}
@@ -435,7 +442,7 @@ const styles = StyleSheet.create({
     minHeight: 38,
     paddingVertical: 8,
     paddingHorizontal: 12,
-    borderRadius: 8,
+    borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -469,7 +476,7 @@ const styles = StyleSheet.create({
     minHeight: 38,
     paddingVertical: 8,
     paddingHorizontal: 12,
-    borderRadius: 8,
+    borderRadius: 12,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',

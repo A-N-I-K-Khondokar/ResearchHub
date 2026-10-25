@@ -80,7 +80,7 @@ export default function VerifyEmailScreen() {
               onPress={handleResendLink}
               variant="secondary"
               loading={resending}
-              icon={<RefreshCw size={16} color={colors.secondaryDark} />}
+              icon={<RefreshCw size={16} color={colors.textPrimary} />}
               fullWidth
               style={styles.resendButton}
             />

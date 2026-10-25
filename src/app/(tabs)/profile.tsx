@@ -34,7 +34,7 @@ import {
   Camera,
   Lock,
 } from 'lucide-react-native';
-import { spacing, radius, typography, fontFamilies } from '@/constants';
+import { spacing, radius, typography, fontFamilies, floatingButtonTokens } from '@/constants';
 import { useTheme, ThemeMode } from '@/context/ThemeContext';
 import { Avatar } from '@/components/common/Avatar';
 import { ANIK_PHOTO_URI } from '@/data/avatars';
@@ -234,9 +234,10 @@ export default function ProfileTab() {
               style={[
                 styles.editProfileButton,
                 {
-                  borderColor: colors.borderSubtle,
-                  backgroundColor: colors.surfaceSubtle,
+                  borderColor: isDark ? colors.borderSubtle : '#D4D8E2',
+                  backgroundColor: isDark ? colors.surfaceContainer : colors.surface,
                 },
+                floatingButtonTokens.secondary,
               ]}
               accessibilityRole="button"
               accessibilityLabel="Edit Profile"
@@ -253,9 +254,10 @@ export default function ProfileTab() {
               style={[
                 styles.settingsButton,
                 {
-                  borderColor: colors.borderSubtle,
-                  backgroundColor: colors.surfaceSubtle,
+                  borderColor: isDark ? colors.borderSubtle : '#D4D8E2',
+                  backgroundColor: isDark ? colors.surfaceContainer : colors.surface,
                 },
+                floatingButtonTokens.secondary,
               ]}
               accessibilityRole="button"
               accessibilityLabel="Open settings and theme options"
@@ -671,8 +673,10 @@ export default function ProfileTab() {
               onPress={() => setIsSettingsModalVisible(false)}
               style={[
                 styles.modalDoneBtn,
-                { backgroundColor: colors.primary },
+                floatingButtonTokens.primary,
               ]}
+              accessibilityRole="button"
+              accessibilityLabel="Done"
             >
               <Check size={16} color="#FFFFFF" strokeWidth={2.4} />
               <Text style={styles.modalDoneBtnText}>Done</Text>
@@ -727,9 +731,10 @@ export default function ProfileTab() {
 
               <TouchableOpacity
                 onPress={handleSaveProfile}
+                activeOpacity={0.8}
                 style={[
                   styles.editModalSaveBtn,
-                  { backgroundColor: colors.primary },
+                  floatingButtonTokens.primary,
                 ]}
                 accessibilityRole="button"
                 accessibilityLabel="Save profile changes"
@@ -990,7 +995,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     paddingVertical: 10,
-    borderRadius: radius.md,
+    borderRadius: 12,
     borderWidth: 1,
   },
   editProfileText: {
@@ -1000,7 +1005,7 @@ const styles = StyleSheet.create({
   settingsButton: {
     width: 42,
     height: 42,
-    borderRadius: radius.md,
+    borderRadius: 12,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1261,8 +1266,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    paddingVertical: 10,
-    borderRadius: radius.full,
+    paddingVertical: 12,
+    borderRadius: 14,
   },
   modalDoneBtnText: {
     color: '#FFFFFF',
@@ -1303,7 +1308,7 @@ const styles = StyleSheet.create({
   editModalSaveBtn: {
     paddingHorizontal: 16,
     paddingVertical: 7,
-    borderRadius: radius.full,
+    borderRadius: 12,
   },
   editModalSaveText: {
     color: '#FFFFFF',

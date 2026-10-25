@@ -16,7 +16,7 @@ import {
   FileText,
   Quote,
 } from 'lucide-react-native';
-import { spacing, radius, typography, fontFamilies, shadows } from '@/constants';
+import { spacing, radius, typography, fontFamilies, shadows, floatingButtonTokens } from '@/constants';
 import { useTheme } from '@/context/ThemeContext';
 import {
   mockTopics,
@@ -444,10 +444,10 @@ export default function ExploreScreen() {
               style={[
                 styles.viewActivityFeedBtn,
                 {
-                  backgroundColor: isDark
-                    ? 'rgba(36, 113, 231, 0.15)'
-                    : 'rgba(10, 61, 175, 0.08)',
+                  backgroundColor: isDark ? colors.surfaceContainer : colors.surface,
+                  borderColor: isDark ? colors.borderSubtle : '#D4D8E2',
                 },
+                floatingButtonTokens.secondary,
               ]}
               accessibilityRole="button"
               accessibilityLabel="View Activity Feed"
@@ -742,8 +742,9 @@ const styles = StyleSheet.create({
   },
   viewActivityFeedBtn: {
     marginTop: 12,
-    height: 40,
-    borderRadius: 8,
+    height: 42,
+    borderRadius: 12,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },

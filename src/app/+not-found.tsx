@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Link, Stack } from 'expo-router';
 import { useTheme } from '@/context/ThemeContext';
-import { fontFamilies, radius, spacing } from '@/constants';
+import { fontFamilies, radius, spacing, floatingButtonTokens } from '@/constants';
 import { FileQuestion, ArrowLeft } from 'lucide-react-native';
 
 export default function NotFoundScreen() {
@@ -31,7 +31,10 @@ export default function NotFoundScreen() {
             The requested research hub route does not exist or has been relocated.
           </Text>
 
-          <Link href="/" style={[styles.button, { backgroundColor: colors.primary }]}>
+          <Link
+            href="/"
+            style={[styles.button, floatingButtonTokens.primary as any]}
+          >
             <View style={styles.buttonContent}>
               <ArrowLeft size={16} color="#FFFFFF" />
               <Text style={styles.buttonText}>Back to Research Hub</Text>
@@ -84,7 +87,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   button: {
-    borderRadius: radius.md,
+    borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 20,
     alignItems: 'center',
