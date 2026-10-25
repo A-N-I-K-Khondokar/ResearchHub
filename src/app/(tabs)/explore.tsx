@@ -211,35 +211,37 @@ export default function ExploreScreen() {
           />
         }
       >
-        {/* 1. RESEARCH TOPICS (Bento Container) */}
+        {/* 1. RESEARCH TOPICS */}
         {(selectedTypeFilter === 'all' || selectedTypeFilter === 'topics') && (
           <View style={styles.sectionContainer}>
+            <View style={styles.bentoHeaderRow}>
+              <View style={styles.bentoHeaderLeft}>
+                <Text
+                  style={[styles.bentoTitle, { color: colors.textPrimary }]}
+                  numberOfLines={1}
+                >
+                  Research Topics
+                </Text>
+                <Text
+                  style={[styles.bentoSubtitle, { color: colors.textSecondary }]}
+                  numberOfLines={1}
+                >
+                  Select a topic to find researchers currently working in that area
+                </Text>
+              </View>
+            </View>
+
             <View
               style={[
-                styles.bentoContainer,
+                styles.topicsCard,
                 {
-                  backgroundColor: colors.surfaceContainerLowest,
+                  backgroundColor: colors.surface,
                   borderColor: colors.borderSubtle,
+                  shadowOpacity: isDark ? 0 : 0.03,
+                  elevation: isDark ? 0 : 1,
                 },
               ]}
             >
-              <View style={styles.bentoHeaderRow}>
-                <View style={styles.bentoHeaderLeft}>
-                  <Text
-                    style={[styles.bentoTitle, { color: colors.textPrimary }]}
-                    numberOfLines={1}
-                  >
-                    Research Topics
-                  </Text>
-                  <Text
-                    style={[styles.bentoSubtitle, { color: colors.textSecondary }]}
-                    numberOfLines={1}
-                  >
-                    Select a topic to find researchers currently working in that area
-                  </Text>
-                </View>
-              </View>
-
               <View style={styles.topicsGrid}>
                 {mockTopics.map((t) => {
                   const scheme = getTopicChipStyle(t.name);
@@ -275,20 +277,12 @@ export default function ExploreScreen() {
           </View>
         )}
 
-        {/* 2. FEATURED RESEARCHERS (Bento Container) */}
+        {/* 2. FEATURED RESEARCHERS */}
         {(selectedTypeFilter === 'all' || selectedTypeFilter === 'people') && (
           <View style={styles.sectionContainer}>
-            <View
-              style={[
-                styles.bentoContainer,
-                {
-                  backgroundColor: colors.surfaceContainerLowest,
-                  borderColor: colors.borderSubtle,
-                },
-              ]}
-            >
-              {/* Bento Section Header */}
-              <View style={styles.bentoHeaderRow}>
+            <View style={styles.featuredResearchersContainer}>
+              {/* Section Header */}
+              <View style={styles.featuredResearchersHeaderRow}>
                 <View style={styles.bentoHeaderLeft}>
                   <Text
                     style={[styles.bentoTitle, { color: colors.textPrimary }]}
@@ -323,8 +317,8 @@ export default function ExploreScreen() {
                 </TouchableOpacity>
               </View>
 
-              {/* Bento Cards List */}
-              <View style={styles.bentoCardsList}>
+              {/* Cards List */}
+              <View style={styles.featuredResearchersList}>
                 {featuredResearchers.map((researcher) => {
                   const primaryWorkId = researcher.currentWorkIds?.[0];
                   const primaryWork = primaryWorkId
@@ -350,217 +344,215 @@ export default function ExploreScreen() {
           </View>
         )}
 
-        {/* 3. TRENDING CURRENT WORK (Bento Container) */}
+        {/* 3. TRENDING CURRENT WORK */}
         {(selectedTypeFilter === 'all' || selectedTypeFilter === 'work') && (
           <View style={styles.sectionContainer}>
-            <View
+            <View style={styles.bentoHeaderRow}>
+              <View style={styles.bentoHeaderLeft}>
+                <Text
+                  style={[styles.bentoTitle, { color: colors.textPrimary }]}
+                  numberOfLines={1}
+                >
+                  Trending Current Work
+                </Text>
+                <Text
+                  style={[styles.bentoSubtitle, { color: colors.textSecondary }]}
+                  numberOfLines={1}
+                >
+                  Active experiments and ongoing thesis projects
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.currentWorkList}>
+              {allCurrentWork.slice(0, 3).map((work, idx) => {
+                const author = getResearcherById(work.userId || work.researcherId || '');
+                const views = work.likesCount ? work.likesCount * 35 : idx === 0 ? 1200 : 890;
+                const viewsText = views > 999 ? `${(views / 1000).toFixed(1)}k` : `${views}`;
+                const bookmarks = work.commentsCount ? work.commentsCount * 5 : idx === 0 ? 45 : 32;
+
+                return (
+                  <TouchableOpacity
+                    key={work.id}
+                    activeOpacity={0.8}
+                    onPress={() => router.push(`/(research)/${work.id}` as any)}
+                    style={[
+                      styles.currentWorkItem,
+                      {
+                        backgroundColor: colors.surface,
+                        borderColor: colors.borderSubtle,
+                        borderLeftColor: colors.primary,
+                        shadowOpacity: isDark ? 0 : 0.03,
+                        elevation: isDark ? 0 : 1,
+                      },
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityLabel={work.title}
+                  >
+                    <Text
+                      style={[styles.currentWorkTitle, { color: colors.primary }]}
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                    >
+                      {work.title}
+                    </Text>
+                    <Text
+                      style={[styles.currentWorkMeta, { color: colors.textSecondary }]}
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                    >
+                      Updated {work.updatedAt || 'recently'} by {author ? author.name : work.authorName || 'Research Team'}
+                    </Text>
+                    <View style={styles.currentWorkStatsRow}>
+                      <View style={styles.currentWorkStatItem}>
+                        <Eye size={14} color={colors.textSecondary} />
+                        <Text
+                          style={[
+                            styles.currentWorkStatText,
+                            { color: colors.textSecondary },
+                          ]}
+                        >
+                          {viewsText}
+                        </Text>
+                      </View>
+                      <View style={styles.currentWorkStatItem}>
+                        <Bookmark size={14} color={colors.textSecondary} />
+                        <Text
+                          style={[
+                            styles.currentWorkStatText,
+                            { color: colors.textSecondary },
+                          ]}
+                        >
+                          {bookmarks}
+                        </Text>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* View Activity Feed Button */}
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() =>
+                router.push({
+                  pathname: '/(explore)/search' as any,
+                  params: { category: 'currentWork' },
+                })
+              }
               style={[
-                styles.bentoContainer,
+                styles.viewActivityFeedBtn,
                 {
-                  backgroundColor: colors.surfaceContainerLowest,
-                  borderColor: colors.borderSubtle,
+                  backgroundColor: isDark
+                    ? 'rgba(36, 113, 231, 0.15)'
+                    : 'rgba(10, 61, 175, 0.08)',
                 },
               ]}
+              accessibilityRole="button"
+              accessibilityLabel="View Activity Feed"
             >
-              <View style={styles.bentoHeaderRow}>
-                <View style={styles.bentoHeaderLeft}>
-                  <Text
-                    style={[styles.bentoTitle, { color: colors.textPrimary }]}
-                    numberOfLines={1}
-                  >
-                    Trending Current Work
-                  </Text>
-                  <Text
-                    style={[styles.bentoSubtitle, { color: colors.textSecondary }]}
-                    numberOfLines={1}
-                  >
-                    Active experiments and ongoing thesis projects
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.currentWorkList}>
-                {allCurrentWork.slice(0, 3).map((work, idx) => {
-                  const author = getResearcherById(work.userId || work.researcherId || '');
-                  const views = work.likesCount ? work.likesCount * 35 : idx === 0 ? 1200 : 890;
-                  const viewsText = views > 999 ? `${(views / 1000).toFixed(1)}k` : `${views}`;
-                  const bookmarks = work.commentsCount ? work.commentsCount * 5 : idx === 0 ? 45 : 32;
-
-                  return (
-                    <TouchableOpacity
-                      key={work.id}
-                      activeOpacity={0.8}
-                      onPress={() => router.push(`/(research)/${work.id}` as any)}
-                      style={[
-                        styles.currentWorkItem,
-                        {
-                          borderLeftColor: colors.primary,
-                        },
-                      ]}
-                      accessibilityRole="button"
-                      accessibilityLabel={work.title}
-                    >
-                      <Text
-                        style={[styles.currentWorkTitle, { color: colors.primary }]}
-                        numberOfLines={1}
-                        ellipsizeMode="tail"
-                      >
-                        {work.title}
-                      </Text>
-                      <Text
-                        style={[styles.currentWorkMeta, { color: colors.textSecondary }]}
-                        numberOfLines={1}
-                        ellipsizeMode="tail"
-                      >
-                        Updated {work.updatedAt || 'recently'} by {author ? author.name : work.authorName || 'Research Team'}
-                      </Text>
-                      <View style={styles.currentWorkStatsRow}>
-                        <View style={styles.currentWorkStatItem}>
-                          <Eye size={14} color={colors.textSecondary} />
-                          <Text
-                            style={[
-                              styles.currentWorkStatText,
-                              { color: colors.textSecondary },
-                            ]}
-                          >
-                            {viewsText}
-                          </Text>
-                        </View>
-                        <View style={styles.currentWorkStatItem}>
-                          <Bookmark size={14} color={colors.textSecondary} />
-                          <Text
-                            style={[
-                              styles.currentWorkStatText,
-                              { color: colors.textSecondary },
-                            ]}
-                          >
-                            {bookmarks}
-                          </Text>
-                        </View>
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-
-              {/* View Activity Feed Button */}
-              <TouchableOpacity
-                activeOpacity={0.8}
-                onPress={() =>
-                  router.push({
-                    pathname: '/(explore)/search' as any,
-                    params: { category: 'currentWork' },
-                  })
-                }
-                style={[
-                  styles.viewActivityFeedBtn,
-                  {
-                    backgroundColor: isDark
-                      ? 'rgba(36, 113, 231, 0.15)'
-                      : 'rgba(10, 61, 175, 0.08)',
-                  },
-                ]}
-                accessibilityRole="button"
-                accessibilityLabel="View Activity Feed"
-              >
-                <Text style={[styles.viewActivityFeedText, { color: colors.primary }]}>
-                  View Activity Feed
-                </Text>
-              </TouchableOpacity>
-            </View>
+              <Text style={[styles.viewActivityFeedText, { color: colors.primary }]}>
+                View Activity Feed
+              </Text>
+            </TouchableOpacity>
           </View>
         )}
 
-        {/* 4. EXPLORE PREVIOUS RESEARCH (Bento Container) */}
+        {/* 4. EXPLORE PREVIOUS RESEARCH */}
         {(selectedTypeFilter === 'all' || selectedTypeFilter === 'papers') && (
           <View style={styles.sectionContainer}>
-            <View
-              style={[
-                styles.bentoContainer,
-                {
-                  backgroundColor: colors.surfaceContainerLowest,
-                  borderColor: colors.borderSubtle,
-                },
-              ]}
-            >
-              <View style={styles.bentoHeaderRow}>
-                <View style={styles.bentoHeaderLeft}>
-                  <Text
-                    style={[styles.bentoTitle, { color: colors.textPrimary }]}
-                    numberOfLines={1}
-                  >
-                    Explore Previous Research
-                  </Text>
-                  <Text
-                    style={[styles.bentoSubtitle, { color: colors.textSecondary }]}
-                    numberOfLines={1}
-                  >
-                    Peer-reviewed publications and conference proceedings
-                  </Text>
-                </View>
+            <View style={styles.bentoHeaderRow}>
+              <View style={styles.bentoHeaderLeft}>
+                <Text
+                  style={[styles.bentoTitle, { color: colors.textPrimary }]}
+                  numberOfLines={1}
+                >
+                  Explore Previous Research
+                </Text>
+                <Text
+                  style={[styles.bentoSubtitle, { color: colors.textSecondary }]}
+                  numberOfLines={1}
+                >
+                  Peer-reviewed publications and conference proceedings
+                </Text>
               </View>
+            </View>
 
-              <View style={styles.papersGrid}>
-                {allPublications.map((pub, idx) => {
-                  const citations =
-                    (pub as any).citationsCount ||
-                    (idx === 0 ? 42 : idx === 1 ? 128 : idx === 2 ? 85 : 56);
+            <View style={styles.papersGrid}>
+              {allPublications.map((pub, idx) => {
+                const citations =
+                  (pub as any).citationsCount ||
+                  (idx === 0 ? 42 : idx === 1 ? 128 : idx === 2 ? 85 : 56);
+                const authorsText = pub.authors?.length
+                  ? pub.authors.join(', ')
+                  : pub.authorName;
 
-                  return (
-                    <TouchableOpacity
-                      key={pub.id}
-                      activeOpacity={0.8}
-                      onPress={() => router.push(`/(research)/${pub.id}` as any)}
-                      style={[
-                        styles.paperCard,
-                        {
-                          backgroundColor: colors.surface,
-                          borderColor: colors.borderSubtle,
-                        },
-                      ]}
-                      accessibilityRole="button"
-                      accessibilityLabel={pub.title}
-                    >
-                      <View style={styles.paperHeaderRow}>
-                        <FileText size={16} color={colors.textSecondary} />
-                        <Text
-                          style={[
-                            styles.paperYear,
-                            { color: colors.textSecondary },
-                          ]}
-                        >
-                          {pub.year}
-                        </Text>
-                      </View>
+                return (
+                  <TouchableOpacity
+                    key={pub.id}
+                    activeOpacity={0.8}
+                    onPress={() => router.push(`/(research)/${pub.id}` as any)}
+                    style={[
+                      styles.paperCard,
+                      {
+                        backgroundColor: colors.surface,
+                        borderColor: colors.borderSubtle,
+                        shadowOpacity: isDark ? 0 : 0.03,
+                        elevation: isDark ? 0 : 1,
+                      },
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityLabel={pub.title}
+                  >
+                    <View style={styles.paperHeaderRow}>
+                      <FileText size={16} color={colors.textSecondary} />
                       <Text
-                        style={[styles.paperTitle, { color: colors.textPrimary }]}
-                        numberOfLines={2}
-                        ellipsizeMode="tail"
+                        style={[
+                          styles.paperYear,
+                          { color: colors.textSecondary },
+                        ]}
                       >
-                        {pub.title}
+                        {pub.year}
                       </Text>
+                    </View>
+                    <Text
+                      style={[styles.paperTitle, { color: colors.textPrimary }]}
+                      numberOfLines={2}
+                      ellipsizeMode="tail"
+                    >
+                      {pub.title}
+                    </Text>
+                    {authorsText ? (
                       <Text
-                        style={[styles.paperVenue, { color: colors.textSecondary }]}
+                        style={[styles.paperAuthors, { color: colors.textSecondary }]}
                         numberOfLines={1}
                         ellipsizeMode="tail"
                       >
-                        {pub.venue}
+                        {authorsText}
                       </Text>
-                      <View style={styles.paperCitationsRow}>
-                        <Quote size={13} color={colors.textSecondary} />
-                        <Text
-                          style={[
-                            styles.paperCitationsText,
-                            { color: colors.textSecondary },
-                          ]}
-                        >
-                          {citations} Citations
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
+                    ) : null}
+                    <Text
+                      style={[styles.paperVenue, { color: colors.textSecondary }]}
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                    >
+                      {pub.venue}
+                    </Text>
+                    <View style={styles.paperCitationsRow}>
+                      <Quote size={13} color={colors.textSecondary} />
+                      <Text
+                        style={[
+                          styles.paperCitationsText,
+                          { color: colors.textSecondary },
+                        ]}
+                      >
+                        {citations} Citations
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           </View>
         )}
@@ -629,7 +621,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 18,
+    marginBottom: 12,
   },
   bentoHeaderLeft: {
     flex: 1,
@@ -668,6 +660,26 @@ const styles = StyleSheet.create({
   bentoCardsList: {
     gap: 16,
   },
+  featuredResearchersContainer: {
+    // Un-nested section container without redundant outer borders or background
+  },
+  featuredResearchersHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  featuredResearchersList: {
+    gap: 12,
+  },
+  topicsCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 16,
+    shadowColor: '#071A3E',
+    shadowOffset: { width: 0, height: 1 },
+    shadowRadius: 4,
+  },
   topicsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -690,12 +702,16 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   currentWorkList: {
-    gap: 16,
+    gap: 12,
   },
   currentWorkItem: {
-    borderLeftWidth: 2,
-    paddingLeft: 14,
-    paddingVertical: 2,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderLeftWidth: 3,
+    padding: 14,
+    shadowColor: '#071A3E',
+    shadowOffset: { width: 0, height: 1 },
+    shadowRadius: 4,
   },
   currentWorkTitle: {
     fontSize: 15,
@@ -725,7 +741,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   viewActivityFeedBtn: {
-    marginTop: 20,
+    marginTop: 12,
     height: 40,
     borderRadius: 8,
     alignItems: 'center',
@@ -740,9 +756,12 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   paperCard: {
-    borderRadius: 8,
+    borderRadius: 12,
     borderWidth: 1,
     padding: 16,
+    shadowColor: '#071A3E',
+    shadowOffset: { width: 0, height: 1 },
+    shadowRadius: 4,
   },
   paperHeaderRow: {
     flexDirection: 'row',
@@ -760,6 +779,12 @@ const styles = StyleSheet.create({
     fontFamily: fontFamilies.sansSemiBold,
     fontWeight: '600',
     lineHeight: 20,
+    marginBottom: 6,
+  },
+  paperAuthors: {
+    fontSize: 12.5,
+    fontFamily: fontFamilies.sansRegular,
+    lineHeight: 16,
     marginBottom: 6,
   },
   paperVenue: {

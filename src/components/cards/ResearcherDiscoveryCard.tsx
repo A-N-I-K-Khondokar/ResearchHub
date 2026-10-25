@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { UserPlus, Check, Clock, FlaskConical } from 'lucide-react-native';
 import { UserProfile, CurrentWork } from '@/types';
-import { radius, typography, fontFamilies } from '@/constants';
+import { typography, fontFamilies } from '@/constants';
 import { useTheme } from '@/context/ThemeContext';
 import { Avatar } from '../common/Avatar';
 
@@ -33,6 +33,12 @@ export const ResearcherDiscoveryCard: React.FC<ResearcherDiscoveryCardProps> = (
     Boolean(researcher.designation?.toLowerCase().includes('faculty'));
   const statusLabel = researcher.batch || (isFaculty ? 'Faculty' : 'CSE');
 
+  // Academic role (e.g., Graduate Researcher, Associate Professor, CSE, Undergraduate Researcher)
+  const academicRole = researcher.designation || researcher.department || 'Researcher';
+
+  // Research summary / short description
+  const researchSummary = currentWork?.shortDescription || currentWork?.description;
+
   return (
     <View
       style={[
@@ -40,11 +46,13 @@ export const ResearcherDiscoveryCard: React.FC<ResearcherDiscoveryCardProps> = (
         {
           backgroundColor: colors.surface,
           borderColor: colors.borderSubtle,
+          shadowOpacity: isDark ? 0 : 0.04,
+          elevation: isDark ? 0 : 1,
         },
       ]}
     >
-      {/* Top Section: Avatar (left) + Info Column (right, flex: 1) */}
-      <View style={styles.headerRow}>
+      {/* 1. Researcher Identity Row: Avatar (left) + Name (beside it, vertically aligned) */}
+      <View style={styles.identityRow}>
         <TouchableOpacity
           activeOpacity={0.85}
           onPress={onPress}
@@ -57,76 +65,126 @@ export const ResearcherDiscoveryCard: React.FC<ResearcherDiscoveryCardProps> = (
             uri={researcher.photoURL || researcher.avatar}
             size="md"
             shape="rounded"
-            borderRadius={14}
-            style={{ width: 52, height: 52 }}
+            borderRadius={12}
+            style={{ width: 44, height: 44 }}
           />
         </TouchableOpacity>
 
-        <View style={styles.headerInfo}>
-          {/* Top Row: Name + Status Badge (justify-between, space-between, width: 100%) */}
-          <View style={styles.nameRow}>
-            <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={onPress}
-              style={styles.nameTouchable}
-            >
-              <Text
-                style={[styles.name, { color: colors.textPrimary }]}
-                numberOfLines={1}
-                ellipsizeMode="tail"
-              >
-                {researcher.name}
-              </Text>
-            </TouchableOpacity>
-
-            {statusLabel ? (
-              <View
-                style={[
-                  styles.statusBadge,
-                  isFaculty
-                    ? {
-                        backgroundColor: colors.surfaceContainerHigh,
-                      }
-                    : {
-                        backgroundColor: isDark ? 'rgba(36, 113, 231, 0.2)' : '#EEF2FF',
-                      },
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.statusBadgeText,
-                    {
-                      color: isFaculty
-                        ? colors.textSecondary
-                        : isDark
-                        ? '#93C5FD'
-                        : '#2563EB',
-                    },
-                  ]}
-                  numberOfLines={1}
-                  ellipsizeMode="tail"
-                >
-                  {statusLabel}
-                </Text>
-              </View>
-            ) : null}
-          </View>
-
-          {/* Designation (directly below name row) */}
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={onPress}
+          style={styles.nameTouchable}
+          accessibilityRole="button"
+          accessibilityLabel={`View ${researcher.name}'s profile`}
+        >
           <Text
-            style={[styles.designation, { color: colors.textSecondary }]}
+            style={[styles.name, { color: colors.textPrimary }]}
             numberOfLines={1}
             ellipsizeMode="tail"
           >
-            {researcher.designation || researcher.department}
+            {researcher.name}
           </Text>
-        </View>
+        </TouchableOpacity>
       </View>
 
-      {/* Solid Topic Tags: Row of compact, borderless solid grey pills */}
+      {/* 2. Academic Information Row: Status/Batch badge on left, Academic role beside it */}
+      <View style={styles.academicRow}>
+        {statusLabel ? (
+          <View
+            style={[
+              styles.statusBadge,
+              isFaculty
+                ? {
+                    backgroundColor: isDark ? 'rgba(255, 113, 69, 0.16)' : '#FFF0EB',
+                  }
+                : {
+                    backgroundColor: isDark ? 'rgba(36, 113, 231, 0.18)' : '#EEF4FF',
+                  },
+            ]}
+          >
+            <Text
+              style={[
+                styles.statusBadgeText,
+                {
+                  color: isFaculty
+                    ? isDark
+                      ? '#FFB59F'
+                      : '#CB4C23'
+                    : isDark
+                    ? '#93C5FD'
+                    : '#2563EB',
+                },
+              ]}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {statusLabel}
+            </Text>
+          </View>
+        ) : null}
+
+        <Text
+          style={[styles.academicRoleText, { color: colors.textSecondary }]}
+          numberOfLines={1}
+          ellipsizeMode="tail"
+        >
+          {academicRole}
+        </Text>
+      </View>
+
+      {/* 3. Active Research Panel: pale blue-tinted bg, subtle blue border, icon + uppercase label, title, summary */}
+      {currentWork ? (
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={onPress}
+          style={[
+            styles.activeResearchBox,
+            {
+              backgroundColor: isDark ? 'rgba(36, 113, 231, 0.08)' : '#F4F7FD',
+              borderColor: isDark ? 'rgba(36, 113, 231, 0.18)' : '#E0EAFC',
+            },
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel={`Active research: ${currentWork.title}`}
+        >
+          <View style={styles.activeResearchHeader}>
+            <FlaskConical
+              size={13}
+              color={isDark ? '#93C5FD' : colors.primary}
+              strokeWidth={2.2}
+            />
+            <Text
+              style={[
+                styles.activeResearchLabel,
+                { color: isDark ? '#93C5FD' : colors.primary },
+              ]}
+            >
+              ACTIVE RESEARCH
+            </Text>
+          </View>
+          <Text
+            style={[styles.activeResearchTitle, { color: colors.textPrimary }]}
+            numberOfLines={2}
+            ellipsizeMode="tail"
+          >
+            {currentWork.title}
+          </Text>
+          {researchSummary ? (
+            <Text
+              style={[styles.activeResearchSummary, { color: colors.textSecondary }]}
+              numberOfLines={2}
+              ellipsizeMode="tail"
+            >
+              {researchSummary}
+            </Text>
+          ) : null}
+        </TouchableOpacity>
+      ) : null}
+
+      {/* 4. Research Tags: Moved below the active research panel, pale-blue filled pills with blue text */}
       {interests.length > 0 && (
         <View style={styles.tagsRow}>
-          {interests.slice(0, 3).map((topic, idx) => {
+          {interests.slice(0, 4).map((topic, idx) => {
             const formattedTag = topic.startsWith('#')
               ? topic
               : `#${topic.replace(/\s+/g, '')}`;
@@ -138,14 +196,18 @@ export const ResearcherDiscoveryCard: React.FC<ResearcherDiscoveryCardProps> = (
                 style={[
                   styles.tagPill,
                   {
-                    backgroundColor: colors.surfaceContainerHigh,
+                    backgroundColor: isDark
+                      ? 'rgba(36, 113, 231, 0.16)'
+                      : '#EEF4FF',
                   },
                 ]}
+                accessibilityRole="button"
+                accessibilityLabel={`Research topic: ${formattedTag}`}
               >
                 <Text
                   style={[
                     styles.tagPillText,
-                    { color: isDark ? colors.textPrimary : '#475569' },
+                    { color: isDark ? '#93C5FD' : '#1D4ED8' },
                   ]}
                   numberOfLines={1}
                   ellipsizeMode="tail"
@@ -158,37 +220,7 @@ export const ResearcherDiscoveryCard: React.FC<ResearcherDiscoveryCardProps> = (
         </View>
       )}
 
-      {/* Active Research Box */}
-      {currentWork ? (
-        <TouchableOpacity
-          activeOpacity={0.85}
-          onPress={onPress}
-          style={[
-            styles.activeResearchBox,
-            {
-              backgroundColor: colors.surfaceContainerLow,
-              borderColor: colors.borderSubtle,
-            },
-          ]}
-          accessibilityRole="button"
-          accessibilityLabel={`Active research: ${currentWork.title}`}
-        >
-          <View style={styles.activeResearchHeader}>
-            <FlaskConical size={14} color={colors.textSecondary} strokeWidth={2} />
-            <Text style={[styles.activeResearchLabel, { color: colors.textSecondary }]}>
-              ACTIVE RESEARCH
-            </Text>
-          </View>
-          <Text
-            style={[styles.activeResearchTitle, { color: colors.textPrimary }]}
-            numberOfLines={2}
-          >
-            {currentWork.title}
-          </Text>
-        </TouchableOpacity>
-      ) : null}
-
-      {/* Action Buttons (Footer: Side-by-side, gap: 8, top separator line) */}
+      {/* 5. Action Buttons: Connect (primary blue) & View Profile (outlined) at the bottom */}
       <View
         style={[
           styles.footerActions,
@@ -198,6 +230,7 @@ export const ResearcherDiscoveryCard: React.FC<ResearcherDiscoveryCardProps> = (
         <TouchableOpacity
           activeOpacity={0.8}
           onPress={onConnectPress}
+          hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
           style={[
             styles.connectButton,
             { backgroundColor: colors.primary },
@@ -260,11 +293,12 @@ export const ResearcherDiscoveryCard: React.FC<ResearcherDiscoveryCardProps> = (
         <TouchableOpacity
           activeOpacity={0.8}
           onPress={onPress}
+          hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
           style={[
             styles.viewProfileButton,
             {
               backgroundColor: 'transparent',
-              borderColor: colors.borderSubtle,
+              borderColor: isDark ? colors.borderSubtle : '#D4D8E2',
             },
           ]}
           accessibilityRole="button"
@@ -285,116 +319,123 @@ export const ResearcherDiscoveryCard: React.FC<ResearcherDiscoveryCardProps> = (
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1,
-    padding: 20,
+    padding: 16,
+    shadowColor: '#071A3E',
+    shadowOffset: { width: 0, height: 1 },
+    shadowRadius: 4,
   },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  avatarWrapper: {
-    marginRight: 14,
-    flexShrink: 0,
-  },
-  headerInfo: {
-    flex: 1,
-    flexShrink: 1,
-  },
-  nameRow: {
+  identityRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    width: '100%',
-    gap: 8,
+  },
+  avatarWrapper: {
+    marginRight: 12,
+    flexShrink: 0,
   },
   nameTouchable: {
     flex: 1,
     flexShrink: 1,
-    marginRight: 8,
   },
   name: {
-    fontSize: 16,
+    fontSize: 16.5,
     fontFamily: fontFamilies.sansBold,
     fontWeight: '700',
     flexShrink: 1,
   },
+  academicRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 8,
+  },
   statusBadge: {
-    paddingHorizontal: 10,
+    paddingHorizontal: 9,
     paddingVertical: 3,
-    borderRadius: radius.full,
+    borderRadius: 9999,
     borderWidth: 0,
     flexShrink: 0,
   },
   statusBadgeText: {
-    fontSize: 12,
+    fontSize: 11.5,
     fontFamily: fontFamilies.sansSemiBold,
     fontWeight: '600',
     letterSpacing: 0.1,
   },
-  designation: {
+  academicRoleText: {
     fontSize: 13,
     fontFamily: fontFamilies.sansRegular,
-    marginTop: 2,
-    flexShrink: 1,
-  },
-  tagsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginTop: 12,
-  },
-  tagPill: {
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 9999,
-    borderWidth: 0,
-    maxWidth: '100%',
-    flexShrink: 1,
-  },
-  tagPillText: {
-    fontSize: 12,
-    fontFamily: fontFamilies.sansSemiBold,
-    fontWeight: '600',
+    lineHeight: 17,
+    flex: 1,
     flexShrink: 1,
   },
   activeResearchBox: {
-    borderRadius: 8,
+    borderRadius: 10,
     borderWidth: 1,
-    padding: 12,
-    marginTop: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginTop: 10,
   },
   activeResearchHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 5,
     marginBottom: 4,
   },
   activeResearchLabel: {
     fontSize: 10.5,
     fontFamily: fontFamilies.sansBold,
     fontWeight: '700',
-    letterSpacing: 0.6,
+    letterSpacing: 0.5,
   },
   activeResearchTitle: {
     fontSize: 13.5,
     fontFamily: fontFamilies.sansSemiBold,
     fontWeight: '600',
-    lineHeight: 19,
+    lineHeight: 18,
+  },
+  activeResearchSummary: {
+    fontSize: 12.5,
+    fontFamily: fontFamilies.sansRegular,
+    lineHeight: 17,
+    marginTop: 3,
+  },
+  tagsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 5,
+    marginTop: 10,
+  },
+  tagPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 3.5,
+    borderRadius: 9999,
+    borderWidth: 0,
+    maxWidth: '100%',
+    flexShrink: 1,
+  },
+  tagPillText: {
+    fontSize: 11.5,
+    fontFamily: fontFamilies.sansSemiBold,
+    fontWeight: '600',
+    flexShrink: 1,
   },
   footerActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
     borderTopWidth: 1,
-    paddingTop: 16,
-    marginTop: 16,
+    paddingTop: 12,
+    marginTop: 12,
   },
   connectButton: {
     flex: 1,
     flexShrink: 1,
-    height: 38,
-    borderRadius: radius.sm,
+    minHeight: 38,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -404,6 +445,7 @@ const styles = StyleSheet.create({
     ...typography.caption,
     fontFamily: fontFamilies.sansSemiBold,
     fontWeight: '600',
+    fontSize: 13,
     color: '#FFFFFF',
     flexShrink: 1,
   },
@@ -411,19 +453,23 @@ const styles = StyleSheet.create({
     ...typography.caption,
     fontFamily: fontFamilies.sansSemiBold,
     fontWeight: '600',
+    fontSize: 13,
     flexShrink: 1,
   },
   connectTextPending: {
     ...typography.caption,
     fontFamily: fontFamilies.sansMedium,
     fontWeight: '500',
+    fontSize: 13,
     flexShrink: 1,
   },
   viewProfileButton: {
     flex: 1,
     flexShrink: 1,
-    height: 38,
-    borderRadius: radius.sm,
+    minHeight: 38,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
@@ -432,6 +478,7 @@ const styles = StyleSheet.create({
     ...typography.caption,
     fontFamily: fontFamilies.sansSemiBold,
     fontWeight: '600',
+    fontSize: 13,
     flexShrink: 1,
   },
 });

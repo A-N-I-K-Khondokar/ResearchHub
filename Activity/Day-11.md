@@ -461,6 +461,404 @@ Translate the HTML/Tailwind design package ("stitch file") and reference screens
 ---
 *Signed off by: Senior UI/UX Systems Engineer & React Native Architect*
 
+---
+
+## Final Frontend Acceptance Audit — Phase 2 Freeze
+
+### 1. Audit Metadata & Context
+*   **Audit Date:** October 25, 2026
+*   **Auditor Roles:** Senior React Native Engineer, Software Architect, QA Engineer, and Code Reviewer
+*   **Project:** CSE Research Hub
+*   **Target Milestone:** Phase 2 Frontend Final Acceptance & Code Freeze
+*   **Initial Git State:**
+    *   **Branch:** `main` (synchronized with `origin/main`)
+    *   **HEAD Commit:** `96d7533` (*"feat: redesign explore screen and researcher discovery cards with bento grid layout and solid topic pills"*)
+    *   **Working Tree Condition:** Clean (`git status --short` returned 0 modifications)
+
+---
+
+### 2. Files and Subsystems Inspected
+The audit performed comprehensive source-level and architectural reviews of the following files:
+
+1.  **Navigation & Shell:**
+    *   `src/app/_layout.tsx` (Root Stack navigation, font loader for Inter and Source Serif 4, splash screen lifecycle)
+    *   `src/app/index.tsx` (Canonical entry point redirecting to `/(auth)/splash`)
+    *   `src/app/(tabs)/_layout.tsx` (5-tab shell: Home, Explore, Share, Alerts/Notifications, Profile; custom floating pill tab bar with inset-aware positioning and accent notification badge)
+2.  **Home Feed Experience:**
+    *   `src/app/(tabs)/index.tsx` (Topic shortcuts, "People Are Working On" live feed, "Researchers To Follow" carousel, "Recent Publications" archive, mock like/bookmark toggles, pull-to-refresh)
+    *   `src/components/home/HomeHeader.tsx` & `src/components/home/TopicShortcutRow.tsx`
+3.  **Explore & Research Discovery:**
+    *   `src/app/(tabs)/explore.tsx` (Bento Grid 4-section architecture, top header removal, integrated search trigger, quick category filter pills, solid color-coded topic chips)
+    *   `src/app/(explore)/search.tsx` (Global multi-category search with live filtering, empty states, and direct navigation)
+    *   `src/app/(explore)/topic-researchers.tsx` (Topic-filtered researcher directory)
+4.  **Share Research Momentum:**
+    *   `src/app/(tabs)/share.tsx` (Identity-first header, input fields for title/abstract, custom & suggested topic tags, research stage selector with line-art icons, optional external links, validation and mock submission modal)
+5.  **Notifications & Alerts:**
+    *   `src/app/(tabs)/notifications.tsx` (Categorical filtering, chronological "New" vs "Earlier" grouping, interactive connection request accept/decline flows, unread indicator styling, floating tab bar scroll clearance)
+6.  **Researcher Profiles & Management:**
+    *   `src/app/(tabs)/profile.tsx` (Centered vertical hero card, verified credential badge, self-profile action row, edit profile modal with local state persistence, settings modal with theme switcher, stats strip, academic links list)
+    *   `src/app/(profile)/[id].tsx` (Dynamic researcher profile route)
+    *   `src/app/(research)/[id].tsx` (Dynamic research detail route)
+7.  **Authentication & Onboarding:**
+    *   `src/app/(auth)/splash.tsx`, `login.tsx`, `sign-up.tsx`, `forgot-password.tsx`, `verify-email.tsx`
+    *   `src/app/(onboarding)/welcome.tsx`, `interests.tsx`, `current-work.tsx`, `external-profiles.tsx`, `ready.tsx`
+8.  **Reusable Card Components:**
+    *   `src/components/cards/ResearcherDiscoveryCard.tsx` (52x52 squircle avatar, space-between header with status badge, flush left topic tags, active research callout, dual footer action buttons)
+    *   `src/components/cards/CurrentWorkCard.tsx` (Academic title, author badge, description, topic pills, interaction footer with like/comment/bookmark/share)
+    *   `src/components/cards/PublicationCard.tsx` (Venue & year meta, 2-line title, authors list, abstract snippet, topic pills, external link button)
+    *   `src/components/common/TopicChip.tsx` & `src/components/cards/ResearcherCard.tsx`
+9.  **Design System & Theme Tokens:**
+    *   `src/context/ThemeContext.tsx` (Dynamic light/dark/system theme state provider backed by AsyncStorage)
+    *   `src/constants/colors.ts` (Luminous Sky Azure light mode and Deep Oceanic Slate dark mode semantic tokens)
+    *   `src/constants/typography.ts` (Dual-font typography scale: Source Serif 4 + Inter)
+    *   `src/constants/spacing.ts`, `radius.ts`, `shadows.ts`
+
+---
+
+### 3. Acceptance Criteria Evaluation
+
+#### A. Application Architecture & Navigation — PASS
+*   Expo Router route tree remains cleanly registered without broken or orphan links.
+*   The 5 core tabs (Home, Explore, Share, Notifications/Alerts, Profile) are strictly preserved.
+*   The custom floating bottom navigation pill is styled consistently (`height: 64`, `borderRadius: 32`, `position: 'absolute'`), accounting for safe-area bottom insets (`bottomMargin = insets.bottom > 0 ? insets.bottom + 8 : 20`).
+*   The center Share button is emphasized with a primary circular container (`width: 44, height: 44, borderRadius: 22`).
+*   Top safe area clearances (`paddingTop: insets.top + 16`) and bottom scroll clearances (`paddingBottom: 120`) are consistently maintained across all scroll views.
+
+#### B. Home Feed — PASS
+*   Mock data items for Current Work, Featured Researchers, and Recent Publications render predictably without layout breaks.
+*   Typography hierarchy correctly applies Source Serif 4 for authoritative headings and Inter for body text and metadata.
+*   Interactive state toggles (like, bookmark, connect, topic filtering, pull-to-refresh) function as specified.
+*   No unintended PDF-hosting or direct file-upload systems have been introduced.
+
+#### C. Explore and Discovery — PASS
+*   The redundant top-level "Explore" heading remains absent, allowing the SearchBar to serve as the primary entry point.
+*   Section ordering strictly matches the approved specification:
+    1.  **Research Topics** (Bento container with solid color-coded topic pills)
+    2.  **Featured Researchers** (Bento container rendering `ResearcherDiscoveryCard`)
+    3.  **Trending Current Work** (Bento container with left-accent borders, view/bookmark counters, and "View Activity Feed" CTA)
+    4.  **Explore Previous Research** (Bento container with publication year badges, venue subtitles, and citation counts)
+*   `ResearcherDiscoveryCard` layout is verified: 52x52 squircle avatar, `justify-between` name and status badge row, flush left-aligned topic tags under avatar, active research block, and side-by-side action buttons.
+*   Topic pills use solid color backgrounds without borders, and text wraps cleanly or truncates with ellipses without mid-word breaking.
+
+#### D. Share Current Work — PASS
+*   Identity-First header row renders the active researcher's avatar and name.
+*   Form fields (title, abstract summary, custom & suggested tags, 4-stage selector with line-art icons, optional external link) function cleanly.
+*   Interactive tag selection supports comma separation, enter key submission, click-to-add from suggested list, and deletion.
+*   Validation enforces mandatory title and description ($\ge 20$ chars) before triggering mock submission modal with automatic form reset.
+*   `KeyboardAvoidingView` and `paddingBottom: 120` provide proper keyboard and bottom navigation clearance.
+*   No real database writes exist.
+
+#### E. Notifications and Connections — PASS
+*   Five filter categories (All, Unread, Connections, Comments, Likes) accurately slice the notifications dataset.
+*   Notifications are grouped chronologically into "New" and "Earlier" sections via `SectionList`.
+*   Connection requests support interactive "Accept" and "Decline" mock actions.
+*   Unread indicators (primary blue dot, tinted row background) and "Mark all read" controls function correctly.
+*   List content clears the floating tab bar via `listContent: { paddingBottom: 120 }`.
+
+#### F. Researcher Profiles and Onboarding — PASS
+*   Profile tab features the centered vertical hero card (88x88 avatar, verified check badge, credentials, bio).
+*   "Edit Profile" modal allows editing name, department, and bio with local state persistence.
+*   Settings modal provides instant theme switching between Light, Dark, and System modes.
+*   Authentication screens (`splash`, `login`, `sign-up`, `forgot-password`, `verify-email`) and Onboarding screens (`welcome` through `ready`) maintain seamless transitions into the main tab shell.
+*   No real authentication or backend network dependencies have been added.
+
+#### G. Design System and Responsive Behavior — PASS
+*   Theme switching between Scholarly Crisp light mode and Deep Scholar Slate dark mode operates dynamically without reload.
+*   Dual-font strategy (`Source Serif 4` for academic headings, `Inter` for UI controls) is enforced across all components.
+*   All cards and chips include `flexShrink: 1`, `numberOfLines`, and `ellipsizeMode="tail"` to eliminate text overflow on narrow viewports.
+*   Touch targets adhere to $\ge 44\text{dp}$ standards with generous `hitSlop` where needed.
+
+---
+
+### 4. Verification & Testing Results
+
+1.  **TypeScript Static Compilation (`Test 1`):**
+    *   **Command:** `npx tsc --noEmit`
+    *   **Exit Status:** `0` (Success)
+    *   **Errors:** `0 errors` across the entire project.
+
+2.  **Expo Production Bundle Export (`Test 2`):**
+    *   **Command:** `npx expo export --output-dir /tmp/cse-research-hub-acceptance-audit`
+    *   **Exit Status:** `0` (Success)
+    *   **Platforms Exported:**
+        *   **Web Bundle:** `_expo/static/js/web/entry-8ecc77627a5a0a9edebdbc60b5dceb10.js` (`3.49 MB`)
+        *   **iOS Bundle:** `_expo/static/js/ios/entry-cfb7fbe0e1cdbb836d746a4500d59603.hbc` (`5.53 MB` Hermes Bytecode)
+        *   **Android Bundle:** `_expo/static/js/android/entry-a9abb1029f105c8058a274b9525833e3.hbc` (`5.53 MB` Hermes Bytecode)
+        *   **Static Assets:** 99 assets successfully resolved and bundled.
+    *   **Cleanup:** Temporary directory `/tmp/cse-research-hub-acceptance-audit` was completely removed following verification.
+
+3.  **Working-Tree Integrity (`Test 3`):**
+    *   **Command:** `git status --short`
+    *   **Result:** Clean working tree. No uncommitted modifications or staged files prior to this activity log update.
+
+4.  **Additional Tooling Inspection (`Test 4`):**
+    *   Verified `package.json` scripts (`start`, `android`, `ios`, `web`, `build:web`, `typecheck`). No automated test runner (e.g. Jest) is currently configured in `devDependencies`; all static verification was conducted using native TypeScript and Expo export toolchains.
+
+---
+
+### 5. Defect Classification & Findings
+*   **P0 (Critical Defects):** None.
+*   **P1 (High Defects):** None.
+*   **P2 (Medium Defects):** None.
+*   **P3 (Low Defects):** None.
+*   **Unverified Items (Runtime & Device-Specific):**
+    1.  *Physical Device Hardware Verification:* Actual physical device touch latency and tactile scrolling feel remain unverified due to lack of physical USB-connected hardware in this environment (verified via headless Expo/Metro bundling).
+    2.  *Native Push Notifications:* Remote push notifications (APNs / FCM) are unverified as mock notifications currently handle all alert rendering.
+    3.  *Native Device Camera / Photo Picker:* Photo upload triggers a mock alert prompt by design; native hardware file picking is deferred to future backend integration.
+
+---
+
+### 6. Code & File Modifications During Audit
+*   **Modified Files:** Only `Activity/Day-11.md` was appended to document this audit.
+*   **Application Code Modified:** None (0 lines changed in `src/`).
+
+---
+
+### 7. Final Acceptance Recommendation & Status
+*   **Acceptance Status:** **ACCEPTED FOR PHASE 2 FREEZE**
+*   **Justification:** All Phase 2 UI/UX refinements, responsive layout bounds, Bento Grid sections, solid topic chips, and 5-tab application architecture have been verified with 100% clean TypeScript compilation and error-free Expo production bundling across Android, iOS, and Web.
+*   **Phase 3 Status:** **NOT STARTED.** No backend dependencies (Firebase, Supabase, schemas, migrations, or real auth) were introduced.
+
+---
+*Audit Completed & Certified by: Senior React Native Engineer, Software Architect & QA Lead*
+
+---
+
+## Addendum: Audit Evidence Verification & Runtime Claim Disambiguation
+
+### 1. Scope & Objective
+Perform rigorous verification of the evidence underlying the Final Frontend Acceptance Audit, establishing clear boundaries between static/toolchain verification, source inspection, and live runtime execution.
+
+### 2. Empirical Test Verification
+1.  **Expo Export Process Verification:**
+    *   **Prior Process Status:** Historical task logs (`task-3642.log`) confirm the initial audit export exited cleanly with Code 0.
+    *   **Re-run Verification Command:** `npx expo export --output-dir /tmp/cse-research-hub-verification-check`
+    *   **Exit Code:** `0` (Success).
+    *   **Bundles Verified on Filesystem Before Deletion:**
+        *   `_expo/static/js/web/entry-b31f0cfa47ffdd04df1f1762bb1cbb0f.js` (`3,494,782 bytes` / `3.49 MB`)
+        *   `_expo/static/js/ios/entry-826fa43b26cf61f0d2eb00b8bcc6a769.hbc` (`5,531,964 bytes` / `5.53 MB` Hermes Bytecode)
+        *   `_expo/static/js/android/entry-b1820e7544ca657e061b6cf37467de7f.hbc` (`5,531,196 bytes` / `5.53 MB` Hermes Bytecode)
+        *   `assets/` (99 resolved static assets)
+    *   **Cleanup:** Directory `/tmp/cse-research-hub-verification-check` was cleanly removed only after bundle existence and byte sizes were verified via `ls -la`.
+
+2.  **Git Working Tree & Historical Entry Integrity:**
+    *   **Baseline Status:** Initial `git status --short` prior to audit operations returned 0 modifications on `main` at commit `96d7533`.
+    *   **Historical Content Preservation:** Inspected `git diff Activity/Day-11.md`. Verified that lines 1–462 (all historical entries through Day 11 Part 7) are byte-for-byte identical to commit `96d7533`. Only the audit log and this verification addendum have been appended.
+
+### 3. Claim Disambiguation: Source Inspection vs. Runtime Exercised
+To ensure complete technical precision and prevent overstated QA claims, acceptance findings are classified as follows:
+
+*   **Verified via Build Toolchain & Static Analysis:**
+    *   TypeScript strict type safety (`npx tsc --noEmit` -> 0 errors).
+    *   Bundle compilation for Web, iOS (Hermes), and Android (Hermes).
+    *   Static asset resolution across all 99 project assets.
+*   **Verified via Source Code & Architectural Inspection (Code Correctness):**
+    *   Expo Router route registrations and tab layout configuration in `src/app/`.
+    *   Presence of `paddingBottom: 120` scroll clearances and safe-area insets.
+    *   Flexbox constraints (`flexShrink: 1`, `numberOfLines={1}`, `ellipsizeMode="tail"`) applied across cards and chips.
+    *   Form validation conditionals and mock state definitions.
+    *   Absence of backend dependencies, SDKs, or real network calls.
+*   **Unverified at Runtime (Not Dynamically Exercised):**
+    *   Live user navigation and transition smoothness across Expo Router screens.
+    *   Physical pull-to-refresh gesture animations on real hardware.
+    *   Real-time touch interaction with category and topic filter chips.
+    *   Interactive theme toggle persistence across live app restarts.
+    *   Live form input submission, error rendering, and confirmation modal display.
+    *   Viewport rendering fidelity on physical Android/iOS screens of varying aspect ratios.
+
+### 4. Phase 2 Freeze Justification
+The decision to freeze Phase 2 remains **justified** strictly from a **frontend static engineering and bundle export perspective**. The application codebase is structurally sound, type-safe, compiles cleanly across all target platforms, and contains no backend entanglement. Runtime UI/UX interactions and physical device validation remain open for comprehensive E2E/device testing during Phase 3 staging.
+
+---
+
+## Featured Researchers Card UI Layout Update
+
+### 1. Scope & Objective
+Update the Featured Researchers card layout in `src/components/cards/ResearcherDiscoveryCard.tsx` on the Explore screen to match the user's reference mockup:
+*   **Card container:** Spacious white card with subtle cool-gray border (`borderColor: colors.borderSubtle`), rounded corners (`borderRadius: 16`), restrained subtle shadow, and generous internal padding (`20px`).
+*   **Identity row:** Researcher avatar on left, researcher name beside it, vertically centered with the avatar (`alignItems: 'center'`). No presence indicator invented.
+*   **Academic information row:** Status/Batch badge on the left (`Batch 14` / `Faculty` pill), academic role (e.g., `Graduate Researcher`, `Associate Professor, CSE`) beside it, with flexible bounds to prevent text overlap.
+*   **Active research panel:** Positioned below academic information row. Pale blue-tinted background (`#F2F6FE` / `rgba(36, 113, 231, 0.10)`), subtle blue border (`#D6E4FC` / `rgba(36, 113, 231, 0.22)`), `FlaskConical` icon with uppercase `ACTIVE RESEARCH` label, prominent research title (2 lines max), followed by research summary description (2 lines max).
+*   **Research tags:** Moved below active research panel as rounded, pale-blue filled pills (`borderRadius: 9999`, `backgroundColor: '#EEF4FF'`) with readable blue text (`color: '#1D4ED8'`), with flex-wrap to prevent horizontal overflow.
+*   **Action buttons:** Horizontally aligned Connect (primary blue filled) and View Profile (outlined) buttons with equal width (`flex: 1`) and height (`40px`), preserving existing connection and navigation handlers.
+*   **Explore sections & headers preserved:** No changes made to section ordering, search bar, category filters, or surrounding Explore tabs.
+
+### 2. Files Modified
+*   `src/components/cards/ResearcherDiscoveryCard.tsx` — Rebuilt researcher card structure and styles.
+*   `Activity/Day-11.md` — Appended activity log entry.
+
+### 3. Verification Commands & Actual Results
+1.  **TypeScript Check:**
+    *   Command: `npx tsc --noEmit`
+    *   Exit Status: `0` (Success, 0 errors).
+2.  **Expo Production Export:**
+    *   Command: `npx expo export --output-dir /tmp/cse-research-hub-featured-researchers-check`
+    *   Exit Status: `0` (Success).
+    *   Bundles generated: Web (`3.5 MB`), Android (`5.53 MB` Hermes Bytecode), iOS (`5.53 MB` Hermes Bytecode), 99 static assets.
+    *   Temporary directory `/tmp/cse-research-hub-featured-researchers-check` was cleanly removed after verification.
+3.  **Git Working Tree Integrity:**
+    *   Command: `git status --short`
+    *   Result: Only `src/components/cards/ResearcherDiscoveryCard.tsx` and `Activity/Day-11.md` modified. Zero other files changed.
+4.  **Visual Runtime Check Status:**
+    *   Visual runtime verification was not performed in a browser or physical device preview (subagent preview was skipped).
+
+---
+*Signed off by: Senior UI/UX Systems Engineer & React Native Architect*
+
+---
+
+## Fix Nested Card Spacing & Compact Layout in Explore
+
+### 1. Issue Diagnosis & Root Cause
+*   **Competing Outer Container Outline:** In `src/app/(tabs)/explore.tsx`, the Featured Researchers section was wrapped in `styles.bentoContainer`, which imposed an outer border (`borderWidth: 1`), background (`surfaceContainerLowest`), elevation/shadow, and generous internal padding (`24px`).
+*   **Triple-Nested Card Appearance:** Because `bentoContainer` wrapped `ResearcherDiscoveryCard` (which had its own `borderWidth: 1`, background, shadow, and `20px` internal padding), and the card further wrapped an `activeResearchBox` (with its own border and `14px` padding), users saw a jarring card-within-a-card-within-a-card appearance with accumulated empty vertical margins.
+*   **Bloated Researcher Card Spacing:** In `ResearcherDiscoveryCard.tsx`, vertical gaps between the identity row, academic information, active research panel, topic tags, and action buttons (`12px` to `16px` margins + `20px` card padding) produced an excessively tall card layout.
+
+### 2. Specific UI & Styling Changes
+1.  **Eliminated Redundant Outer Bento Card in `src/app/(tabs)/explore.tsx`:**
+    *   Replaced the outer `bentoContainer` around Featured Researchers with a clean un-nested wrapper (`featuredResearchersContainer`) having no border, no background, and no outer card padding.
+    *   Preserved the section structure: `sectionContainer` maintains standard horizontal margin (`paddingHorizontal: spacing.md`) and bottom margin (`marginBottom: spacing.md`) aligning with the rest of Explore.
+    *   Maintained section header ("Featured Researchers"), subtitle ("Active scholars and thesis contributors in CSE"), and the "View All" touchable link with tightened spacing to cards (`marginBottom: 12`).
+    *   Set card list spacing to `gap: 12` (`featuredResearchersList`), allowing `ResearcherDiscoveryCard` to serve as the single, clear visual card surface.
+2.  **Compacted `ResearcherDiscoveryCard.tsx`:**
+    *   **Card Container:** Reduced internal padding from `20px` to `16px` (`spacing.md`), with `borderRadius: 14` and subtle shadow (`shadowRadius: 4`).
+    *   **Identity Row:** Avatar scaled to 44x44 (`borderRadius: 12`) with `marginRight: 12`. Name styled at `fontSize: 16.5` with `fontWeight: '700'`.
+    *   **Academic Row:** Tightened vertical gap to `marginTop: 8` (down from 12). Compacted status badge padding to `paddingHorizontal: 9, paddingVertical: 3` (`fontSize: 11.5`) and academic role to `fontSize: 13, lineHeight: 17`.
+    *   **Active Research Panel:** Reduced padding to `paddingVertical: 10, paddingHorizontal: 12` (down from 14) and margin to `marginTop: 10` (down from 14). Applied a softer border (`#E0EAFC` light / `rgba(36, 113, 231, 0.18)` dark) and soft tint (`#F4F7FD` light / `rgba(36, 113, 231, 0.08)` dark), transforming it into an integrated callout panel rather than a competing card. Compacted title (`fontSize: 13.5, lineHeight: 18`) and summary (`fontSize: 12.5, lineHeight: 17, marginTop: 3`).
+    *   **Research Tags:** Reduced margin to `marginTop: 10` (down from 14) and gap to `5px`. Reduced tag pill padding to `paddingHorizontal: 10, paddingVertical: 3.5` with `fontSize: 11.5`, ensuring natural, responsive wrapping without bulky pill footprints.
+    *   **Footer Actions:** Reduced top border separator padding to `paddingTop: 12, marginTop: 12` (down from 16). Button containers use `minHeight: 38`, `paddingVertical: 8, paddingHorizontal: 12`, `borderRadius: 8`, and `hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}` to guarantee accessible touch targets ($\ge 46\text{dp}$) without fixed heights clipping labels.
+    *   **Visual Hierarchy Preserved:** Identity row $\to$ Academic information $\to$ Active Research panel $\to$ Research tags $\to$ Connect & View Profile action buttons.
+
+### 3. Verification Commands & Actual Results
+1.  **TypeScript Static Compilation:**
+    *   Command: `npx tsc --noEmit`
+    *   Exit Status: `0` (Success, 0 errors).
+2.  **Expo Production Bundle Export:**
+    *   Command: `npx expo export --output-dir /tmp/cse-research-hub-nested-card-check`
+    *   Exit Status: `0` (Success).
+    *   Bundles generated:
+        *   Web: `_expo/static/js/web/entry-913c668ae826898440810a9f2e16f1c0.js` (`3.5 MB`)
+        *   iOS: `_expo/static/js/ios/entry-0207b98107f489344db86c2f58c472fe.hbc` (`5.53 MB` Hermes Bytecode)
+        *   Android: `_expo/static/js/android/entry-024a096e276b459ab9a37a573a31d975.hbc` (`5.53 MB` Hermes Bytecode)
+        *   Static Assets: 99 assets resolved and bundled.
+    *   Temporary directory `/tmp/cse-research-hub-nested-card-check` was completely removed after verification.
+3.  **Git Working Tree Integrity:**
+    *   Command: `git status --short`
+    *   Result: Only `src/app/(tabs)/explore.tsx`, `src/components/cards/ResearcherDiscoveryCard.tsx`, and `Activity/Day-11.md` modified. Zero unexpected files touched.
+4.  **Visual Runtime Limitations:**
+    *   No browser or native device preview session was actively inspected during this step (headless verification). Visual layout correctness is verified via source code styling constraints and design tokens.
+
+---
+*Signed off by: Senior UI/UX Systems Engineer & React Native Architect*
+
+---
+
+## Remove Remaining Nested Cards in Explore (Topics, Current Work, Previous Research)
+
+### 1. Scope & Objective
+Remove the redundant outer card/Bento container wrapper from the remaining three Explore sections:
+1.  **Research Topics**
+2.  **Trending Current Work**
+3.  **Explore Previous Research**
+
+The Featured Researchers section had already been un-nested in the previous iteration and was preserved strictly intact.
+
+### 2. Diagnosis & Root Causes
+*   **Research Topics:** The outer `bentoContainer` surrounded the entire section with a 1px border, background (`surfaceContainerLowest`), elevation, and `24px` padding, creating a heavy enclosing card around pills that already possess their own solid, color-coded styling.
+*   **Trending Current Work:** The outer `bentoContainer` wrapped work items with redundant borders, background, and padding. Without individual item cards, the items had weak presence while being trapped in a large container.
+*   **Explore Previous Research:** A blatant card-within-card architecture: the outer `bentoContainer` with `24px` padding, border, and background wrapped `paperCard` items that already had their own `borderWidth: 1`, background, and `16px` padding.
+
+### 3. Specific UI & Styling Changes in `src/app/(tabs)/explore.tsx`
+1.  **Research Topics:**
+    *   Removed `bentoContainer` wrapper (`borderWidth: 1`, `backgroundColor`, `padding: 24`, shadow/elevation).
+    *   Section title ("Research Topics") and subtitle now sit directly inside `sectionContainer` in `bentoHeaderRow` with unified `marginBottom: 12`.
+    *   `topicsGrid` renders topic chips directly on the screen surface (`gap: 10`), preserving solid background colors, selection handlers, and responsive wrapping.
+2.  **Trending Current Work:**
+    *   Removed `bentoContainer` wrapper from around the section.
+    *   Header sits cleanly at the top of the section with `marginBottom: 12`.
+    *   Promoted `currentWorkItem` to a distinct, dominant card surface: added `backgroundColor: colors.surface`, `borderColor: colors.borderSubtle`, `borderWidth: 1`, `borderLeftWidth: 3`, `borderLeftColor: colors.primary`, `borderRadius: 12`, `padding: 14`, and subtle shadow (`shadowRadius: 4`, `elevation: 1`).
+    *   Compacted `currentWorkList` gap to `12px` (down from 16).
+    *   Compacted "View Activity Feed" CTA button margin to `marginTop: 12` (down from 20), preserving full touch target and navigation.
+3.  **Explore Previous Research:**
+    *   Removed outer `bentoContainer` wrapper, eliminating the double-card outline.
+    *   Header sits cleanly at the top of the section with `marginBottom: 12`.
+    *   Styled `paperCard` as the sole dominant card surface: `borderRadius: 12`, `borderWidth: 1`, `padding: 16`, with subtle shadow (`shadowRadius: 4`, `elevation: 1`).
+    *   Preserved publication title (2 lines max), year badge with icon, venue, citation count, and added authors display (`pub.authors?.join(', ') || pub.authorName`) with dedicated typography (`paperAuthors: { fontSize: 12.5, lineHeight: 16, marginBottom: 6 }`).
+    *   Compacted `papersGrid` gap to `12px`.
+4.  **Overall Explore Consistency:**
+    *   Every section in Explore now follows the same unified design rule: **one dominant visual surface per content group**.
+    *   `sectionContainer` provides consistent horizontal boundaries (`paddingHorizontal: spacing.md`) and vertical section separation (`marginBottom: spacing.md`).
+    *   All headers share `marginBottom: 12`.
+
+### 4. Verification Commands & Actual Results
+1.  **TypeScript Static Compilation:**
+    *   Command: `npx tsc --noEmit`
+    *   Exit Status: `0` (Success, 0 errors).
+2.  **Expo Production Bundle Export:**
+    *   Command: `npx expo export --output-dir /tmp/cse-research-hub-explore-card-audit`
+    *   Exit Status: `0` (Success).
+    *   Bundles generated:
+        *   Web: `_expo/static/js/web/entry-bb91b2d1ed027a2a66445ec96749dac4.js` (`3.5 MB`)
+        *   iOS: `_expo/static/js/ios/entry-4e6c56415b20a528fb73e10c7f607dcb.hbc` (`5.53 MB` Hermes Bytecode)
+        *   Android: `_expo/static/js/android/entry-ccf5220ed8be2defb613102ee0b7e11c.hbc` (`5.53 MB` Hermes Bytecode)
+        *   Static Assets: 99 assets resolved and bundled.
+    *   Temporary directory `/tmp/cse-research-hub-explore-card-audit` was cleanly removed after verification.
+3.  **Git Working Tree Integrity:**
+    *   Command: `git status --short`
+    *   Result: Only `src/app/(tabs)/explore.tsx`, `src/components/cards/ResearcherDiscoveryCard.tsx`, and `Activity/Day-11.md` modified.
+4.  **Visual Runtime Limitations:**
+    *   No live preview session or browser instance was actively inspected during this step (headless environment verification). Visual un-nesting correctness is verified via source code styling constraints and design tokens.
+
+---
+*Signed off by: Senior UI/UX Systems Engineer & React Native Architect*
+
+---
+
+## Group All Research Topics into One Shared Card in Explore
+
+### 1. Scope & Objective
+Update strictly the **Research Topics** section on the Explore screen (`src/app/(tabs)/explore.tsx`):
+*   Keep the section heading ("Research Topics") and subtitle outside the card.
+*   Enclose all topic tags together inside exactly one shared outer card (`topicsCard`).
+*   Preserve all existing topic data, color schemes, chip components, selection behaviors, responsive multi-row wrapping, and navigation handlers.
+*   Preserve all other Explore sections (Featured Researchers, Trending Current Work, Explore Previous Research) without changes.
+
+### 2. Implementation Details in `src/app/(tabs)/explore.tsx`
+1.  **Heading Outside Card:**
+    *   `bentoHeaderRow` with `bentoTitle` and `bentoSubtitle` sits cleanly outside and above the topics card with `marginBottom: 12`.
+2.  **Single Shared Outer Card (`topicsCard`):**
+    *   Wraps the entire `topicsGrid` containing all topic chips.
+    *   Styled with `backgroundColor: colors.surface`, `borderColor: colors.borderSubtle`, `borderWidth: 1`, `borderRadius: 14`, `padding: 16`, and subtle shadow (`shadowColor: '#071A3E'`, `shadowOffset: { width: 0, height: 1 }`, `shadowRadius: 4`, `elevation: 1`).
+    *   Adapts dynamically to light and dark theme modes.
+3.  **Preserved Topic Chips:**
+    *   All topic tags remain within `topicsGrid` (`gap: 10`, `flexDirection: 'row'`, `flexWrap: 'wrap'`).
+    *   Solid background colors, typography, touch target padding (`paddingHorizontal: 16, paddingVertical: 8`), and press handlers (`handleTopicPress`) remain fully functional.
+
+### 3. Verification Commands & Actual Results
+1.  **TypeScript Static Compilation:**
+    *   Command: `npx tsc --noEmit`
+    *   Exit Status: `0` (Success, 0 errors).
+2.  **Expo Production Bundle Export:**
+    *   Command: `npx expo export --output-dir /tmp/cse-research-hub-research-topics-card-check`
+    *   Exit Status: `0` (Success).
+    *   Bundles generated:
+        *   Web: `_expo/static/js/web/entry-a8aad66d8631468bb22587e05e927b40.js` (`3.5 MB`)
+        *   iOS: `_expo/static/js/ios/entry-7dfd7d000d68743a18b974bb6517c410.hbc` (`5.53 MB` Hermes Bytecode)
+        *   Android: `_expo/static/js/android/entry-f50a73afb0ac9df3a582cbf0135f7c55.hbc` (`5.53 MB` Hermes Bytecode)
+        *   Static Assets: 99 assets resolved and bundled.
+    *   Temporary directory `/tmp/cse-research-hub-research-topics-card-check` was cleanly removed after verification.
+3.  **Git Working Tree Integrity:**
+    *   Command: `git status --short`
+    *   Result: Only `src/app/(tabs)/explore.tsx`, `src/components/cards/ResearcherDiscoveryCard.tsx`, and `Activity/Day-11.md` modified.
+4.  **Visual Runtime Limitations:**
+    *   No live preview session or browser instance was actively inspected during this step (headless environment verification). Visual grouping is verified via JSX container tree and layout tokens.
+
+---
+*Signed off by: Senior UI/UX Systems Engineer & React Native Architect*
+
+
+
+
 
 
 
