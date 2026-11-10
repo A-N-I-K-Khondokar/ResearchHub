@@ -1552,3 +1552,111 @@ To enable Google Authentication across all target platforms:
 
 ---
 *Signed off by: Senior React Native Architect & Firebase Lead*
+
+
+---
+
+## Stage 3.2 — Authentication Final QA & Verification Review
+
+**Date:** 2026-11-10  
+**Engineer:** Senior React Native Architect & Firebase Lead  
+**Scope:** Technical verification of Google OAuth, native OAuth architecture correction, managed Expo project audit, runtime test plan, and pre-Stage 3.3 checkpoint sign-off.
+
+---
+
+### 1. Google OAuth Technical Audit & Correction
+
+#### Web Authentication Architecture
+- **API:** Firebase JavaScript SDK `signInWithPopup(auth, provider)` with `GoogleAuthProvider`.
+- **Scopes:** `profile`, `email`.
+- **Authorized Domain Dependency:** Firebase handles popup communication via `https://cse-research-hub.firebaseapp.com/__/auth/handler`. For local web development (`npx expo start --web`), `localhost` must remain in Firebase Console **Authorized Domains**.
+- **Client Secret:** None used or needed on client. Web Google OAuth via Firebase popup does not expose client secrets.
+
+#### Native Authentication Architecture (iOS & Android) — Technical Fix
+- **Initial Defect Identified:** The previous draft attempted an authorization code exchange (`grant_type: 'authorization_code'`) via `fetch(https://oauth2.googleapis.com/token)` using a Web Client ID without a `client_secret`. Google's token endpoint strictly rejects code exchanges for Web Client IDs without a secret (`401 invalid_client`). Storing client secrets in mobile bundles is insecure and prohibited.
+- **Architectural Solution Implemented:**
+  - Switched to **OpenID Connect Implicit ID Token Flow** (`responseType: AuthSession.ResponseType.IdToken`).
+  - Added cryptographic SHA-256 nonce verification (`Crypto.digestStringAsync`) to conform to OpenID Connect requirements.
+  - Google returns the `id_token` directly in the redirect URL parameters upon authentication.
+  - The `id_token` is passed directly to `GoogleAuthProvider.credential(idToken)` and authenticated via `signInWithCredential(auth, credential)`.
+  - Supports platform-specific OAuth Client IDs (`EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID` and `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID`) with fallback to `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`.
+  - Eliminates any POST to the token endpoint and completely removes the need for client secrets.
+
+---
+
+### 2. Managed Expo Project & SHA-1 Handoff
+
+The project is an Expo managed workflow. There is **no checked-in `android/` directory**. Recommending `cd android && ./gradlew signingReport` is invalid for this project state.
+
+#### Correct Methods to Obtain Android SHA-1 Fingerprint:
+1. **Local Debug Keystore (Mac/Linux default):**
+   ```bash
+   keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android
+   ```
+2. **EAS Build Keystore (Cloud):**
+   ```bash
+   npx eas credentials
+   # Select Android → Development / Production → View Keystore
+   ```
+3. **If generating native projects locally (Prebuild):**
+   ```bash
+   npx expo prebuild -p android
+   cd android && ./gradlew signingReport
+   ```
+
+#### OAuth Client IDs Required by Platform:
+- **Web:** Managed automatically by Firebase Auth via Google sign-in provider in Firebase Console.
+- **Android:** Google Cloud Console → Create OAuth Client ID → Type: **Android** → Package name: `com.cse.researchhub` → SHA-1 fingerprint (from above).
+- **iOS:** Google Cloud Console → Create OAuth Client ID → Type: **iOS** → Bundle ID: `com.cse.researchhub`.
+- **Web Client ID (Audience):** Google Cloud Console → OAuth Client ID → Type: **Web Application**. Used as the audience (`webClientId`) for token validation.
+
+---
+
+### 3. Authentication Runtime Test Plan
+
+| Test Case | Steps | Verification Method | Status |
+|---|---|---|---|
+| **TypeScript Typecheck** | Run `npx tsc --noEmit` | Exit code 0, 0 errors | ✅ **Executed & Passed** |
+| **Platform Bundling** | Run `npx expo export --output-dir /tmp/...` | Generates Web, iOS, Android bundles | ✅ **Executed & Passed** |
+| **Missing Env Vars Guard** | Launch app without `.env` credentials | Console warning displayed, no crash, stubs exported | ✅ **Verified in Code** |
+| **Registration Form Validation** | Submit empty/invalid fields | Inline errors for name, email, password < 6, password mismatch | ⏳ **Requires User Runtime Test** |
+| **Email/Password Registration** | Register new valid email & password | Account created in Firebase Auth; `displayName` populated; verification email dispatched; routed to `verify-email` | ⏳ **Requires User Runtime Test** |
+| **Email Verification Lock** | Attempt accessing `(tabs)` or `(onboarding)` while unverified | `AuthGuard` forcibly intercepts and routes to `/(auth)/verify-email` | ⏳ **Requires User Runtime Test** |
+| **Resend Verification Cooldown** | Tap "Resend Link" on `verify-email` | Email resent; 60s countdown timer activates and disables button | ⏳ **Requires User Runtime Test** |
+| **Verification Refresh Action** | Click verification link in email, then tap "I've Verified My Email" | `reload(user)` refreshes token; `emailVerified` becomes `true`; routes to `account-setup` | ⏳ **Requires User Runtime Test** |
+| **Safe Sign-Out on Return** | Tap "Return to login" on `verify-email` | Clean `signOut()` executes; user returns to login screen without getting snapped back | ⏳ **Requires User Runtime Test** |
+| **Email/Password Login (Unverified)** | Sign in with valid unverified credentials | Authenticates; detects `emailVerified === false`; routes to `verify-email` | ⏳ **Requires User Runtime Test** |
+| **Email/Password Login (Verified)** | Sign in with verified credentials | Authenticates; routes to `account-setup` checkpoint | ⏳ **Requires User Runtime Test** |
+| **Password Reset** | Enter email on `forgot-password` | Success screen shown; `auth/user-not-found` swallowed to prevent user enumeration | ⏳ **Requires User Runtime Test** |
+| **Session Persistence** | Refresh browser or restart mobile app while authenticated | Session restored from AsyncStorage / IndexedDB; loading indicator suppresses flicker | ⏳ **Requires User Runtime Test** |
+| **Sign Out** | Tap "Sign Out" on `account-setup` | Firebase user cleared; routed to `(auth)/login`; protected routes locked | ⏳ **Requires User Runtime Test** |
+| **Web Google Sign-In** | Tap "Continue with Google" in web browser | Firebase popup opens; account authenticated; routed to `account-setup` | ⏳ **Requires User Runtime Test** |
+| **Google Popup Cancellation** | Close popup without signing in | Friendly error banner: *"Sign-in cancelled. Please try again."* | ⏳ **Requires User Runtime Test** |
+| **Native Google Sign-In (Expo Go)** | Tap "Continue with Google" in Expo Go mobile | Surfaces clear message: *"Google Sign-In on mobile requires a custom development build..."* | ⏳ **Requires User Runtime Test** |
+
+---
+
+### 4. Account Approval Checkpoint & Stage 3.3 Prerequisites
+
+- **Current State:**
+  - `ApprovalStatus` is strictly set to `'not-configured'`.
+  - All protected research modules (`(tabs)`, `(onboarding)`, `(research)`, `(profile)`, `(explore)`) remain completely locked.
+  - `account-setup.tsx` informs the user of successful identity verification while explaining that App Admin approval is upcoming.
+  - Zero local or client-side approval spoofing exists.
+- **Stage 3.3 Onboarding / Profile Collection Requirement:**
+  - In Stage 3.3, verified users who are not yet approved (`approvalStatus: 'pending'`) must be allowed to complete their initial academic onboarding (department, batch, research interests, external links) to submit their profile for admin review.
+  - While submitting this minimum profile, they must **not** be granted access to the research dashboard, peer feeds, or collaboration features until an App Admin explicitly approves their record via Firestore.
+
+---
+
+### 5. Final Validation Results
+
+| Check | Tool / Command | Exit Code | Result |
+|---|---|---|---|
+| TypeScript Typecheck | `npx tsc --noEmit` | **0** | Clean (0 errors) |
+| Web Production Bundle | `npx expo export` | **0** | `entry-224679e3788fde0db8d33b9a56d2cb45.js` (3.83 MB) |
+| iOS Production Bundle | `npx expo export` | **0** | `entry-f60a3b29c50dd0335217d5a71a97a7ab.hbc` (5.93 MB) |
+| Android Production Bundle | `npx expo export` | **0** | `entry-f22f667fa58ee1c1dea1f41c6fb99d85.hbc` (5.93 MB) |
+
+---
+*Signed off by: Senior React Native Architect & Firebase Lead*

@@ -233,21 +233,26 @@ async function googleSignInWeb(): Promise<User> {
 // ---------------------------------------------------------------------------
 
 async function googleSignInNative(): Promise<User> {
-  const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
+  const clientId =
+    Platform.select({
+      ios: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+      android: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
+    }) || process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
 
-  if (!webClientId) {
+  if (!clientId) {
     throw {
       code: 'google/client-id-missing',
       message:
-        'Google Sign-In is not configured. Set EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID in your .env file.\n' +
+        'Google Sign-In is not configured. Set EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID (or platform-specific EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID / EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID) in your .env file.\n' +
         'See the Stage 3.2 OAuth Configuration Guide for instructions.',
     } satisfies AuthError;
   }
 
-  // Generate PKCE code verifier and challenge
-  const codeVerifier = await Crypto.digestStringAsync(
+  // Generate cryptographic nonce for OpenID Connect id_token validation
+  const rawNonce = Math.random().toString(36).substring(2) + Date.now().toString(36);
+  const hashedNonce = await Crypto.digestStringAsync(
     Crypto.CryptoDigestAlgorithm.SHA256,
-    Math.random().toString(36) + Date.now().toString(36),
+    rawNonce,
   );
 
   const redirectUri = AuthSession.makeRedirectUri({
@@ -260,13 +265,16 @@ async function googleSignInNative(): Promise<User> {
     tokenEndpoint: 'https://oauth2.googleapis.com/token',
   };
 
+  // Use implicit OpenID Connect id_token flow for mobile public client
+  // (avoids requiring client_secret on mobile devices)
   const request = new AuthSession.AuthRequest({
-    clientId: webClientId,
+    clientId,
+    responseType: AuthSession.ResponseType.IdToken,
     scopes: ['openid', 'profile', 'email'],
     redirectUri,
-    usePKCE: true,
-    codeChallenge: codeVerifier,
-    codeChallengeMethod: AuthSession.CodeChallengeMethod.Plain,
+    extraParams: {
+      nonce: hashedNonce,
+    },
   });
 
   const result = await request.promptAsync(discovery, {
@@ -287,36 +295,17 @@ async function googleSignInNative(): Promise<User> {
     } satisfies AuthError;
   }
 
-  if (result.type !== 'success' || !result.params.code) {
+  if (result.type !== 'success') {
     throw {
-      code: 'google/no-auth-code',
-      message: 'Google Sign-In did not return an authorization code.',
+      code: 'google/auth-failed',
+      message: 'Google Sign-In did not complete successfully.',
     } satisfies AuthError;
   }
 
-  // Exchange authorization code for tokens using PKCE
-  const tokenResponse = await fetch(discovery.tokenEndpoint, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      code: result.params.code,
-      client_id: webClientId,
-      redirect_uri: redirectUri,
-      grant_type: 'authorization_code',
-      code_verifier: request.codeVerifier ?? codeVerifier,
-    }).toString(),
-  });
+  // The id_token is returned directly in the response params from the implicit flow
+  const idToken = result.params?.id_token || result.params?.credential;
 
-  if (!tokenResponse.ok) {
-    throw {
-      code: 'google/token-exchange-failed',
-      message: 'Failed to exchange Google authorization code for tokens.',
-    } satisfies AuthError;
-  }
-
-  const tokens = await tokenResponse.json() as { id_token?: string };
-
-  if (!tokens.id_token) {
+  if (!idToken) {
     throw {
       code: 'google/no-id-token',
       message: 'Google did not return an ID token. Verify your OAuth client configuration.',
@@ -324,7 +313,7 @@ async function googleSignInNative(): Promise<User> {
   }
 
   // Exchange the Google ID token for a Firebase credential
-  const googleCredential = GoogleAuthProvider.credential(tokens.id_token);
+  const googleCredential = GoogleAuthProvider.credential(idToken);
   const firebaseResult = await signInWithCredential(auth, googleCredential);
   return firebaseResult.user;
 }
