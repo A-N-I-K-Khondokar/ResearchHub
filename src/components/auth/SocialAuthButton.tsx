@@ -7,15 +7,23 @@ export interface SocialAuthButtonProps {
   onPress: () => void;
   style?: ViewStyle;
   hitSlop?: Insets | number;
+  /** Prevent interaction while another auth operation is in progress */
+  disabled?: boolean;
 }
 
-export const SocialAuthButton: React.FC<SocialAuthButtonProps> = ({ onPress, style, hitSlop }) => {
+export const SocialAuthButton: React.FC<SocialAuthButtonProps> = ({
+  onPress,
+  style,
+  hitSlop,
+  disabled = false,
+}) => {
   const { colors, isDark } = useTheme();
 
   return (
     <Pressable
-      onPress={onPress}
+      onPress={disabled ? undefined : onPress}
       hitSlop={hitSlop ?? { top: 8, bottom: 8, left: 8, right: 8 }}
+      disabled={disabled}
       style={({ pressed }) => [
         styles.container,
         {
@@ -28,13 +36,14 @@ export const SocialAuthButton: React.FC<SocialAuthButtonProps> = ({ onPress, sty
           shadowColor: isDark ? 'transparent' : '#071A3E',
           shadowOpacity: isDark ? 0 : 0.03,
           elevation: isDark ? 0 : 1,
-          opacity: pressed ? 0.92 : 1,
-          transform: [{ scale: pressed ? 0.992 : 1 }],
+          opacity: disabled ? 0.5 : pressed ? 0.92 : 1,
+          transform: [{ scale: pressed && !disabled ? 0.992 : 1 }],
         },
         style,
       ]}
       accessibilityRole="button"
       accessibilityLabel="Continue with Google"
+      accessibilityState={{ disabled }}
     >
       <View style={styles.contentRow}>
         <View style={styles.iconContainer}>

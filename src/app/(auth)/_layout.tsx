@@ -19,6 +19,7 @@ export default function AuthLayout() {
       <Stack.Screen name="verify-email" />
       <Stack.Screen name="forgot-password" />
       <Stack.Screen name="forgot-password-success" />
+      <Stack.Screen name="account-setup" />
     </Stack>
   );
 }

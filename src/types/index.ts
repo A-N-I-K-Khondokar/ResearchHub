@@ -116,3 +116,6 @@ export interface AppNotification {
   status?: 'pending' | 'accepted' | 'declined';
   actionText?: string;
 }
+
+export * from './auth.types';
+

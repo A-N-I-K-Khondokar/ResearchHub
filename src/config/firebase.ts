@@ -15,7 +15,7 @@
  *        present and non-empty.
  *      • When vars are missing the module still exports safe stubs so that
  *        import order never causes a crash during development.
- *  - Firestore (`db`) is deferred — export is `null` until Stage 3.2.
+ *  - Firestore (`db`) is deferred — export is `null` until Stage 3.3.
  *  - Credential values are never logged.
  */
 
@@ -130,7 +130,7 @@ if (isFirebaseConfigured && app) {
 
 /**
  * Firestore database instance.
- * Remains `null` until Stage 3.2 (Firestore integration).
+ * Remains `null` until Stage 3.3 (Firestore integration).
  * Import `db` only after checking `isFirebaseConfigured`.
  */
 export const db = null;

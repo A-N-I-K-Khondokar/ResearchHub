@@ -1387,3 +1387,168 @@ Stage 3.1 is complete. The Firebase app initialises cleanly, auth persistence is
 
 ---
 *Signed off by: Senior React Native Developer — Firebase Integration Lead*
+
+
+---
+
+## Stage 3.2 — Firebase Authentication & Account Lifecycle
+
+**Date:** 2026-11-10  
+**Engineer:** Senior React Native Architect & Firebase Lead  
+**Scope:** Firebase Authentication, centralized AuthContext, session persistence, account lifecycle checkpoint, and route protection. **No Firestore profile writes. No admin approval persistence. No Security Rules deployment.**
+
+---
+
+### 1. Recovery Audit Summary
+
+Following session interruption, an audit of the working tree identified:
+- **Installed Dependencies:** `expo-auth-session` (~6.0.3), `expo-crypto` (~14.0.2), and `expo-web-browser` (~14.0.2) installed cleanly in `package.json` and `package-lock.json`.
+- **Core Files Created:** `src/types/auth.types.ts`, `src/services/auth.service.ts`, `src/context/AuthContext.tsx`, `src/app/(auth)/account-setup.tsx`, `src/services/index.ts`.
+- **Fixed TypeScript Deficiencies:** Resolved theme color property mismatch (swapped non-existent `errorMuted` token for `errorLight` container and `error` foreground from `ThemeColors`), handled `onAuthStateChanged` error typing safely through `mapFirebaseError`, and properly aligned static route segments typing in `AuthGuard`.
+- **Router Edge-Case Hardening:** Added clean sign-out handling to "Return to login" from the email verification screen to avoid navigation loops, and refined `AuthGuard` verified/unverified routes to route verified accounts to the approval checkpoint.
+
+---
+
+### 2. Files Created & Modified
+
+| File | Status | Description |
+|---|---|---|
+| `package.json` / `package-lock.json` | Modified | Added `expo-auth-session`, `expo-crypto`, `expo-web-browser` dependencies |
+| `src/types/auth.types.ts` | Created | Defined `ApprovalStatus`, `AuthState`, `AuthActions`, `AuthContextType`, and error models |
+| `src/types/index.ts` | Modified | Re-exported `auth.types.ts` |
+| `src/services/auth.service.ts` | Created | Centralized Firebase Auth operations (Email/Password, Google Web/Native, verification, error mapping) |
+| `src/services/index.ts` | Created | Barrel export for services layer |
+| `src/context/AuthContext.tsx` | Created | Context provider wrapping `onAuthStateChanged` as authoritative session observer |
+| `src/context/index.ts` | Modified | Re-exported `AuthContext` and `useAuth` hook |
+| `src/config/firebase.ts` | Modified | Clarified Stage 3.3 Firestore deferral comments |
+| `src/components/auth/SocialAuthButton.tsx` | Modified | Added `disabled` prop and opacity/touch feedback states |
+| `src/app/_layout.tsx` | Modified | Wrapped root tree in `AuthProvider` + `AuthGuard` routing state machine |
+| `src/app/(auth)/_layout.tsx` | Modified | Registered `account-setup` checkpoint screen |
+| `src/app/(auth)/login.tsx` | Modified | Connected form to `signInWithEmail` and `signInWithGoogle` with error feedback |
+| `src/app/(auth)/sign-up.tsx` | Modified | Connected form to `signUpWithEmail` and `signInWithGoogle` with validation |
+| `src/app/(auth)/verify-email.tsx` | Modified | Connected to `sendVerificationEmail` with 60s cooldown, `reloadCurrentUser`, and safe signout |
+| `src/app/(auth)/forgot-password.tsx` | Modified | Connected to `sendPasswordReset` with user enumeration prevention |
+| `src/app/(auth)/account-setup.tsx` | Created | Interim approval checkpoint screen; locks protected screens pending Stage 3.3 approval |
+| `.env.example` | Modified | Documented `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` for native OAuth |
+
+---
+
+### 3. Authentication Architecture & Functionality
+
+#### A. Centralized State Machine (`AuthContext`)
+- **Single Source of Truth:** `onAuthStateChanged` listener attached in `AuthProvider`. No parallel or out-of-sync local auth state.
+- **State Exposed:**
+  - `firebaseUser: User | null`
+  - `isLoading: boolean`
+  - `isAuthenticated: boolean`
+  - `emailVerified: boolean`
+  - `approvalStatus: ApprovalStatus` (`not-configured` in Stage 3.2)
+  - `authError: AuthError | null`
+- **Actions Exposed:** `signUpWithEmail`, `signInWithEmail`, `signInWithGoogle`, `signOut`, `sendVerificationEmail`, `reloadCurrentUser`, `sendPasswordReset`.
+
+#### B. Email & Password Operations
+- **Registration:** Validates inputs, creates account via `createUserWithEmailAndPassword`, populates `displayName` via `updateProfile`, triggers initial verification email with `sendEmailVerification`, and routes to `verify-email`. No domain restrictions applied.
+- **Login:** Authenticates with `signInWithEmailAndPassword`, maps Firebase error codes to academic user-friendly text, evaluates `emailVerified`.
+- **Verification:** Tracks Firebase `emailVerified` boolean directly. Provides 60-second cooldown on resend. Manual check uses `reload(user)` to refresh verification status from server.
+- **Forgot Password:** Calls `sendPasswordResetEmail`. Swallows `auth/user-not-found` silently to prevent malicious user enumeration.
+- **Logout:** Calls `signOut()` on Firebase Auth, triggers `onAuthStateChanged` to reset state, returns to `(auth)/login`.
+
+#### C. Session Persistence
+- **Web:** Utilizes `browserLocalPersistence`.
+- **Native (iOS & Android):** Utilizes `getReactNativePersistence(AsyncStorage)` via the Stage 3.1 module augmentation.
+- **Restoration:** Automatic on app cold-start via Firebase Auth state observer.
+
+#### D. Route Protection (`AuthGuard`)
+- **Loading State:** Suppresses navigation rendering while Firebase session initializes (`isLoading: true`) to prevent flicker.
+- **Unauthenticated Users:** Attempts to enter `(tabs)`, `(onboarding)`, `(research)`, `(profile)`, or `(explore)` immediately redirect to `/(auth)/login`.
+- **Unverified Users:** Locked to `/(auth)/verify-email`. Attempting to access protected or other auth screens redirects back to verification.
+- **Verified Users:** Routed to `/(auth)/account-setup` approval checkpoint. Protected research features remain blocked until Stage 3.3.
+
+---
+
+### 4. Account Lifecycle & Admin Approval Boundary
+
+- **Approval Type Definition:**
+  ```typescript
+  type ApprovalStatus =
+    | 'not-configured' // Stage 3.2 interim
+    | 'pending'        // Stage 3.3
+    | 'approved'       // Stage 3.3
+    | 'rejected'       // Stage 3.3
+    | 'suspended';     // Stage 3.3
+  ```
+- **Strict Boundary Enforcement:**
+  - Status is set to `'not-configured'` in Stage 3.2.
+  - No client-side approval boolean, form override, hardcoded email whitelist, or AsyncStorage flag is permitted.
+  - No mock approved accounts were created.
+  - Access to protected research modules remains strictly blocked until Stage 3.3 connects the server-side Firestore profile and security rules.
+  - `AccountSetupScreen` displays an informational status card verifying identity while explaining that admin approval is not yet integrated.
+
+---
+
+### 5. Google Authentication Platform Analysis
+
+#### Web
+- **Mechanism:** Firebase modular `GoogleAuthProvider` + `signInWithPopup`.
+- **Status:** Architecture fully integrated. Functioning once Firebase web client credentials are configured in `.env`.
+- **Error Handling:** Handles popup closure (`auth/popup-closed-by-user`) and popup blockers (`auth/popup-blocked`) with user-friendly warnings.
+
+#### iOS & Android
+- **Mechanism:** `expo-auth-session` + PKCE flow to Google's OAuth endpoints, exchanging ID token with `GoogleAuthProvider.credential` + `signInWithCredential`.
+- **Expo Go Limitation:** Native Google OAuth cannot execute redirects (`cseresearchhub://`) inside Expo Go.
+- **Requirements for Native:** Requires an Expo Development Build (`npx expo run:android` / `npx expo run:ios` or EAS Build) and configured OAuth Client IDs in Google Cloud Console.
+- **Runtime Handling:** Catches missing Client ID and surfaces a clear message: *"Google Sign-In on mobile requires a custom development build and Google OAuth configuration. Email/password sign-in is available in Expo Go."*
+
+---
+
+### 6. Manual Configuration Handoff for Google OAuth
+
+To enable Google Authentication across all target platforms:
+
+1. **Google Cloud Console Setup:**
+   - Open [Google Cloud Console Credentials](https://console.cloud.google.com/apis/credentials) for project `cse-research-hub`.
+   - **Web Client ID:** Create an *OAuth 2.0 Client ID* (Type: *Web Application*). Set Authorized redirect URI to `https://cse-research-hub.firebaseapp.com/__/auth/handler`.
+   - Place this Web Client ID in `.env` as:
+     ```
+     EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=your-google-web-client-id.apps.googleusercontent.com
+     ```
+2. **Android OAuth Setup (Development Build):**
+   - Package Name: `com.cse.researchhub` (from `app.json`).
+   - Generate SHA-1 fingerprint:
+     ```bash
+     cd android && ./gradlew signingReport
+     ```
+   - In Google Cloud Console, create an Android OAuth Client ID with `com.cse.researchhub` and the SHA-1 fingerprint.
+3. **iOS OAuth Setup (Development Build):**
+   - Bundle Identifier: `com.cse.researchhub` (from `app.json`).
+   - Create an iOS OAuth Client ID in Google Cloud Console with this bundle identifier.
+4. **Firebase Console Enablement:**
+   - Under **Build → Authentication → Sign-in method**, ensure **Google** is enabled with project support email configured.
+
+---
+
+### 7. Validation Results
+
+| Test / Check | Command | Result |
+|---|---|---|
+| TypeScript Compilation | `npx tsc --noEmit` | ✅ Exit code 0 (zero errors) |
+| Web Bundle Build | `npx expo export --output-dir /tmp/...` | ✅ Bundled `entry-c1e595340c0ab69fbb168dc166eb7004.js` (3.83 MB) |
+| Android Bundle Build | `npx expo export --output-dir /tmp/...` | ✅ Bundled `entry-9235980155ea681019bb5f78d371f53f.hbc` (5.93 MB) |
+| iOS Bundle Build | `npx expo export --output-dir /tmp/...` | ✅ Bundled `entry-01081258124bc6249d45c06a213dad49.hbc` (5.93 MB) |
+| Production Export Exit Code | `echo $?` | ✅ Exit code 0 |
+
+---
+
+### 8. Scope Boundaries & Next Steps
+
+- **What Stage 3.2 Does NOT Include:**
+  - Firestore database read/writes or collections.
+  - Creation of user profile documents in `users/`.
+  - App Admin review dashboards or approval mutation logic.
+  - Firebase Security Rules (`firestore.rules`).
+- **Prerequisites for Stage 3.3:**
+  - Real credentials added to `.env` from Firebase Console.
+  - Authorize commencement of Stage 3.3: Firestore User Profile Architecture & Admin Approval Mechanism.
+
+---
+*Signed off by: Senior React Native Architect & Firebase Lead*

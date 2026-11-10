@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { User, Mail, Lock, Building, Calendar } from 'lucide-react-native';
 import {
@@ -12,10 +12,13 @@ import {
 } from '@/components';
 import { radius, spacing, typography, fontFamilies } from '@/constants';
 import { useTheme } from '@/context/ThemeContext';
+import { useAuth } from '@/context/AuthContext';
 
 export default function SignUpScreen() {
   const router = useRouter();
   const { colors, isDark } = useTheme();
+  const { signUpWithEmail, signInWithGoogle } = useAuth();
+
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -23,14 +26,11 @@ export default function SignUpScreen() {
   const [department, setDepartment] = useState('CSE');
   const [batch, setBatch] = useState('');
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [modalConfig, setModalConfig] = useState({
-    title: 'Account Created',
-    message: 'Your research profile has been registered. Please verify your institutional email to proceed.',
-    targetRoute: '/(auth)/verify-email',
-  });
+  const [globalError, setGlobalError] = useState('');
 
-  // Errors
+  // Field errors
   const [nameError, setNameError] = useState('');
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
@@ -42,6 +42,7 @@ export default function SignUpScreen() {
     setEmailError('');
     setPasswordError('');
     setConfirmError('');
+    setGlobalError('');
 
     if (!fullName.trim()) {
       setNameError('Full name is required');
@@ -49,10 +50,10 @@ export default function SignUpScreen() {
     }
 
     if (!email.trim()) {
-      setEmailError('Institutional email is required');
+      setEmailError('Email is required');
       valid = false;
     } else if (!email.includes('@')) {
-      setEmailError('Please enter a valid academic email');
+      setEmailError('Please enter a valid email address');
       valid = false;
     }
 
@@ -72,33 +73,51 @@ export default function SignUpScreen() {
     return valid;
   };
 
-  const handleSignUp = () => {
+  const handleSignUp = async () => {
     if (!validate()) return;
 
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      setModalConfig({
-        title: 'Account Created',
-        message: 'Your academic profile has been registered. Please verify your institutional email to proceed.',
-        targetRoute: '/(auth)/verify-email',
+    try {
+      await signUpWithEmail({
+        fullName: fullName.trim(),
+        email: email.trim(),
+        password,
+        department: department.trim() || undefined,
+        batch: batch.trim() || undefined,
       });
+      // Show success modal — then AuthGuard routes to verify-email
       setShowSuccessModal(true);
-    }, 600);
-  };
-
-  const handleGoogleSignUp = () => {
-    setModalConfig({
-      title: 'Google Sign-In Successful',
-      message: 'Your institutional Google account has been connected. Welcome to CSE Research Hub.',
-      targetRoute: '/(onboarding)/welcome',
-    });
-    setShowSuccessModal(true);
+    } catch (error: any) {
+      setGlobalError(error?.message ?? 'Registration failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleModalClose = () => {
     setShowSuccessModal(false);
-    router.push(modalConfig.targetRoute as any);
+    // AuthGuard will redirect to verify-email once emailVerified=false is detected
+    router.push('/(auth)/verify-email' as any);
+  };
+
+  const handleGoogleSignUp = async () => {
+    setGlobalError('');
+    setGoogleLoading(true);
+    try {
+      await signInWithGoogle();
+      // AuthGuard handles navigation
+    } catch (error: any) {
+      const isNative = Platform.OS !== 'web';
+      if (isNative && error?.code === 'google/client-id-missing') {
+        setGlobalError(
+          'Google Sign-In on mobile requires a custom development build and OAuth configuration. Use email/password in Expo Go.',
+        );
+      } else {
+        setGlobalError(error?.message ?? 'Google Sign-In failed. Please try again.');
+      }
+    } finally {
+      setGoogleLoading(false);
+    }
   };
 
   return (
@@ -122,6 +141,20 @@ export default function SignUpScreen() {
             },
           ]}
         >
+          {/* Global error banner */}
+          {globalError ? (
+            <View
+              style={[
+                styles.errorBanner,
+                { backgroundColor: colors.errorLight, borderColor: colors.error },
+              ]}
+            >
+              <Text style={[styles.errorBannerText, { color: colors.error }]}>
+                {globalError}
+              </Text>
+            </View>
+          ) : null}
+
           <AuthInput
             label="Full Name"
             value={fullName}
@@ -140,6 +173,7 @@ export default function SignUpScreen() {
             onChangeText={(text) => {
               setEmail(text);
               if (emailError) setEmailError('');
+              if (globalError) setGlobalError('');
             }}
             placeholder="researcher@university.edu"
             keyboardType="email-address"
@@ -147,7 +181,6 @@ export default function SignUpScreen() {
             leftIcon={<Mail size={18} color={colors.textSecondary} />}
           />
 
-          {/* Vertically Stacked Passwords */}
           <AuthInput
             label="Password"
             value={password}
@@ -174,7 +207,7 @@ export default function SignUpScreen() {
             leftIcon={<Lock size={18} color={colors.textSecondary} />}
           />
 
-          {/* Academic Affiliation Section - Vertically Stacked */}
+          {/* Academic Affiliation */}
           <View
             style={[
               styles.affiliationSection,
@@ -204,6 +237,7 @@ export default function SignUpScreen() {
             label="Create Account"
             onPress={handleSignUp}
             loading={loading}
+            disabled={loading || googleLoading}
             fullWidth
             size="lg"
             style={styles.createButton}
@@ -216,12 +250,17 @@ export default function SignUpScreen() {
             <View style={[styles.dividerLine, { backgroundColor: colors.borderSubtle }]} />
           </View>
 
-          <SocialAuthButton onPress={handleGoogleSignUp} />
+          <SocialAuthButton
+            onPress={handleGoogleSignUp}
+            disabled={loading || googleLoading}
+          />
         </View>
 
         {/* Footer */}
         <View style={styles.footer}>
-          <Text style={[styles.footerText, { color: colors.textSecondary }]}>Already have an account? </Text>
+          <Text style={[styles.footerText, { color: colors.textSecondary }]}>
+            Already have an account?{' '}
+          </Text>
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={() => router.push('/(auth)/login' as any)}
@@ -234,8 +273,8 @@ export default function SignUpScreen() {
 
       <SuccessModal
         visible={showSuccessModal}
-        title={modalConfig.title}
-        message={modalConfig.message}
+        title="Account Created"
+        message="Your research profile has been registered. Please verify your email to continue."
         onClose={handleModalClose}
       />
     </ScreenContainer>
@@ -254,6 +293,17 @@ const styles = StyleSheet.create({
     shadowColor: '#071A3E',
     shadowOffset: { width: 0, height: 6 },
     shadowRadius: 16,
+  },
+  errorBanner: {
+    borderWidth: 1,
+    borderRadius: radius.sm,
+    padding: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  errorBannerText: {
+    fontFamily: fontFamilies.sansRegular,
+    fontSize: 13,
+    lineHeight: 18,
   },
   affiliationSection: {
     marginTop: spacing.xs,

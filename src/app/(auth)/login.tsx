@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Mail, Lock } from 'lucide-react-native';
 import {
@@ -8,32 +8,32 @@ import {
   AuthHeader,
   AuthInput,
   SocialAuthButton,
-  SuccessModal,
 } from '@/components';
 import { radius, spacing, typography, fontFamilies, shadows } from '@/constants';
 import { useTheme } from '@/context/ThemeContext';
+import { useAuth } from '@/context/AuthContext';
 
 export default function LoginScreen() {
   const router = useRouter();
   const { colors, isDark } = useTheme();
+  const { signInWithEmail, signInWithGoogle } = useAuth();
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [modalContent, setModalContent] = useState({
-    title: 'Welcome Back',
-    message: 'Your authentication was successful. Welcome back to CSE Research Hub.',
-  });
+  const [globalError, setGlobalError] = useState('');
 
   const validate = () => {
     let valid = true;
     setEmailError('');
     setPasswordError('');
+    setGlobalError('');
 
     if (!email.trim()) {
-      setEmailError('Institutional email is required');
+      setEmailError('Email is required');
       valid = false;
     } else if (!email.includes('@')) {
       setEmailError('Please enter a valid email address');
@@ -51,31 +51,39 @@ export default function LoginScreen() {
     return valid;
   };
 
-  const handleSignIn = () => {
+  const handleSignIn = async () => {
     if (!validate()) return;
 
     setLoading(true);
-    setTimeout(() => {
+    try {
+      await signInWithEmail({ email: email.trim(), password });
+      // AuthGuard in _layout.tsx handles navigation based on emailVerified state
+    } catch (error: any) {
+      setGlobalError(error?.message ?? 'Sign-in failed. Please try again.');
+    } finally {
       setLoading(false);
-      setModalContent({
-        title: 'Welcome Back',
-        message: 'Your authentication was successful. Redirecting to your academic dashboard.',
-      });
-      setShowSuccessModal(true);
-    }, 600);
+    }
   };
 
-  const handleGoogleSignIn = () => {
-    setModalContent({
-      title: 'Google Sign-In',
-      message: 'Institutional Google authentication successful. Welcome back to CSE Research Hub.',
-    });
-    setShowSuccessModal(true);
-  };
-
-  const handleModalClose = () => {
-    setShowSuccessModal(false);
-    router.push('/(onboarding)/welcome' as any);
+  const handleGoogleSignIn = async () => {
+    setGlobalError('');
+    setGoogleLoading(true);
+    try {
+      await signInWithGoogle();
+      // AuthGuard handles navigation
+    } catch (error: any) {
+      // Native Expo Go limitation message
+      const isNative = Platform.OS !== 'web';
+      if (isNative && error?.code === 'google/client-id-missing') {
+        setGlobalError(
+          'Google Sign-In on mobile requires a custom development build and Google OAuth configuration. Email/password sign-in is available in Expo Go.',
+        );
+      } else {
+        setGlobalError(error?.message ?? 'Google Sign-In failed. Please try again.');
+      }
+    } finally {
+      setGoogleLoading(false);
+    }
   };
 
   return (
@@ -98,12 +106,27 @@ export default function LoginScreen() {
             },
           ]}
         >
+          {/* Global error banner */}
+          {globalError ? (
+            <View
+              style={[
+                styles.errorBanner,
+                { backgroundColor: colors.errorLight, borderColor: colors.error },
+              ]}
+            >
+              <Text style={[styles.errorBannerText, { color: colors.error }]}>
+                {globalError}
+              </Text>
+            </View>
+          ) : null}
+
           <AuthInput
             label="Email"
             value={email}
             onChangeText={(text) => {
               setEmail(text);
               if (emailError) setEmailError('');
+              if (globalError) setGlobalError('');
             }}
             placeholder="researcher@university.edu"
             keyboardType="email-address"
@@ -117,6 +140,7 @@ export default function LoginScreen() {
             onChangeText={(text) => {
               setPassword(text);
               if (passwordError) setPasswordError('');
+              if (globalError) setGlobalError('');
             }}
             placeholder="••••••••"
             isPassword
@@ -132,9 +156,10 @@ export default function LoginScreen() {
             label="Sign In"
             onPress={handleSignIn}
             loading={loading}
+            disabled={loading || googleLoading}
             fullWidth
             style={styles.signInButton}
-            size="lg" // Larger, premium button height
+            size="lg"
           />
 
           {/* Divider */}
@@ -145,7 +170,10 @@ export default function LoginScreen() {
           </View>
 
           {/* Social Auth */}
-          <SocialAuthButton onPress={handleGoogleSignIn} />
+          <SocialAuthButton
+            onPress={handleGoogleSignIn}
+            disabled={loading || googleLoading}
+          />
         </View>
 
         {/* Footer Navigation */}
@@ -164,13 +192,6 @@ export default function LoginScreen() {
           </TouchableOpacity>
         </View>
       </View>
-
-      <SuccessModal
-        visible={showSuccessModal}
-        title={modalContent.title}
-        message={modalContent.message}
-        onClose={handleModalClose}
-      />
     </ScreenContainer>
   );
 }
@@ -178,7 +199,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   content: {
     paddingVertical: spacing.xl,
-    paddingHorizontal: spacing.sm, // Slightly narrower overall width for a more focused modal feel on tablets/wide screens
+    paddingHorizontal: spacing.sm,
   },
   card: {
     borderRadius: radius.lg,
@@ -189,6 +210,17 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.04,
     shadowRadius: 16,
     elevation: 2,
+  },
+  errorBanner: {
+    borderWidth: 1,
+    borderRadius: radius.sm,
+    padding: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  errorBannerText: {
+    fontFamily: fontFamilies.sansRegular,
+    fontSize: 13,
+    lineHeight: 18,
   },
   signInButton: {
     marginTop: spacing.sm,

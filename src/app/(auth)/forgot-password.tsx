@@ -5,17 +5,24 @@ import { Mail, ArrowLeft, KeyRound } from 'lucide-react-native';
 import { ScreenContainer, Button, AuthInput } from '@/components';
 import { radius, spacing, typography } from '@/constants';
 import { useTheme } from '@/context/ThemeContext';
+import { useAuth } from '@/context/AuthContext';
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
   const { colors } = useTheme();
+  const { sendPasswordReset } = useAuth();
+
   const [email, setEmail] = useState('');
   const [emailError, setEmailError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [globalError, setGlobalError] = useState('');
 
-  const handleSendReset = () => {
+  const handleSendReset = async () => {
+    setEmailError('');
+    setGlobalError('');
+
     if (!email.trim()) {
-      setEmailError('Please enter your institutional email');
+      setEmailError('Please enter your email address');
       return;
     }
     if (!email.includes('@')) {
@@ -24,10 +31,15 @@ export default function ForgotPasswordScreen() {
     }
 
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      await sendPasswordReset(email.trim());
+      // Navigate to success screen regardless — prevents user enumeration
       router.push('/(auth)/forgot-password-success' as any);
-    }, 600);
+    } catch (error: any) {
+      setGlobalError(error?.message ?? 'Could not send reset email. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -61,8 +73,20 @@ export default function ForgotPasswordScreen() {
           {/* Title & Description */}
           <Text style={[styles.title, { color: colors.textPrimary }]}>Reset Password</Text>
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            Enter your institutional email address and we'll send you a link to reset your password.
+            Enter your email address and we'll send you a link to reset your password.
           </Text>
+
+          {/* Global error */}
+          {globalError ? (
+            <View
+              style={[
+                styles.errorBanner,
+                { backgroundColor: colors.errorLight, borderColor: colors.error },
+              ]}
+            >
+              <Text style={{ color: colors.error, fontSize: 13 }}>{globalError}</Text>
+            </View>
+          ) : null}
 
           {/* Input */}
           <AuthInput
@@ -71,6 +95,7 @@ export default function ForgotPasswordScreen() {
             onChangeText={(text) => {
               setEmail(text);
               if (emailError) setEmailError('');
+              if (globalError) setGlobalError('');
             }}
             placeholder="researcher@university.edu"
             keyboardType="email-address"
@@ -84,6 +109,7 @@ export default function ForgotPasswordScreen() {
             label="Send Reset Link"
             onPress={handleSendReset}
             loading={loading}
+            disabled={loading}
             fullWidth
             style={styles.button}
           />
@@ -151,6 +177,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: spacing.lg,
     paddingHorizontal: spacing.sm,
+  },
+  errorBanner: {
+    borderWidth: 1,
+    borderRadius: radius.sm,
+    padding: spacing.sm,
+    marginBottom: spacing.md,
+    alignSelf: 'stretch',
   },
   input: {
     width: '100%',

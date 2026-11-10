@@ -1,36 +1,98 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import { MailCheck, ArrowLeft, RefreshCw, ExternalLink } from 'lucide-react-native';
+import { MailCheck, ArrowLeft, RefreshCw, CheckCircle } from 'lucide-react-native';
 import { ScreenContainer, Button } from '@/components';
-import { radius, spacing, typography } from '@/constants';
+import { radius, spacing, typography, fontFamilies } from '@/constants';
 import { useTheme } from '@/context/ThemeContext';
+import { useAuth } from '@/context/AuthContext';
+
+/** Resend cooldown in seconds */
+const RESEND_COOLDOWN_SECONDS = 60;
 
 export default function VerifyEmailScreen() {
   const router = useRouter();
   const { colors } = useTheme();
-  const [resending, setResending] = useState(false);
+  const { firebaseUser, emailVerified, sendVerificationEmail, reloadCurrentUser, signOut } = useAuth();
 
-  const handleOpenEmailApp = () => {
-    Alert.alert(
-      'Open Email Client',
-      'Please check your university inbox. For this preview, you can proceed directly to onboarding.',
-      [
-        {
-          text: 'Proceed to Onboarding',
-          onPress: () => router.push('/(onboarding)/welcome' as any),
-        },
-        { text: 'Cancel', style: 'cancel' },
-      ]
-    );
+  const [resending, setResending] = useState(false);
+  const [checkingVerification, setCheckingVerification] = useState(false);
+  const [cooldownSeconds, setCooldownSeconds] = useState(0);
+  const [resendError, setResendError] = useState('');
+  const [checkError, setCheckError] = useState('');
+  const cooldownTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // ---------------------------------------------------------------------------
+  // Resend verification email with cooldown
+  // ---------------------------------------------------------------------------
+
+  const startCooldown = useCallback(() => {
+    setCooldownSeconds(RESEND_COOLDOWN_SECONDS);
+    if (cooldownTimer.current) clearInterval(cooldownTimer.current);
+    cooldownTimer.current = setInterval(() => {
+      setCooldownSeconds((prev) => {
+        if (prev <= 1) {
+          if (cooldownTimer.current) clearInterval(cooldownTimer.current);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  }, []);
+
+  const handleResendLink = async () => {
+    if (cooldownSeconds > 0 || resending) return;
+    setResendError('');
+    setResending(true);
+    try {
+      await sendVerificationEmail();
+      startCooldown();
+      Alert.alert(
+        'Verification Email Sent',
+        'A fresh verification link has been sent to your email address. Please check your inbox.',
+      );
+    } catch (error: any) {
+      setResendError(error?.message ?? 'Failed to resend verification email. Please try again.');
+    } finally {
+      setResending(false);
+    }
   };
 
-  const handleResendLink = () => {
-    setResending(true);
-    setTimeout(() => {
-      setResending(false);
-      Alert.alert('Link Resent', 'A fresh verification link has been sent to your institutional email.');
-    }, 800);
+  // ---------------------------------------------------------------------------
+  // "I've verified my email" — reload from Firebase and redirect
+  // ---------------------------------------------------------------------------
+
+  const handleCheckVerification = async () => {
+    setCheckError('');
+    setCheckingVerification(true);
+    try {
+      await reloadCurrentUser();
+      // After reload, emailVerified state is updated via AuthContext.
+      // AuthGuard in _layout.tsx will redirect automatically if verified.
+      // We also check immediately for a faster UX:
+      if (firebaseUser?.emailVerified) {
+        // Verified — AuthGuard will route to account-setup
+        router.replace('/(auth)/account-setup' as any);
+      } else {
+        Alert.alert(
+          'Not Yet Verified',
+          "We couldn't confirm your email verification. Please open the link in your email and try again.",
+        );
+      }
+    } catch (error: any) {
+      setCheckError(error?.message ?? 'Could not check verification status. Please try again.');
+    } finally {
+      setCheckingVerification(false);
+    }
+  };
+
+  const handleReturnToLogin = async () => {
+    try {
+      await signOut();
+    } catch {
+      // ignore
+    }
+    router.replace('/(auth)/login' as any);
   };
 
   return (
@@ -61,25 +123,74 @@ export default function VerifyEmailScreen() {
 
           {/* Title and Message */}
           <Text style={[styles.title, { color: colors.textPrimary }]}>Verify your email</Text>
+
+          {firebaseUser?.email ? (
+            <Text style={[styles.emailLabel, { color: colors.textSecondary }]}>
+              Sent to{' '}
+              <Text style={{ color: colors.textPrimary, fontFamily: fontFamilies.sansSemiBold }}>
+                {firebaseUser.email}
+              </Text>
+            </Text>
+          ) : null}
+
           <Text style={[styles.body, { color: colors.textSecondary }]}>
-            We've sent a verification link to your institutional email. Please check your inbox to activate your research account.
+            We've sent a verification link to your email. Click the link to activate your
+            research account, then tap the button below.
           </Text>
+
+          {/* Error banners */}
+          {checkError ? (
+            <View
+              style={[
+                styles.errorBanner,
+                { backgroundColor: colors.errorLight, borderColor: colors.error },
+              ]}
+            >
+              <Text style={[styles.errorText, { color: colors.error }]}>
+                {checkError}
+              </Text>
+            </View>
+          ) : null}
+
+          {resendError ? (
+            <View
+              style={[
+                styles.errorBanner,
+                { backgroundColor: colors.errorLight, borderColor: colors.error },
+              ]}
+            >
+              <Text style={[styles.errorText, { color: colors.error }]}>
+                {resendError}
+              </Text>
+            </View>
+          ) : null}
 
           {/* Action Buttons */}
           <View style={styles.actions}>
+            {/* Primary: check verification */}
             <Button
-              label="Open Email App"
-              onPress={handleOpenEmailApp}
+              label="I've Verified My Email"
+              onPress={handleCheckVerification}
               variant="primary"
-              icon={<ExternalLink size={16} color={colors.textInverse} />}
+              loading={checkingVerification}
+              disabled={checkingVerification || resending}
+              icon={<CheckCircle size={16} color={colors.textInverse} />}
               fullWidth
             />
 
+            {/* Secondary: resend with cooldown */}
             <Button
-              label="Resend Link"
+              label={
+                cooldownSeconds > 0
+                  ? `Resend in ${cooldownSeconds}s`
+                  : resending
+                  ? 'Sending...'
+                  : 'Resend Link'
+              }
               onPress={handleResendLink}
               variant="secondary"
               loading={resending}
+              disabled={resending || cooldownSeconds > 0 || checkingVerification}
               icon={<RefreshCw size={16} color={colors.textPrimary} />}
               fullWidth
               style={styles.resendButton}
@@ -90,11 +201,13 @@ export default function VerifyEmailScreen() {
           <View style={[styles.footer, { borderTopColor: colors.border }]}>
             <TouchableOpacity
               activeOpacity={0.7}
-              onPress={() => router.replace('/(auth)/login' as any)}
+              onPress={handleReturnToLogin}
               style={styles.backLink}
             >
               <ArrowLeft size={16} color={colors.textSecondary} />
-              <Text style={[styles.backText, { color: colors.textSecondary }]}>Return to login</Text>
+              <Text style={[styles.backText, { color: colors.textSecondary }]}>
+                Return to login
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -132,6 +245,12 @@ const styles = StyleSheet.create({
   title: {
     ...typography.headline,
     textAlign: 'center',
+    marginBottom: spacing.xs,
+  },
+  emailLabel: {
+    fontFamily: fontFamilies.sansRegular,
+    fontSize: 13,
+    textAlign: 'center',
     marginBottom: spacing.sm,
   },
   body: {
@@ -140,6 +259,18 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginBottom: spacing.xl,
     paddingHorizontal: spacing.sm,
+  },
+  errorBanner: {
+    borderWidth: 1,
+    borderRadius: radius.sm,
+    padding: spacing.sm,
+    marginBottom: spacing.md,
+    alignSelf: 'stretch',
+  },
+  errorText: {
+    fontFamily: fontFamilies.sansRegular,
+    fontSize: 13,
+    lineHeight: 18,
   },
   actions: {
     width: '100%',
