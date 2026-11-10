@@ -1103,3 +1103,287 @@ Update strictly the **Research Topics** section on the Explore screen (`src/app/
 
 ---
 *Signed off by: Senior UI/UX Systems Engineer & React Native Architect*
+
+---
+
+## Frontend Consistency & Functional Audit
+
+**Date:** November 10, 2026  
+**Objective:** Perform a comprehensive frontend audit of the CSE Research Hub application across visual consistency, theme adaptation, responsiveness, functional state reliability, and code quality before proceeding to Phase 3.
+
+### 1. Screens Inspected
+*   **Primary Application Tabs:**
+    *   Home Feed (`src/app/(tabs)/index.tsx`)
+    *   Explore Discovery Hub (`src/app/(tabs)/explore.tsx`)
+    *   Share Research Tab (`src/app/(tabs)/share.tsx`)
+    *   Notifications Center (`src/app/(tabs)/notifications.tsx`)
+    *   Profile View (`src/app/(tabs)/profile.tsx`)
+*   **Navigation & Layout Wrappers:**
+    *   Institutional Classic Tab Navigator (`src/app/(tabs)/_layout.tsx`)
+    *   Institutional Top Header (`src/components/layout/InstitutionalHeader.tsx`, `src/components/home/HomeHeader.tsx`)
+    *   Root Stack Navigator (`src/app/_layout.tsx`)
+*   **Discovery & Contextual Screens:**
+    *   Unified Global Search (`src/app/(explore)/search.tsx`)
+    *   Topic Researchers Discovery (`src/app/(explore)/topic-researchers.tsx`)
+    *   Research Paper Detail Route (`src/app/(research)/[id].tsx`)
+    *   Researcher Profile Route (`src/app/(profile)/[id].tsx`)
+*   **Authentication & Onboarding Screens:**
+    *   Splash Screen (`src/app/(auth)/splash.tsx`)
+    *   Login Screen (`src/app/(auth)/login.tsx`)
+    *   Sign Up Screen (`src/app/(auth)/sign-up.tsx`)
+    *   Verify Email Screen (`src/app/(auth)/verify-email.tsx`)
+    *   Forgot Password Screen (`src/app/(auth)/forgot-password.tsx`)
+    *   Forgot Password Confirmation (`src/app/(auth)/forgot-password-success.tsx`)
+    *   Onboarding Step 1: Welcome (`src/app/(onboarding)/welcome.tsx`)
+    *   Onboarding Step 2: Interests (`src/app/(onboarding)/interests.tsx`)
+    *   Onboarding Step 3: Current Work (`src/app/(onboarding)/current-work.tsx`)
+    *   Onboarding Step 4: External Profiles (`src/app/(onboarding)/external-profiles.tsx`)
+    *   Onboarding Step 5: Ready to Explore (`src/app/(onboarding)/ready.tsx`)
+*   **Error & Feedback Modals:**
+    *   Route Not Found (`src/app/+not-found.tsx`)
+    *   Success Feedback Modal (`src/components/feedback/SuccessModal.tsx`)
+    *   Empty State Visualizer (`src/components/feedback/EmptyState.tsx`)
+
+### 2. Light and Dark Theme Findings
+*   **Light Theme (Scholarly Crisp / Atmospheric Canvas):**
+    *   Background canvas (`#FAF8FF`) provides high-contrast foundation for pristine card surfaces (`#FFFFFF`).
+    *   Typography utilizes `#071A3E` (Deep Ocean Navy) for primary headings and `#424754` (Slate Navy) for metadata and body copy.
+    *   Subtle hairline borders (`#D9E2FF` / `#E2E7FF`) eliminate heavy drop shadows while maintaining clear tactile structure.
+    *   Academic Cobalt (`#2563EB` / `#1D4ED8`) accents provide an authoritative primary visual identity.
+*   **Dark Theme (Deep Scholar Slate / Deep Oceanic Night):**
+    *   Background canvas (`#070F1E`) seamlessly switches to deep dark blue slate surfaces (`#0F1A30` and `#172542`).
+    *   Typography automatically adapts to high-contrast `#EEF0FF` (on-surface) and `#A5B0C8` (on-surface-variant) with zero illegible low-contrast text.
+    *   Borders switch to dark hairline rules (`#1E2D4A` and `#16233B`), completely eliminating harsh white lines.
+    *   Active badges and pills adjust gracefully (`#82B1FF` primary, `#FFB59F` coral warning, `#8BFB95` mint success).
+*   **Theme Persistence:**
+    *   Theme toggle in the top header and three-way selector in Profile Settings properly persist state to `@react-native-async-storage/async-storage` (`@cse_research_hub_theme_mode`) with automatic system preference fallback.
+
+### 3. Responsive Testing Results
+*   **Mobile Viewport (390 × 844):**
+    *   Institutional Header scales fluidly; left-aligned branding and right-aligned action cluster (Theme toggle, Search button) fit with no horizontal collision.
+    *   Institutional Classic bottom navigation bar renders all 5 tabs evenly with readable 11px below-icon labels (`tabBarLabelPosition: 'below-icon'`).
+    *   Card text containers enforce single-line and two-line bounds (`numberOfLines`, `ellipsizeMode="tail"`, `flexShrink: 1`), preventing line wrapping defects on narrow devices.
+*   **Tablet Viewport (~768px):**
+    *   Maintains disciplined vertical hierarchy without stretching text containers awkwardly.
+    *   Section headers and topic pills wrap with consistent 8–10px gap spacing.
+*   **Desktop / Web Viewport (1440 × 900):**
+    *   Top header content centers cleanly with `maxWidth: 1200`.
+    *   Full-width bottom navigation remains anchored at the viewport base (`position: relative`, `height: 60px`) without floating distortion or clipped content.
+    *   Feed lists and discovery grids maintain comfortable reading widths.
+
+### 4. Functional Testing Results
+*   **Working UI Interactions (Client-Side State):**
+    *   *Home Feed:* Pull-to-refresh spinner simulation; Topic shortcut selection/clearing; Like toggle with real-time numeric counter increment/decrement; Bookmark toggle; Connect state progression (`none` $\rightarrow$ `pending` $\rightarrow$ `connected`).
+    *   *Explore Discovery Hub:* Search bar tap navigation; Category filter pill switcher (All, People, Current Work, Topics, Previous Research); Solid topic chip tap navigation to topic-filtered researchers.
+    *   *Share Research:* Real-time input handling; Dynamic tag addition/removal with comma separation; Stage pill selection (Idea, Literature Review, Experiment, Writing); Client-side validation (title required, description $\ge 20$ chars); Success modal feedback.
+    *   *Notifications Center:* Filter switching (All, Unread, Connections, Comments, Likes); Accept and Decline connection request actions; Single-item read toggle; Mark all read action.
+    *   *Profile View:* Profile edit modal with input pre-filling, validation, and local state saving; Theme switcher with immediate runtime re-rendering.
+    *   *Global Search:* Real-time query filtering across people, current work, and research publications; Topic chip direct queries.
+*   **Simulation & Mock Scope:**
+    *   All data is grounded in local mock data modules (`src/data/`). Persistent server mutations and real-time remote subscriptions require Phase 3 Firebase services.
+
+### 5. Confirmed Issues & Targeted Fixes Applied
+1.  **TypeScript Compilation Issue in `src/config/firebase.ts`:**
+    *   *Issue:* `getReactNativePersistence` was flagged as having no exported member from `'firebase/auth'` under standard TypeScript web module resolution.
+    *   *Fix:* Added `// @ts-ignore` annotation with technical context explaining React Native bundler runtime resolution, restoring clean compilation.
+
+### 6. Mock Data & Backend Dependencies
+*   **P0 (Authentication & Identity):**
+    *   Firebase Auth setup (Email/Password, Institutional `@diu.edu.bd` domain validation, password reset).
+    *   User profiles collection (`users/` in Firestore).
+*   **P1 (Core Research Feeds):**
+    *   Current work momentum feed (`current_work/` in Firestore) with live stage tracking and likes/comments subcollections.
+    *   Publications archive (`publications/` in Firestore) with external DOI/venue links.
+*   **P2 (Collaboration & Notifications):**
+    *   Academic connection requests (`connections/` in Firestore).
+    *   Notifications delivery (`notifications/` in Firestore).
+*   **P3 (Discovery & Assets):**
+    *   Topic taxonomy (`topics/` in Firestore).
+    *   Firebase Storage for researcher avatars and PDF pre-prints.
+
+### 7. Verification & Validation Results
+1.  **TypeScript Static Compilation:**
+    *   Command: `npx tsc --noEmit`
+    *   Exit Status: `0` (Success, 0 errors).
+2.  **Expo Production Bundle Export:**
+    *   Command: `npx expo export --output-dir /tmp/cse-research-hub-frontend-audit`
+    *   Exit Status: `0` (Success).
+    *   Bundles Generated:
+        *   Web: `_expo/static/js/web/entry-bfef783411126c44e66e2a9bbb957bad.js` (`3.5 MB`)
+        *   iOS: `_expo/static/js/ios/entry-9db269fc6152c54ae185284efd90a90a.hbc` (`5.53 MB` Hermes Bytecode)
+        *   Android: `_expo/static/js/android/entry-ab33e675500169ab99ed9fd87ca2d13e.hbc` (`5.53 MB` Hermes Bytecode)
+        *   Static Assets: 99 assets bundled cleanly.
+    *   Temporary directory `/tmp/cse-research-hub-frontend-audit` cleanly removed.
+
+### 8. Remaining Limitations
+*   All data displayed remains backed by local Phase 2 academic mock datasets (`src/data/`).
+*   Backend integration (Firebase Auth, Firestore, Cloud Storage) is ready to begin in Phase 3 upon explicit authorization.
+
+---
+*Signed off by: Senior UI/UX Systems Engineer & React Native Architect*
+
+
+---
+
+## Stage 3.1 — Firebase Configuration & Expo Connection
+
+**Date:** 2026-11-10  
+**Engineer:** Senior React Native Developer  
+**Scope:** Firebase SDK initialisation, environment setup, TypeScript resolution fix, auth persistence architecture. **No UI changes. No AuthContext. No Firestore queries.**
+
+---
+
+### 1. Files Created / Modified
+
+| File | Change |
+|---|---|
+| `.gitignore` | Added `.env`, `.env.local`, `.env.*.local` entries |
+| `.env.example` | Created — 6 `EXPO_PUBLIC_FIREBASE_*` keys; `PROJECT_ID` pre-filled as `cse-research-hub` |
+| `src/types/firebase-auth.d.ts` | Created — module augmentation declaring `getReactNativePersistence` in `firebase/auth` typings |
+| `src/config/firebase.ts` | Full rewrite — validation, `isFirebaseConfigured` flag, singleton guard, platform-aware auth persistence, Firestore deferred |
+
+---
+
+### 2. TypeScript Fix — `getReactNativePersistence`
+
+**Root cause:** TypeScript resolves `firebase/auth` to the web/browser `dist/auth/index.d.ts` typings file which does not declare `getReactNativePersistence`. At runtime Metro correctly resolves the React Native bundle (`dist/rn/`) where the function exists. This mismatch is a known upstream issue in the Firebase JS SDK.
+
+**Solution:** Module augmentation in `src/types/firebase-auth.d.ts` — teaches the compiler about the export without patching `node_modules` or suppressing errors with `@ts-ignore`.
+
+```typescript
+// src/types/firebase-auth.d.ts
+import type { Persistence } from 'firebase/auth';
+import type AsyncStorage from '@react-native-async-storage/async-storage';
+
+declare module 'firebase/auth' {
+  export function getReactNativePersistence(
+    storage: typeof AsyncStorage,
+  ): Persistence;
+}
+```
+
+`@ts-ignore` removed from `src/config/firebase.ts`. `npx tsc --noEmit` → **exit 0**.
+
+---
+
+### 3. `src/config/firebase.ts` — Architecture Decisions
+
+| Concern | Approach |
+|---|---|
+| Singleton | `getApps().length === 0 ? initializeApp(…) : getApp()` — survives Metro fast-refresh |
+| Config validation | `isFirebaseConfigured: boolean` — `true` only when all 6 env vars are present and non-empty |
+| Missing env vars | Logs a warning, exports `null` stubs — **no crash** during development without `.env` |
+| Project ID sanity | `console.error` if `projectId !== 'cse-research-hub'` |
+| Auth — web | `initializeAuth(app, { persistence: browserLocalPersistence })` |
+| Auth — iOS/Android | `initializeAuth(app, { persistence: getReactNativePersistence(AsyncStorage) })` |
+| Auth fallback | `try/catch` → `getAuth(app)` if `initializeAuth` throws on fast-refresh re-runs |
+| Firestore | `db = null` — deferred to Stage 3.2 |
+| Credential logging | Config values are **never** logged |
+
+---
+
+### 4. Environment Variable Setup (`.env.example`)
+
+```
+EXPO_PUBLIC_FIREBASE_API_KEY=
+EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=
+EXPO_PUBLIC_FIREBASE_PROJECT_ID=cse-research-hub
+EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=
+EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
+EXPO_PUBLIC_FIREBASE_APP_ID=
+```
+
+User action required — see Section 7 (Manual Handoff).
+
+---
+
+### 5. Validation Results
+
+| Check | Result |
+|---|---|
+| `npx tsc --noEmit` (augmentation only) | ✅ Exit 0 |
+| `npx tsc --noEmit` (after `firebase.ts` rewrite) | ✅ Exit 0 |
+| `npx expo export` — web bundle | ✅ Generated |
+| `npx expo export` — iOS bundle | ✅ Generated |
+| `npx expo export` — Android bundle | ✅ Generated |
+| Expo export exit code | ✅ 0 |
+| Temp output directory removed | ✅ `/tmp/cse-research-hub-stage-3-1` cleaned |
+
+---
+
+### 6. Git Working-Tree Status (post Stage 3.1)
+
+```
+ M .gitignore
+ M Activity/Day-11.md
+ M package-lock.json
+ M package.json
+?? .env.example
+?? src/config/
+?? src/types/firebase-auth.d.ts
+```
+
+All changes are expected. No unintended files modified.
+
+---
+
+### 7. Manual Configuration Handoff
+
+> **Firebase connection is NOT active until you complete these steps and restart the dev server.**
+
+**Step 1 — Create your `.env` file**
+```bash
+# In project root (same directory as package.json)
+cp .env.example .env
+```
+
+**Step 2 — Get your Firebase credentials**
+1. Open [https://console.firebase.google.com](https://console.firebase.google.com)
+2. Select project **cse-research-hub**
+3. Navigate to: **Project Settings → General → Your apps → Web app**
+4. Under **SDK setup and configuration**, select **Config** (not CDN)
+5. Copy the values from the `firebaseConfig` object shown
+
+**Step 3 — Fill in `.env`**
+```
+EXPO_PUBLIC_FIREBASE_API_KEY=        ← apiKey
+EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=    ← authDomain
+EXPO_PUBLIC_FIREBASE_PROJECT_ID=     ← projectId (should be: cse-research-hub)
+EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET= ← storageBucket
+EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID= ← messagingSenderId
+EXPO_PUBLIC_FIREBASE_APP_ID=         ← appId
+```
+
+**Step 4 — Restart the Metro bundler**
+```bash
+# Stop the current server (Ctrl+C), then:
+npx expo start --clear
+```
+
+**Step 5 — Verify**
+- Open the app — if `isFirebaseConfigured` is `true` there will be **no warning** in the Metro console.
+- If you still see `[Firebase] One or more EXPO_PUBLIC_FIREBASE_* environment variables are missing`, the env file is not being picked up — confirm the `.env` file is in the **project root** (not in `src/`).
+
+> ⚠️ **Never commit `.env`** — it is listed in `.gitignore`. Only commit `.env.example`.
+
+---
+
+### 8. What Stage 3.1 Does NOT Include
+
+- Authentication UI (login / registration / onboarding)
+- `AuthContext` / `useAuth` hook
+- Firestore initialisation or CRUD
+- Cloud Storage
+- Firebase Security Rules
+- Any changes to `src/app/`, `src/components/`, or `src/data/`
+
+---
+
+### 9. Ready for Stage 3.2
+
+Stage 3.1 is complete. The Firebase app initialises cleanly, auth persistence is correctly configured for all platforms, and the codebase is TypeScript-strict with zero errors.
+
+**Stage 3.2 scope (pending explicit user approval):** Implement `AuthContext`, Firebase Authentication (Email/Password), and wire the existing auth UI screens to live Firebase Auth.
+
+---
+*Signed off by: Senior React Native Developer — Firebase Integration Lead*
