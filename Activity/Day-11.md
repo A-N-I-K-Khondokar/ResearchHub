@@ -2002,3 +2002,319 @@ Following user approval, a high-resolution scholarly branding icon set was gener
 
 ---
 *Signed off by: Senior React Native Architect & EAS Lead*
+
+
+---
+
+## Stage 3.3.0 — Firestore Architecture Audit
+
+**Date**: 2026-11-10  
+**Status**: Completed (Read-Only Audit)  
+**Author**: Antigravity Principal Systems Architect & Mobile Security Lead  
+**Scope**: Firestore Database & Admin Approval System Architecture Preparation  
+
+---
+
+### 1. Existing Authentication & Authorization Lifecycle Analysis
+
+#### A. Component-by-Component Trace
+* **`src/config/firebase.ts`**:
+  * Configures Firebase modular App (`initializeApp`) and Auth (`initializeAuth` with AsyncStorage persistence via `getReactNativePersistence`).
+  * Imports `getFirestore` from `firebase/firestore`, but currently sets:
+    ```typescript
+    export const db = null; // To be initialized in Stage 3.3
+    ```
+* **`src/services/auth.service.ts`**:
+  * Provides complete email/password registration, login, verification email dispatch, reload user, password reset, Google Sign-In, and sign out.
+  * Completely isolated to `firebase/auth`; performs zero database writes or document queries.
+* **`src/types/auth.types.ts`**:
+  * Defines `ApprovalStatus = 'not-configured' | 'pending' | 'approved' | 'rejected' | 'suspended'`.
+  * `AuthState` tracks `user: User | null`, `isAuthenticated: boolean`, `isEmailVerified: boolean`, `approvalStatus: ApprovalStatus`, `isLoading: boolean`, and `error: string | null`.
+* **`src/context/AuthContext.tsx`**:
+  * Listens to Firebase auth state changes via `onAuthStateChanged`.
+  * Currently hardcodes `approvalStatus: 'not-configured'` as a placeholder pending Firestore integration:
+    ```typescript
+    setState({
+      user: firebaseUser,
+      isAuthenticated: !!firebaseUser,
+      isEmailVerified: firebaseUser ? firebaseUser.emailVerified : false,
+      approvalStatus: 'not-configured',
+      isLoading: false,
+      error: null,
+    });
+    ```
+* **`src/app/_layout.tsx` (`AuthGuard`)**:
+  * Centralized route protection enforcing strict state-driven redirects:
+    1. `!isAuthenticated` $\rightarrow$ Redirects to `/(auth)/login`.
+    2. `isAuthenticated && !isEmailVerified` $\rightarrow$ Redirects to `/(auth)/verify-email`.
+    3. `isAuthenticated && isEmailVerified && approvalStatus !== 'approved'` $\rightarrow$ Locks user strictly to `/(auth)/account-setup`.
+    4. Access to main application tabs (`/(tabs)`) and research detail screens (`/(research)`) is unconditionally blocked unless `approvalStatus === 'approved'`.
+* **`src/app/(auth)/account-setup.tsx`**:
+  * Currently a static informational screen indicating "Account Setup Pending" with user metadata (email, display name) and a sign-out button.
+  * Lacks active input fields, onboarding questionnaires, or Firestore document submission handlers.
+
+#### B. Current User Lifecycle Walkthrough
+```
+[User Registers / Logs in]
+            │
+            ▼
+[Email Verified?] ──── No ───► Route: /(auth)/verify-email
+            │
+           Yes
+            ▼
+[approvalStatus === 'approved'?] ──── No ───► Route: /(auth)/account-setup
+            │
+           Yes
+            ▼
+Route: /(tabs) (Feed / Explore / Share / Notifications / Profile)
+```
+
+---
+
+### 2. Firestore SDK & Platform Readiness Assessment
+
+1. **Package Verification**:
+   * `package.json` contains `"firebase": "^13.1.0"`.
+   * The Firebase modular v13 SDK fully supports Cloud Firestore. Modular tree-shakable exports (`getFirestore`, `doc`, `setDoc`, `getDoc`, `updateDoc`, `onSnapshot`, `serverTimestamp`, `collection`, `query`, `where`) are ready for immediate consumption.
+2. **Database Initialization Status**:
+   * `db` in `src/config/firebase.ts` is currently `null`.
+   * Must be initialized using:
+     ```typescript
+     import { getFirestore } from 'firebase/firestore';
+     export const db = getFirestore(app);
+     ```
+3. **Cloud Provisioning Preconditions**:
+   * The Firebase Project `cse-research-hub` requires Cloud Firestore to be activated in **Firestore Native Mode** via the Google Cloud Console / Firebase Console.
+   * Region selection: Choose `asia-south1` (Mumbai) or multi-region `nam5` / `eur3` based on primary user proximity.
+   * Cloud Firestore must have rules published (defaulting to strict closed access until Stage 3.3.1 rules deploy).
+
+---
+
+### 3. Recommended Firestore Database Schema Design
+
+To guarantee 1:1 security binding with Firebase Authentication, all user records are keyed directly by Firebase Auth `uid` (`users/{uid}`).
+
+#### A. Collection: `users/{uid}`
+Primary user profile, academic metadata, system role, and approval lifecycle state.
+
+| Field Name | Type | Required | Default Value | Description / Constraint |
+|---|:---:|:---:|:---:|---|
+| `uid` | `string` | Yes | `auth.uid` | Firebase Auth UID (must match document ID) |
+| `email` | `string` | Yes | `auth.email` | User email address |
+| `displayName` | `string` | Yes | `auth.displayName` or input | User's full academic name |
+| `photoURL` | `string \| null` | No | `null` | Avatar image URL |
+| `department` | `string` | Yes | `'Computer Science and Engineering'` | Academic department |
+| `designation` | `string` | Yes | `'Student'` | e.g. `'Undergraduate Student'`, `'Graduate Researcher'`, `'Faculty'` |
+| `batch` | `string` | Yes | `''` | e.g. `'Batch 14'`, `'Batch 15'`, `'Faculty'` |
+| `bio` | `string` | No | `''` | Scholarly summary / research focus |
+| `researchInterests` | `string[]` | Yes | `[]` | Array of topic tags (e.g. `['AI', 'NLP', 'Cybersecurity']`) |
+| `website` | `string \| null` | No | `null` | Personal / academic lab website |
+| `github` | `string \| null` | No | `null` | GitHub profile URL |
+| `linkedin` | `string \| null` | No | `null` | LinkedIn profile URL |
+| `googleScholar` | `string \| null` | No | `null` | Google Scholar profile URL |
+| `role` | `string` | Yes | `'student'` | System role: `'student' \| 'researcher' \| 'faculty' \| 'admin'` |
+| `approvalStatus` | `string` | Yes | `'pending'` | Lifecycle: `'not-configured' \| 'pending' \| 'approved' \| 'rejected' \| 'suspended'` |
+| `requestedAt` | `Timestamp` | Yes | `serverTimestamp()` | Timestamp of initial profile submission |
+| `approvedAt` | `Timestamp \| null` | No | `null` | Timestamp when admin approved access |
+| `approvedBy` | `string \| null` | No | `null` | Admin UID who granted approval |
+| `rejectionReason` | `string \| null` | No | `null` | Reason communicated if rejected |
+| `createdAt` | `Timestamp` | Yes | `serverTimestamp()` | Document creation timestamp |
+| `updatedAt` | `Timestamp` | Yes | `serverTimestamp()` | Last profile update timestamp |
+| `stats` | `map` | Yes | Initial map | Map: `{ publicationsCount: 0, currentWorkCount: 0, followersCount: 0, followingCount: 0 }` |
+
+#### B. Collection: `admins/{uid}`
+Dedicated private collection for role-based administrative access control.
+
+| Field Name | Type | Required | Description |
+|---|:---:|:---:|---|
+| `uid` | `string` | Yes | Admin's Firebase Auth UID |
+| `email` | `string` | Yes | Admin's authorized institutional email |
+| `role` | `string` | Yes | Level: `'superadmin' \| 'department_admin'` |
+| `assignedAt` | `Timestamp` | Yes | Timestamp of role grant |
+| `assignedBy` | `string` | Yes | UID of bootstrapping / appointing authority |
+
+#### C. Collection: `admin_requests/{requestId}` (Audit Trail & Fast Queue)
+Maintains an immutable historical record of all approval/rejection decisions and queue queries.
+
+| Field Name | Type | Required | Description |
+|---|:---:|:---:|---|
+| `requestId` | `string` | Yes | Generated unique ID or matching user UID |
+| `uid` | `string` | Yes | UID of applicant |
+| `userEmail` | `string` | Yes | Applicant email |
+| `userName` | `string` | Yes | Applicant display name |
+| `department` | `string` | Yes | Applicant department |
+| `batch` | `string` | Yes | Applicant batch |
+| `status` | `string` | Yes | `'pending' \| 'approved' \| 'rejected'` |
+| `submittedAt` | `Timestamp` | Yes | Submission timestamp |
+| `reviewedAt` | `Timestamp \| null`| No | Review timestamp |
+| `reviewedBy` | `string \| null` | No | Admin UID |
+| `reviewNotes` | `string \| null` | No | Feedback or rejection justification |
+
+---
+
+### 4. Administrator Authorization Model Evaluation
+
+| Model | Mechanism | Pros | Cons | Recommendation |
+|---|---|---|---|:---:|
+| **Option A: Custom Claims** | Firebase Admin SDK `setCustomUserClaims(uid, { admin: true })` via Cloud Functions | Token-embedded; zero Firestore reads for rules. | Requires Firebase Blaze (paid tier); requires Cloud Functions deployment; token refresh delay (up to 1 hr). | Not recommended for Spark tier / client-first stage |
+| **Option B: In-Document Role** | `users/{uid}.role === 'admin'` | Single read for profile and role. | High risk of security rules bypass; self-write privilege escalation bugs if update rule is slightly misconfigured. | High risk |
+| **Option C: Dedicated Admin Collection (Recommended)** | Independent collection `admins/{uid}` referenced via `exists(/databases/$(database)/documents/admins/$(request.auth.uid))` | Zero risk of user write escalation; simple binary check in rules; zero backend code required; Spark-tier compatible. | Incurs 1 additional document read in security rules evaluation for admin operations. | **STRONGLY RECOMMENDED** |
+| **Option D: Client Env UID Whitelist** | Static array in client code / `.env` | Trivial to implement. | Insecure; client-side only; cannot be securely checked in Firestore Security Rules without hardcoding rules text. | Rejected |
+
+#### Initial Administrator Bootstrapping Mechanism
+1. The developer/department creates the Firestore collection `admins` via Firebase Console.
+2. An initial admin document is created where document ID is the Admin's Firebase Auth `uid`:
+   ```json
+   // Document path: admins/<FIRST_ADMIN_UID>
+   {
+     "uid": "<FIRST_ADMIN_UID>",
+     "email": "admin@cse.university.edu",
+     "role": "superadmin",
+     "assignedAt": "2026-11-10T12:00:00Z",
+     "assignedBy": "system_bootstrap"
+   }
+   ```
+3. Subsequent admins can be promoted securely by any existing superadmin via Firestore client operations protected by security rules.
+
+---
+
+### 5. Firestore Security Rules Architecture (`firestore.rules`)
+
+```javascript
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    function isApprovedUser() {
+      return isAuthenticated() &&
+        request.auth.token.email_verified == true &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.approvalStatus == 'approved';
+    }
+
+    // 1. Users Collection
+    match /users/{userId} {
+      // Approved users and admins can read profiles; owners can read their own profile anytime
+      allow read: if isOwner(userId) || isAdmin() || isApprovedUser();
+
+      // Users can only create their own document with 'pending' status and default student role
+      allow create: if isOwner(userId)
+        && request.resource.data.uid == userId
+        && request.resource.data.approvalStatus == 'pending'
+        && request.resource.data.role in ['student', 'researcher']
+        && request.resource.data.requestedAt == request.time;
+
+      // Profile updates: Users can edit academic details, but CANNOT alter approvalStatus or role
+      allow update: if (
+        isOwner(userId)
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['approvalStatus', 'role', 'approvedAt', 'approvedBy', 'rejectionReason'])
+      ) || isAdmin();
+
+      // Deletions: Admins only
+      allow delete: if isAdmin();
+    }
+
+    // 2. Admins Collection
+    match /admins/{adminId} {
+      // Only existing admins can read the admin roster
+      allow read: if isAdmin();
+      // Only superadmins or manual console intervention can grant admin rights
+      allow write: if isAdmin();
+    }
+
+    // 3. Admin Approval Requests & Audit Logs
+    match /admin_requests/{requestId} {
+      // Applicants can read their own request; admins can read all
+      allow read: if (isAuthenticated() && resource.data.uid == request.auth.uid) || isAdmin();
+      // Applicants create request upon submission
+      allow create: if isAuthenticated() && request.resource.data.uid == request.auth.uid;
+      // Only admins can update request status
+      allow update, delete: if isAdmin();
+    }
+  }
+}
+```
+
+---
+
+### 6. Account Setup Evolution Plan
+
+#### A. Form Architecture (`(auth)/account-setup.tsx`)
+Transform the static screen into a multi-step or comprehensive onboarding form:
+1. **Academic Identity**:
+   * Department (preset: CSE, dropdown/picker).
+   * Designation (Undergraduate Student, Graduate Researcher, Alumni, Faculty).
+   * Batch / Academic Cohort (e.g., "Batch 14").
+2. **Scholarly Profile**:
+   * Research Interests (multi-select tag selector: AI, Systems, Security, Networks, IoT, etc.).
+   * Bio / Statement of Purpose (multiline input, max 250 characters).
+3. **Links & Verification**:
+   * GitHub / LinkedIn / Google Scholar URL.
+   * Student / Faculty ID or Institutional Reference (optional).
+
+#### B. Lifecycle State Machine
+* **State 1: Initial Entry (`'not-configured'`)**:
+  * User lands on `account-setup.tsx`. Form is active and editable.
+* **State 2: Submission (`'pending'`)**:
+  * User presses "Submit Approval Request".
+  * Atomic batch write or dual write: creates `users/{uid}` and `admin_requests/{uid}` with `approvalStatus = 'pending'`.
+  * UI immediately transitions to "Review Pending" badge with live status listener.
+* **State 3: Real-Time Status Propagation (`'approved'`)**:
+  * Firestore `onSnapshot` listener in `AuthContext` observes `approvalStatus` changing to `'approved'`.
+  * `AuthContext` state updates automatically.
+  * `AuthGuard` in `_layout.tsx` detects `approvalStatus === 'approved'` and automatically navigates user into `/(tabs)`.
+* **State 4: Rejection (`'rejected'`)**:
+  * UI displays admin rejection feedback and allows resubmission with updated details.
+
+---
+
+### 7. Risk & Technical Dependency Analysis
+
+1. **Native vs Web Firestore in React Native**:
+   * The JS SDK `firebase/firestore` functions reliably across Expo iOS, Android, and Web when imported modularly.
+   * Do NOT use Node-specific crypto or stream modules.
+2. **Offline Persistence in Expo**:
+   * Long-polling or offline cache memory footprint: Default Firestore offline caching is supported in modern JS SDK. Ensure memory limits are respected on low-end Android hardware.
+3. **Firestore Composite Indexing Requirements**:
+   * Admin queries listing pending users sorted by date (`where('approvalStatus', '==', 'pending').orderBy('requestedAt', 'desc')`) require a composite index on `users`.
+   * Composite indexes must be defined in `firestore.indexes.json` or generated via the Firebase Console query link.
+4. **Console Preflight Requirements**:
+   * Firestore database must be created in Google Cloud project `cse-research-hub`.
+   * Security rules must be deployed via Firebase CLI (`firebase deploy --only firestore:rules`) or saved in Firebase Console Rules editor.
+
+---
+
+### 8. Stage 3.3.1 Implementation Roadmap & Exact Files Required
+
+The following files will be introduced or modified in **Stage 3.3.1**:
+
+1. **`src/config/firebase.ts`** *(Modify)*:
+   * Instantiate and export `db = getFirestore(app)`.
+2. **`src/types/user.types.ts`** *(Create)*:
+   * Define `UserProfile`, `CreateUserProfileDTO`, `UpdateUserProfileDTO`, `AdminApprovalRequest`, `UserRole`.
+3. **`src/services/user.service.ts`** *(Create)*:
+   * Implement `createUserProfile`, `getUserProfile`, `updateUserProfile`, `subscribeToUserProfile`.
+4. **`src/services/admin.service.ts`** *(Create)*:
+   * Implement `checkIsAdmin`, `getPendingApprovals`, `approveUser`, `rejectUser`.
+5. **`src/context/AuthContext.tsx`** *(Modify)*:
+   * Integrate real-time `onSnapshot` listener on `users/{user.uid}` to dynamically bind `approvalStatus` and `role`.
+6. **`src/app/(auth)/account-setup.tsx`** *(Modify)*:
+   * Upgrade into the interactive onboarding form with submission to `user.service.ts` and pending review status view.
+7. **`firestore.rules`** *(Create in project root)*:
+   * Commit declarative security rules definition to git repository.
+
+---
+*Signed off by: Senior Mobile Architect & Firebase Solutions Engineer*
