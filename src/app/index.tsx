@@ -4,10 +4,9 @@ import { Redirect } from 'expo-router';
 /**
  * Root Entry Point for CSE Research Hub
  * 
- * Standard production application entry that directs users to the
- * Splash / Authentication experience:
- * Splash -> Auth (Login/Signup) -> Onboarding -> Main Tab Shell (Home Feed)
+ * Directs users to the initial Authentication experience:
+ * Login -> Auth (Signup/Verify) -> Account Setup -> Main Tab Shell (Home Feed)
  */
 export default function Index() {
-  return <Redirect href="/(auth)/splash" />;
+  return <Redirect href="/(auth)/login" />;
 }

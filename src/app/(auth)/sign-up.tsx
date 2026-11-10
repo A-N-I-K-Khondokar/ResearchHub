@@ -108,9 +108,14 @@ export default function SignUpScreen() {
       // AuthGuard handles navigation
     } catch (error: any) {
       const isNative = Platform.OS !== 'web';
-      if (isNative && error?.code === 'google/client-id-missing') {
+      if (
+        isNative &&
+        (error?.code === 'google/client-id-missing' ||
+          error?.code === 'google/expo-go-unsupported')
+      ) {
         setGlobalError(
-          'Google Sign-In on mobile requires a custom development build and OAuth configuration. Use email/password in Expo Go.',
+          error?.message ??
+            'Google Sign-In on mobile requires an Expo development build. Use email/password in Expo Go.',
         );
       } else {
         setGlobalError(error?.message ?? 'Google Sign-In failed. Please try again.');

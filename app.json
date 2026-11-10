@@ -14,14 +14,16 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.cse.researchhub"
+      "bundleIdentifier": "com.cse.researchhub",
+      "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#2471E7"
       },
-      "package": "com.cse.researchhub"
+      "package": "com.cse.researchhub",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -29,7 +31,8 @@
       "output": "single"
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      "@react-native-google-signin/google-signin"
     ],
     "experiments": {
       "typedRoutes": true
@@ -41,6 +44,7 @@
       "eas": {
         "projectId": "97155662-4bd4-46e5-986b-8e0c7808cbba"
       }
-    }
+    },
+    "owner": "anik_47"
   }
 }

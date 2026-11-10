@@ -1660,3 +1660,345 @@ The project is an Expo managed workflow. There is **no checked-in `android/` dir
 
 ---
 *Signed off by: Senior React Native Architect & Firebase Lead*
+
+
+---
+
+## Stage 3.2.1 — Native Google Authentication Architecture Review
+
+**Date:** 2026-11-10  
+**Engineer:** Senior React Native Architect & Firebase Lead  
+**Scope:** Review and migration of native Google Authentication from custom OAuth implicit flow to the maintained `@react-native-google-signin/google-signin` integration. **Zero modifications to working email/password authentication or account approval checkpoint.**
+
+---
+
+### 1. Assessment of Previous Custom Implicit Flow
+
+#### Protocol & Security Findings
+1. **OAuth 2.0 Security BCP Deprecation:** The OAuth 2.0 Security Best Current Practice (BCP) explicitly deprecates the Implicit Grant flow (`response_type=token` and `response_type=id_token`). Transmitting identity tokens via URL hash fragments exposes them to interception, access log leakage, and browser history retention.
+2. **Google Authorization Endpoint Restrictions:** Google Cloud Console strictly prohibits custom application redirect schemes (e.g., `cseresearchhub://`) on "Web Application" client IDs. They are only supported on Android and iOS client types.
+3. **Token Endpoint Impasse:** Attempting an authorization code grant on a Web Client ID requires a `client_secret` during the token exchange POST request. Exposing client secrets in mobile client bundles is a severe security vulnerability.
+4. **Expo SDK 50+ Direction:** Expo officially deprecated `expo-auth-session/providers/google` and mandates either `@react-native-google-signin/google-signin` for native builds or Firebase popup on web.
+
+---
+
+### 2. Evaluated Alternatives & Migration Decision
+
+| Alternative | Evaluation against Stack (Expo 52, RN 0.76.7) | Decision |
+|---|---|---|
+| **`@react-native-google-signin/google-signin`** | Officially supported community standard. Expo config plugin available. Fully compatible with Expo SDK 52 and React Native 0.76.7. Uses Google Play Services Credential Manager on Android and GoogleSignIn SDK on iOS. | ✅ **Selected & Migrated** |
+| **`react-native-nitro-google-signin`** | Third-party Nitro module. Less mature ecosystem, smaller community adoption, potential compatibility overhead with standard EAS pipelines. | ❌ Skipped in favor of official community standard |
+
+---
+
+### 3. Implementation Details
+
+1. **Dependency Installation:**
+   - Installed `@react-native-google-signin/google-signin` (~17.0.0).
+   - Config plugin registered automatically in `app.json` under `plugins`:
+     ```json
+     "plugins": [
+       "expo-router",
+       "@react-native-google-signin/google-signin"
+     ]
+     ```
+2. **Service Layer Integration ([`src/services/auth.service.ts`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/src/services/auth.service.ts)):**
+   - **Web Flow (Preserved):** Completely unchanged. Uses Firebase modular `GoogleAuthProvider` + `signInWithPopup(auth, provider)`.
+   - **Native Flow (Migrated):**
+     - Lazy `require()` pattern prevents top-level `TurboModuleRegistry.getEnforcing('RNGoogleSignin')` crashes when executing on Web or inside standard Expo Go.
+     - `GoogleSignin.configure({ webClientId, iosClientId })` sets the Web Client ID as the server audience.
+     - Native prompt executed via `GoogleSignin.hasPlayServices()` and `GoogleSignin.signIn()`.
+     - Validates response with `isSuccessResponse(response)` and extracts `response.data.idToken`.
+     - Exchanged with Firebase Auth using `GoogleAuthProvider.credential(idToken)` + `signInWithCredential(auth, credential)`.
+   - **Sign-Out Synchronization:** Updated `signOut()` to invoke `GoogleSignin.signOut()` on native platforms to clear cached account state and allow account switching on subsequent logins.
+3. **Expo Go & Missing Configuration Guard:**
+   - In `login.tsx` and `sign-up.tsx`, caught `google/expo-go-unsupported` and `google/client-id-missing` to present clear, non-crashing explanations directing developers to use email/password in Expo Go or test Google sign-in in web mode.
+
+---
+
+### 4. Platform-Specific OAuth Configuration Handoff
+
+#### 1. Web Client ID (`EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`) — **REQUIRED**
+- **Purpose:** Serves as the server token audience for both Android and iOS so that Google Play Services / GoogleSignIn framework generates an OpenID Connect `idToken` with an audience (`aud`) matching the Firebase project.
+- **Where to obtain:** Google Cloud Console → APIs & Services → Credentials → OAuth 2.0 Client IDs → Create **Web Application** Client ID.
+
+#### 2. iOS Client ID (`EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID`) — **REQUIRED FOR iOS**
+- **Purpose:** Used directly by GoogleSignIn framework on iOS devices.
+- **Where to obtain:** Google Cloud Console → Credentials → Create OAuth Client ID → Type: **iOS** → Bundle ID: `com.cse.researchhub`.
+
+#### 3. Android Configuration — **NO ENV VAR NEEDED**
+- **Mechanism:** On Android, Google Play Services detects the client identity automatically using the app's package name (`com.cse.researchhub`) and the signing certificate SHA-1 fingerprint.
+- **Note:** `androidClientId` is explicitly an invalid configuration parameter in `@react-native-google-signin/google-signin` and must NOT be set in code.
+- **Action:** In Google Cloud Console, create an OAuth Client ID of type **Android** with package `com.cse.researchhub` and the SHA-1 fingerprint from `~/.android/debug.keystore` or EAS credentials.
+
+---
+
+### 5. Final Validation Results
+
+| Test / Command | Tool | Exit Code | Result |
+|---|---|---|---|
+| **TypeScript Typecheck** | `npx tsc --noEmit` | **0** | Clean (0 errors) |
+| **Production Web Export** | `npx expo export -p web` | **0** | Bundled `entry-ea4ac7ba227abb1f514475a78beeffef.js` (3.79 MB) |
+| **Production iOS Export** | `npx expo export` | **0** | Bundled `entry-948f79e6dc5d5ba3c1edb0eda63075dc.hbc` (5.88 MB) |
+| **Production Android Export** | `npx expo export` | **0** | Bundled `entry-c174dfcc15a009bdf4f884a6c71ed0f2.hbc` (5.88 MB) |
+
+---
+*Signed off by: Senior React Native Architect & Firebase Lead*
+
+
+---
+
+## Stage 3.2.2 — Firebase Native Google Configuration
+
+**Date:** 2026-11-10  
+**Engineer:** Senior React Native Architect & Firebase Lead  
+**Scope:** Preparation of native Firebase configuration (`google-services.json` and `GoogleService-Info.plist`), EAS credentials audit, and configuration-level validation. **Zero fabricated credential files. Working email/password and web Google authentication preserved.**
+
+---
+
+### 1. Existing Configuration Audit
+
+- **Firebase Project ID:** `cse-research-hub`
+- **Application Identifiers:**
+  - Android package name: `com.cse.researchhub` (from `app.json`)
+  - iOS bundle identifier: `com.cse.researchhub` (from `app.json`)
+  - App scheme: `cseresearchhub`
+- **EAS Project Status:**
+  - `extra.eas.projectId`: `97155662-4bd4-46e5-986b-8e0c7808cbba`
+  - EAS CLI is installed (`24.3.0`) and logged in as user `anik_47`.
+  - `eas.json` is not yet generated in the repository root.
+- **Native Directories:**
+  - Managed Expo project — no checked-in `android/` or `ios/` folder exists. Native folders are generated on-demand during prebuild/build.
+- **Native Configuration Files:**
+  - Neither `google-services.json` nor `GoogleService-Info.plist` exists on disk yet. As per instructions, zero fabricated or placeholder files were created.
+
+---
+
+### 2. Expo Native Configuration (`app.json`)
+
+`app.json` has been updated to specify the expected native configuration file paths in the project root:
+
+```json
+{
+  "expo": {
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.cse.researchhub",
+      "googleServicesFile": "./GoogleService-Info.plist"
+    },
+    "android": {
+      "package": "com.cse.researchhub",
+      "googleServicesFile": "./google-services.json",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#2471E7"
+      }
+    },
+    "plugins": [
+      "expo-router",
+      "@react-native-google-signin/google-signin"
+    ]
+  }
+}
+```
+
+- **Asset Protection:** By placing `google-services.json` and `GoogleService-Info.plist` in the project root (and NOT in `assets/`, `public/`, or `src/`), Metro will not bundle or serve them as static web assets during web exports.
+
+---
+
+### 3. Android Signing Key & SHA-1 Requirements
+
+Because there is no checked-in `android/` folder, running `./gradlew signingReport` is not possible until a prebuild occurs.
+
+#### Option A: Local Android Debug Keystore
+If running locally via Android Studio / Android Emulator:
+1. Generate the local debug keystore if not already created:
+   ```bash
+   keytool -genkey -v -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+   ```
+2. Retrieve the SHA-1 fingerprint:
+   ```bash
+   keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android
+   ```
+
+#### Option B: EAS Cloud Build Keystore
+If building via Expo Application Services (EAS):
+1. Initialize EAS build configuration if needed:
+   ```bash
+   eas build:configure
+   ```
+2. Run credentials manager:
+   ```bash
+   eas credentials
+   # Select: Android → development / production → Keystore → View Fingerprint
+   ```
+
+#### Option C: Local Prebuild
+```bash
+npx expo prebuild -p android
+cd android && ./gradlew signingReport
+```
+
+**Required Action in Firebase Console:**
+1. Open [Firebase Console → Project Overview → Project settings](https://console.firebase.google.com/project/cse-research-hub/settings/general).
+2. Under **Your apps**, select the Android app (`com.cse.researchhub`).
+3. Click **Add fingerprint** and paste the SHA-1 fingerprint.
+4. Download the newly updated `google-services.json`.
+
+---
+
+### 4. iOS Bundle Identifier & URL Scheme Requirements
+
+1. **Bundle Identifier Check:** In Firebase Console, the iOS app must be registered with:
+   - iOS bundle ID: `com.cse.researchhub`
+2. **Reversed Client ID Handling:**
+   - In `GoogleService-Info.plist`, Firebase embeds `<key>REVERSED_CLIENT_ID</key>`.
+   - The `@react-native-google-signin/google-signin` Expo config plugin automatically reads `REVERSED_CLIENT_ID` from `./GoogleService-Info.plist` during prebuild and injects it into `CFBundleURLTypes` in `Info.plist`.
+   - No manual URL scheme overrides or custom plist modifications are required.
+
+---
+
+### 5. Package Compatibility & Long-Term Roadmap
+
+- **Installed Package:** `@react-native-google-signin/google-signin` (`^17.0.0`).
+- **Legacy SDK Limitation:**
+  - Google has officially deprecated the legacy Google Sign-In SDK (`GoogleSignInClient`) on Android in favor of Android Credential Manager (`androidx.credentials.CredentialManager`).
+  - `@react-native-google-signin/google-signin` v17 remains 100% functional and compatible with Expo SDK 52 for current development and testing.
+  - **Production Recommendation:** Prior to public release, monitor the library's One Tap / Credential Manager implementation or evaluate dedicated Credential Manager integrations as Google Play phased deprecation advances.
+
+---
+
+### 6. Validation Results
+
+| Check | Tool / Command | Exit Code | Result |
+|---|---|---|---|
+| **TypeScript Typecheck** | `npx tsc --noEmit` | **0** | Clean (0 errors) |
+| **All-Platform Production Export** | `npx expo export` | **0** | Web (3.79 MB), iOS (5.88 MB), Android (5.88 MB) bundled cleanly |
+| **Configuration Check** | `npx expo config --type public` | **0** | Verified `googleServicesFile` targets and plugins |
+
+---
+
+## Part 8: EAS Development Build Preflight Audit
+
+### 1. Scope & Objective
+Perform a comprehensive, read-only preflight audit before initiating the first EAS Android development build (`eas build --platform android --profile development`). Verify EAS configuration, Expo Dev Client dependencies, native Firebase files, signing readiness, environment variable propagation, Node engine compatibility, and security posture.
+
+---
+
+### 2. EAS & Expo Configuration Audit
+
+* **EAS CLI Version**: `27.7.0` (Active).
+* **EAS Project ID**: `97155662-4bd4-46e5-986b-8e0c7808cbba` (Preserved in `app.json` under `extra.eas.projectId`).
+* **Expo Account**: Logged in as `anik_47`.
+* **Expo Dev Client**: `expo-dev-client` version `~5.0.20` installed and registered in `package.json`.
+* **Profile Verification (`eas.json`)**:
+  * `development` profile exists.
+  * `developmentClient: true` is enabled.
+  * `distribution: "internal"` is set.
+  * `android.buildType`: Currently implicit. EAS defaults to APK for `developmentClient: true` builds. An explicit declaration (`"android": { "buildType": "apk" }`) can optionally be added for strict clarity.
+* **Native App Identifiers (`app.json`)**:
+  * Android Package: `com.cse.researchhub`
+  * iOS Bundle Identifier: `com.cse.researchhub`
+  * Scheme: `cseresearchhub`
+* **Firebase Native Configuration References**:
+  * `android.googleServicesFile`: `"./google-services.json"` (File verified in root: 1,007 bytes).
+  * `ios.googleServicesFile`: `"./GoogleService-Info.plist"` (File verified in root: 1,118 bytes).
+  * Plugin registered: `@react-native-google-signin/google-signin` (v17.0.0).
+
+---
+
+### 3. Environment Variable Propagation & EAS Remote Secrets
+
+A variable inspection of `.env` was conducted (without outputting confidential values):
+
+| Variable Name | Present in Local `.env` | Configured in EAS Cloud | Notes |
+|---|:---:|:---:|---|
+| `EXPO_PUBLIC_FIREBASE_API_KEY` | **YES** | **NO** | Required for client-side Firebase initialization |
+| `EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN` | **YES** | **NO** | Required for Auth domain redirect/persistence |
+| `EXPO_PUBLIC_FIREBASE_PROJECT_ID` | **YES** | **NO** | Set to `cse-research-hub` |
+| `EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET` | **YES** | **NO** | Required for storage bucket |
+| `EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | **YES** | **NO** | Cloud messaging identifier |
+| `EXPO_PUBLIC_FIREBASE_APP_ID` | **YES** | **NO** | Firebase client App ID |
+| `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` | **NO** | **NO** | **BLOCKER**: Needed as audience for Google Sign-In |
+| `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` | **NO** | **NO** | Optional for Android APK; needed for iOS |
+
+> [!WARNING]
+> `.env` is intentionally gitignored. EAS Cloud builders do not have access to local `.env` files. Prior to building remotely with EAS, all `EXPO_PUBLIC_*` variables must be provided via EAS Environment Variables / Secrets or `eas.json` `env` blocks.
+
+---
+
+### 4. Node Version & Engine Compatibility
+
+* **Local Runtime**: Node `v22.17.0`, npm `10.9.2`.
+* **SDK Compatibility**: Expo SDK 52 (`~52.0.30`) and React Native (`0.76.7`) officially support Node 18, 20, and 22.
+* **Firebase Engine Warning**: `@firebase/app` (v0.16.4) and `@firebase/auth` (v1.13.8) declare `engines: { node: '>=24.12.0' }`. This generates non-blocking `EBADENGINE` warnings under npm on Node 22, but runtime execution and bundling succeed with exit code 0.
+* **EAS Remote Node Policy**: EAS Build Linux containers default to Node 20 LTS for SDK 52. Because npm does not enforce strict engine checks by default (`engine-strict` defaults to false), builds will not fail on engine warnings. If 1:1 parity with the local environment is desired, `"node": "22.17.0"` can be explicitly configured in `eas.json` under `build.development`.
+
+---
+
+### 5. Dependency Vulnerability Audit (`npm audit`)
+
+Audit identified 44 total vulnerabilities (0 Info, 1 Low, 24 Moderate, 17 High, 2 Critical).
+
+#### Critical Vulnerabilities (2):
+1. **`shell-quote`** (v1.8.4 - v1.11.0): Command injection via line terminator in token handling (`GHSA-pqg4-j6r4-53mv`).
+2. **`tar`** (<7.5.7): Hardlink path traversal and symlink poisoning (`GHSA-34x7-hfp2-rc4v`). Pulled in transitively by `@expo/cli` / `cacache`.
+
+#### High Vulnerabilities (17):
+* **Expo Toolchain / Metro**: `@expo/cli`, `cacache`, `@xmldom/xmldom`, `postcss`.
+* **Firebase SDK / gRPC**: `@firebase/firestore`, `@firebase/firestore-compat`, `@grpc/grpc-js`, `firebase`.
+* **Navigation Core**: `@react-navigation/core`, `decode-uri-component`, `query-string`.
+* **Support Utilities**: `brace-expansion`, `compression`, `image-size`, `node-forge`, `source-map-js`, `undici`.
+
+#### Recommendation:
+**Do not run `npm audit fix --force`.**
+Suggested automatic fixes propose breaking major version upgrades (e.g. upgrading to Expo 58 or downgrading Firebase to legacy v9), which would destabilize Expo SDK 52 and break React Native 0.76 architecture. All vulnerabilities are confined to build-time CLI tools and transitive dependencies, with zero vulnerabilities in application-level source code.
+
+---
+
+### 6. Git & Asset Security Safeguards
+
+* **Environment Isolation**: `.env`, `.env.local`, and `.env.*.local` are explicitly ignored by `.gitignore` (Line 9).
+* **Credential Isolation**: No keystores, `.jks`, `.p8`, `.p12`, or certificates are tracked or committed in git.
+* **Public Asset Protection**: `google-services.json` and `GoogleService-Info.plist` reside strictly in the project root directory (`./`). Neither file is present in `assets/`, `public/`, or `static/`, preventing accidental exposure in client-facing web bundles.
+* **Working Tree State**: All existing user authentication features, layouts, screens, and configs remain cleanly preserved.
+
+---
+
+### 7. Verification Summary
+
+| Check | Command | Exit Code | Result |
+|---|---|---|---|
+| **TypeScript Typecheck** | `npx tsc --noEmit` | **0** | Clean (0 errors) |
+| **Expo Configuration** | `npx expo config --type public` | **0** | Verified EAS projectId, bundle IDs, and plugins |
+
+---
+
+## Part 9: Stage 3.2.3 — Fix Missing Android Adaptive Icon & Assets
+
+### 1. Issue Diagnosis
+During the initial Expo Prebuild for EAS Android development builds, prebuild failed with:
+`ENOENT: no such file or directory, open './assets/adaptive-icon.png'`
+
+Inspection revealed:
+* `app.json` configured `icon` (`./assets/icon.png`), `splash.image` (`./assets/splash-icon.png`), and `android.adaptiveIcon.foregroundImage` (`./assets/adaptive-icon.png`).
+* The physical files were never committed in Git history and did not exist in `./assets/`.
+* `assets/favicon.png` was identical to `assets/images/google-icon.png` (Google logo) and unsuitable as the app emblem.
+
+### 2. Resolution & Brand Asset Generation
+Following user approval, a high-resolution scholarly branding icon set was generated using Python PIL with Academic Cobalt (`#2471E7`) and crisp white academic crest motif (academic shield, mortarboard cap, and open book):
+* `assets/adaptive-icon.png`: 1024x1024 RGBA, transparent background, emblem centered strictly within Android's 66% safe zone radius.
+* `assets/icon.png`: 1024x1024 RGBA, solid `#2471E7` background with centered academic emblem.
+* `assets/splash-icon.png`: 1024x1024 RGBA, transparent background for splash screen container.
+
+### 3. Validation Results
+
+| Step | Validation Tool / Command | Exit Code | Result |
+|---|---|:---:|---|
+| **Path Verification** | Node.js asset existence check | **0** | All 6 referenced assets verified on disk |
+| **Expo Config** | `npx expo config --type public` | **0** | Successful evaluation of all plugins and paths |
+| **Android Prebuild** | `npx expo prebuild --no-install --platform android` | **0** | Clean generation of native Android project & adaptive icon densities (`ic_launcher`, `ic_launcher_round`, `ic_launcher_foreground`) |
+| **TypeScript** | `npx tsc --noEmit` | **0** | Clean (0 errors) |
+
+---
+*Signed off by: Senior React Native Architect & EAS Lead*

@@ -33,14 +33,8 @@ import {
   type User,
 } from 'firebase/auth';
 import { Platform } from 'react-native';
-import * as AuthSession from 'expo-auth-session';
-import * as WebBrowser from 'expo-web-browser';
-import * as Crypto from 'expo-crypto';
 import { auth, isFirebaseConfigured } from '@/config/firebase';
 import type { SignUpParams, SignInParams, AuthError } from '@/types/auth.types';
-
-// Allow expo-web-browser to handle OAuth redirect on mobile
-WebBrowser.maybeCompleteAuthSession();
 
 // ---------------------------------------------------------------------------
 // Error mapping — convert Firebase error codes to user-friendly messages
@@ -202,6 +196,14 @@ export async function resetPassword(email: string): Promise<void> {
 /** Signs out the current Firebase user. */
 export async function signOut(): Promise<void> {
   requireFirebase();
+  if (Platform.OS !== 'web') {
+    try {
+      const { GoogleSignin } = require('@react-native-google-signin/google-signin');
+      await GoogleSignin.signOut();
+    } catch {
+      // Ignore if native module is not present or user was not signed in via Google
+    }
+  }
   await firebaseSignOut(auth);
 }
 
@@ -222,100 +224,96 @@ async function googleSignInWeb(): Promise<User> {
 // ---------------------------------------------------------------------------
 // Google Sign-In — Native (iOS / Android)
 //
-// Uses expo-auth-session to perform an OAuth PKCE flow through the
-// Google authorization endpoint, then exchanges the ID token with Firebase.
+// Uses @react-native-google-signin/google-signin, the officially recommended
+// native Google Sign-In library for React Native and Expo.
 //
-// IMPORTANT: This flow does NOT work in Expo Go because Expo Go cannot
-// handle the custom URL scheme redirect (`cseresearchhub://`).
-// A development build (EAS Build) is required.
+// It uses Google Play Services Credential Manager on Android and the
+// GoogleSignIn framework on iOS to perform native OAuth, returning a secure
+// OpenID Connect ID token.
 //
-// Required manual configuration — see Section F of the Stage 3.2 report.
+// The ID token is then exchanged with Firebase Authentication via
+// GoogleAuthProvider.credential(idToken) and signInWithCredential().
+//
+// Development Build Requirement:
+// Because this library requires native SDKs, it requires an Expo development
+// build (EAS Build or local run:android / run:ios). It is not available in
+// pre-compiled Expo Go.
 // ---------------------------------------------------------------------------
 
 async function googleSignInNative(): Promise<User> {
-  const clientId =
-    Platform.select({
-      ios: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-      android: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
-    }) || process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
+  const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
+  const iosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
 
-  if (!clientId) {
+  if (!webClientId) {
     throw {
       code: 'google/client-id-missing',
       message:
-        'Google Sign-In is not configured. Set EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID (or platform-specific EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID / EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID) in your .env file.\n' +
-        'See the Stage 3.2 OAuth Configuration Guide for instructions.',
+        'Google Sign-In is not configured. Set EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID in your .env file.\n' +
+        'This Web Client ID serves as the server audience for native ID token verification.',
     } satisfies AuthError;
   }
 
-  // Generate cryptographic nonce for OpenID Connect id_token validation
-  const rawNonce = Math.random().toString(36).substring(2) + Date.now().toString(36);
-  const hashedNonce = await Crypto.digestStringAsync(
-    Crypto.CryptoDigestAlgorithm.SHA256,
-    rawNonce,
-  );
+  try {
+    // Lazy require prevents top-level TurboModuleRegistry.getEnforcing()
+    // crashes on Web or inside Expo Go.
+    const { GoogleSignin, isSuccessResponse } = require('@react-native-google-signin/google-signin');
 
-  const redirectUri = AuthSession.makeRedirectUri({
-    scheme: 'cseresearchhub',
-    path: 'auth/google',
-  });
+    GoogleSignin.configure({
+      webClientId,
+      iosClientId: iosClientId || undefined,
+      scopes: ['profile', 'email'],
+    });
 
-  const discovery = {
-    authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',
-    tokenEndpoint: 'https://oauth2.googleapis.com/token',
-  };
+    await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+    const response = await GoogleSignin.signIn();
 
-  // Use implicit OpenID Connect id_token flow for mobile public client
-  // (avoids requiring client_secret on mobile devices)
-  const request = new AuthSession.AuthRequest({
-    clientId,
-    responseType: AuthSession.ResponseType.IdToken,
-    scopes: ['openid', 'profile', 'email'],
-    redirectUri,
-    extraParams: {
-      nonce: hashedNonce,
-    },
-  });
+    if (response.type === 'cancelled') {
+      throw {
+        code: 'auth/popup-closed-by-user',
+        message: 'Google Sign-In was cancelled.',
+      } satisfies AuthError;
+    }
 
-  const result = await request.promptAsync(discovery, {
-    showInRecents: true,
-  });
+    if (!isSuccessResponse(response) || !response.data?.idToken) {
+      throw {
+        code: 'google/no-id-token',
+        message: 'Google did not return an ID token. Verify your OAuth client configuration.',
+      } satisfies AuthError;
+    }
 
-  if (result.type === 'cancel' || result.type === 'dismiss') {
+    const idToken = response.data.idToken;
+    const googleCredential = GoogleAuthProvider.credential(idToken);
+    const firebaseResult = await signInWithCredential(auth, googleCredential);
+    return firebaseResult.user;
+  } catch (error: any) {
+    if (error?.code === 'auth/popup-closed-by-user') {
+      throw error;
+    }
+
+    // Detect if running inside standard Expo Go (native module missing)
+    if (
+      error?.message?.includes('TurboModuleRegistry') ||
+      error?.message?.includes('RNGoogleSignin') ||
+      error?.code === 'MODULE_NOT_FOUND'
+    ) {
+      throw {
+        code: 'google/expo-go-unsupported',
+        message:
+          'Native Google Sign-In requires an Expo development build with @react-native-google-signin/google-signin.\n' +
+          'For testing in Expo Go, please use email/password authentication or test in web mode.',
+      } satisfies AuthError;
+    }
+
+    const mapped = mapFirebaseError(error);
+    if (mapped.code !== 'unknown') {
+      throw mapped;
+    }
+
     throw {
-      code: 'auth/popup-closed-by-user',
-      message: 'Google Sign-In was cancelled.',
+      code: error?.code ?? 'google/native-sign-in-failed',
+      message: error?.message ?? 'Google Sign-In failed on this device.',
     } satisfies AuthError;
   }
-
-  if (result.type === 'error') {
-    throw {
-      code: 'google/oauth-error',
-      message: result.error?.message ?? 'Google Sign-In failed. Please try again.',
-    } satisfies AuthError;
-  }
-
-  if (result.type !== 'success') {
-    throw {
-      code: 'google/auth-failed',
-      message: 'Google Sign-In did not complete successfully.',
-    } satisfies AuthError;
-  }
-
-  // The id_token is returned directly in the response params from the implicit flow
-  const idToken = result.params?.id_token || result.params?.credential;
-
-  if (!idToken) {
-    throw {
-      code: 'google/no-id-token',
-      message: 'Google did not return an ID token. Verify your OAuth client configuration.',
-    } satisfies AuthError;
-  }
-
-  // Exchange the Google ID token for a Firebase credential
-  const googleCredential = GoogleAuthProvider.credential(idToken);
-  const firebaseResult = await signInWithCredential(auth, googleCredential);
-  return firebaseResult.user;
 }
 
 // ---------------------------------------------------------------------------

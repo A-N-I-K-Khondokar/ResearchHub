@@ -5,6 +5,9 @@ web-build/
 *.log
 .DS_Store
 
+# Native directories (Expo Prebuild / CNG)
+/android
+
 # Environment variables — never commit real credentials
 .env
 .env.local

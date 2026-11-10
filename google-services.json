@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "595563738567",
+    "project_id": "cse-research-hub",
+    "storage_bucket": "cse-research-hub.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:595563738567:android:1eace4f0b70f44b0d795e2",
+        "android_client_info": {
+          "package_name": "com.cse.researchhub"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "595563738567-6nuinsndoukfbd5ps38o4v3pq67o19a4.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDyg_pDdxL9DINHU0EXtuMyNVgZTGKZyZg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "595563738567-6nuinsndoukfbd5ps38o4v3pq67o19a4.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
