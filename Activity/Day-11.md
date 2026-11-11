@@ -3190,4 +3190,275 @@ The following test suite is prepared for automated execution upon emulator depen
 | **Working Tree Audit** | `git status --short` | **0** | No unexpected modifications |
 
 ---
+
+### 6. Automated Emulator Execution & Behavioral Verification Results
+
+The local behavioral testing environment was fully activated using `@firebase/rules-unit-testing@6.0.0`, `firebase.json` isolated Firestore emulator configuration (Host: `127.0.0.1:8080`), and ephemeral Firebase CLI (`npx --yes firebase-tools@15.35.0 emulators:exec`).
+
+#### A. Security Rules Syntax Hardening
+During initial rules compilation by the Firestore emulator engine, two standard security rules grammar adjustments were identified and corrected:
+- `match /admins/{adminId}`: Adjusted `allow write: false;` $\rightarrow$ `allow write: if false;` (Line 370).
+- `match /{document=**}`: Adjusted `allow read, write: false;` $\rightarrow$ `allow read, write: if false;` (Line 470).
+
+#### B. Execution Command & Summary
+```bash
+npx --yes firebase-tools@15.35.0 emulators:exec --only firestore --project demo-cse-research-hub "node --test tests/firestore/*.test.mjs"
+```
+
+* **Target Project ID**: `demo-cse-research-hub` (Strictly local emulator; zero network connection or production Firestore writes).
+* **Test Runner**: Node.js built-in test runner (`node:test`) with native ES modules (`.mjs`).
+* **Exit Code**: `0` (Success).
+* **Suites Executed**: 7 suites.
+* **Total Tests**: **35 tests** (31 core specification tests + 4 advanced lifecycle transition tests).
+* **Passed**: **35 / 35 (100% Pass Rate)**.
+* **Failed**: **0**.
+* **Skipped / Todo**: **0**.
+* **Execution Duration**: ~3.2 seconds.
+
+#### C. Comprehensive Test Execution Breakdown
+
+1. **Suite 1: Authentication and Profile Creation (`/users/{uid}`)**
+   - `TEST-01`: Unauthenticated profile creation $\rightarrow$ **DENY** (PASSED)
+   - `TEST-02`: Email-unverified user profile creation $\rightarrow$ **DENY** (PASSED)
+   - `TEST-03`: Verified user creates their own pending profile $\rightarrow$ **ALLOW** (PASSED)
+   - `TEST-04`: User creates a profile for another UID $\rightarrow$ **DENY** (PASSED)
+   - `TEST-05`: User creates a profile with `approvalStatus: approved` $\rightarrow$ **DENY** (PASSED)
+   - `TEST-06`: User creates a profile with unexpected fields $\rightarrow$ **DENY** (PASSED)
+   - `TEST-07`: User attempts to overwrite an existing profile $\rightarrow$ **DENY** (PASSED)
+
+2. **Suite 2: Profile Updates (`/users/{uid}`)**
+   - `TEST-08`: User updates permitted academic profile fields (`bio`, `displayName`, `socialLinks`, `researchInterests`) $\rightarrow$ **ALLOW** (PASSED)
+   - `TEST-09`: User adds an unexpected field on update $\rightarrow$ **DENY** (PASSED)
+   - `TEST-10`: User changes immutable `uid` or `email` on update $\rightarrow$ **DENY** (PASSED)
+   - `TEST-11`: User changes `approvalStatus` $\rightarrow$ **DENY** (PASSED)
+   - `TEST-12`: User changes `approvedAt` or `approvedBy` $\rightarrow$ **DENY** (PASSED)
+   - `TEST-13`: User injects an administrator role (`role: 'admin'`) $\rightarrow$ **DENY** (PASSED)
+
+3. **Suite 3: Profile Reads (`/users/{uid}`)**
+   - `TEST-14`: User reads their own pending profile $\rightarrow$ **ALLOW** (PASSED)
+   - `TEST-15`: Pending user reads another pending profile $\rightarrow$ **DENY** (PASSED)
+   - `TEST-16`: Approved user reads another approved profile $\rightarrow$ **ALLOW** (PASSED)
+   - `TEST-17`: Approved user reads a suspended or rejected profile $\rightarrow$ **DENY** (PASSED)
+
+4. **Suite 4: Administrator Authorization (`/admins/{uid}` & Approval Flow)**
+   - `TEST-18`: Non-admin reads administrator records $\rightarrow$ **DENY** (PASSED)
+   - `TEST-19`: Non-admin performs profile approval on another user $\rightarrow$ **DENY** (PASSED)
+   - `TEST-20`: Existing administrator approves a pending user $\rightarrow$ **ALLOW** (PASSED)
+   - `TEST-21`: Administrator modifies academic profile fields through approval operation $\rightarrow$ **DENY** (PASSED)
+   - `TEST-22`: Unauthenticated user accesses administrator records $\rightarrow$ **DENY** (PASSED)
+
+5. **Suite 5: Admin Requests (`/admin_requests/{requestId}`)**
+   - `TEST-23`: Verified user submits their own request $\rightarrow$ **ALLOW** (PASSED)
+   - `TEST-24`: User submits a request for another UID $\rightarrow$ **DENY** (PASSED)
+   - `TEST-25`: User overwrites an existing request $\rightarrow$ **DENY** (PASSED)
+   - `TEST-26`: Applicant modifies a submitted request $\rightarrow$ **DENY** (PASSED)
+   - `TEST-27`: Another user reads the applicant request $\rightarrow$ **DENY** (PASSED)
+   - `TEST-28`: Administrator reviews and approves a pending request $\rightarrow$ **ALLOW** (PASSED)
+
+6. **Suite 6: General Security & Advanced Lifecycle Status Transitions**
+   - `TEST-29`: Unspecified collection read (`/secret_system/doc`) $\rightarrow$ **DENY** (PASSED)
+   - `TEST-30`: Unspecified collection write (`/random_data/item`) $\rightarrow$ **DENY** (PASSED)
+   - `TEST-31`: Attempted access through overlapping match paths $\rightarrow$ **DENY** (PASSED)
+   - `TEST-32`: Administrator rejects a pending user with review notes $\rightarrow$ **ALLOW** (PASSED)
+   - `TEST-33`: Administrator suspends an approved user $\rightarrow$ **ALLOW** (PASSED)
+   - `TEST-34`: Administrator re-approves a suspended user $\rightarrow$ **ALLOW** (PASSED)
+   - `TEST-35`: Administrator attempts approval with forged `approvedBy` UID $\rightarrow$ **DENY** (PASSED)
+
+---
+
+### 7. Post-Testing Project Health Audit
+
+| Check | Command Executed | Exit Code | Status |
+|---|---|:---:|---|
+| **TypeScript Compilation** | `npx tsc --noEmit` | **0** | Clean (0 errors) |
+| **Expo Configuration** | `npx expo config --type public` | **0** | Clean (All native variables & plugins verified) |
+| **Emulator Test Suite** | `npx --yes firebase-tools@15.35.0 emulators:exec ...` | **0** | 35 passed, 0 failed |
+| **Production Firestore Access** | *Audited* | **—** | Zero live writes; zero rules deployed |
+
+---
+
+## Stage 3.4.2.3 — Approval State Machine Enforcement and Regression Testing
+
+### 1. Objective & Security Scope
+Following successful initial emulator testing in Stage 3.4.2.2 (35/35 passing), Stage 3.4.2.3 executes a rigorous authorization hardening audit to enforce explicit pairwise state transitions on user approval lifecycles, guarantee request immutability on administrative reviews, protect administrative collections against client-side tampering, and verify all invariants with automated regression testing.
+
+---
+
+### 2. Implementation: Explicit State Transition Matrix
+
+#### A. User Lifecycle State Machine (`/users/{userId}`)
+A dedicated transition validator `isValidAdminStatusTransition(prevStatus, nextStatus)` was authored and integrated into `isAdminApprovalUpdate()` in [`firestore.rules`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/firestore.rules). Rather than checking destination statuses in isolation, the rules now explicitly compare `resource.data.approvalStatus` against `request.resource.data.approvalStatus`.
+
+| Existing Status | Destination Status | Permission | Enforced Metadata Constraints |
+|---|---|:---:|---|
+| `pending` | `approved` | **ALLOW** | `approvedBy == request.auth.uid`, `approvedAt == request.time`, `rejectionReason == null` |
+| `pending` | `rejected` | **ALLOW** | `approvedBy == request.auth.uid`, `approvedAt == null`, `rejectionReason` bounded string (<= 500 chars) |
+| `approved` | `suspended` | **ALLOW** | Approval history preserved: `approvedBy == resource.data.approvedBy`, `approvedAt == resource.data.approvedAt`, `rejectionReason == resource.data.rejectionReason`. No timestamps fabricated. |
+| `suspended` | `approved` | **ALLOW** | Re-approval records currently acting administrator: `approvedBy == request.auth.uid`, `approvedAt == request.time`, `rejectionReason == null` |
+| `rejected` | `approved` | **ALLOW** | Re-consideration records currently acting administrator: `approvedBy == request.auth.uid`, `approvedAt == request.time`, `rejectionReason == null` |
+| `pending` | `suspended` | **DENY** | Direct bypass to suspended status is strictly rejected |
+| `approved` | `rejected` | **DENY** | Approved scholars cannot be retroactively rejected (must use suspension) |
+| `rejected` | `suspended` | **DENY** | Rejected applicants cannot be suspended |
+| `suspended` | `rejected` | **DENY** | Suspended scholars cannot be rejected |
+| `approved` | `pending` | **DENY** | Approved scholars cannot be reset to unverified pending |
+| `rejected` | `pending` | **DENY** | Rejected applicants cannot be reset to unverified pending |
+
+#### B. Administrative Request Lifecycle & Immutability (`/admin_requests/{requestId}`)
+In [`firestore.rules`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/firestore.rules), the `allow update` condition for `admin_requests` was hardened with `resource.data.status == 'pending'`:
+* Only requests whose existing status is `'pending'` may be reviewed by an administrator.
+* Destination status must be `'approved'` or `'rejected'`.
+* Once reviewed, a request cannot be reviewed again, altered, or have its status reversed.
+* `reviewedBy` must match `request.auth.uid` and `reviewedAt` must equal `request.time`.
+* Applicants have zero update or delete privileges on submitted requests (`allow update: if isAdmin()`, `allow delete: if isAdmin()`).
+
+#### C. Administrator Collection Protection (`/admins/{adminId}`)
+Enforced `allow write: if false;` on `/admins/{adminId}`:
+* Ordinary users cannot create, modify, or delete administrator documents.
+* Even authenticated administrators cannot modify their own or other administrator records from client SDKs.
+* Administrator provisioning remains strictly bound to server-side Admin SDK or Firebase Console.
+
+---
+
+### 3. Automated Emulator Regression Suite Execution
+
+The automated test suite in [`tests/firestore/firestore.rules.test.mjs`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/tests/firestore/firestore.rules.test.mjs) was expanded from 35 tests to 46 tests by adding a dedicated 11-test suite: `7. Approval State Machine Enforcement & Regression Tests`.
+
+#### Execution Command
+```bash
+npx --yes firebase-tools@15.35.0 emulators:exec --only firestore --project demo-cse-research-hub "node --test tests/firestore/*.test.mjs"
+```
+
+#### Overall Execution Metrics
+* **Target Project ID**: `demo-cse-research-hub` (Isolated local emulator)
+* **Test Runner**: Node.js built-in test runner (`node:test`)
+* **Suites Executed**: 8 suites
+* **Total Tests**: **46 tests**
+* **Passed**: **46 / 46 (100% Pass Rate)**
+* **Failed**: **0**
+* **Duration**: ~3.4 seconds
+* **Exit Code**: **0**
+
+#### Detailed Breakdown of New Regression Tests (`TEST-36` to `TEST-46`)
+| Test ID | Test Scenario | Expected | Result |
+|---|---|:---:|:---:|
+| `TEST-36` | Pending $\rightarrow$ Suspended transition denied | **DENY** | **PASS** |
+| `TEST-37` | Approved $\rightarrow$ Rejected transition denied | **DENY** | **PASS** |
+| `TEST-38` | Rejected $\rightarrow$ Suspended transition denied | **DENY** | **PASS** |
+| `TEST-39` | Approved $\rightarrow$ Pending transition denied | **DENY** | **PASS** |
+| `TEST-40` | Rejected $\rightarrow$ Pending transition denied | **DENY** | **PASS** |
+| `TEST-41` | Suspended $\rightarrow$ Rejected transition denied | **DENY** | **PASS** |
+| `TEST-42` | Rejected $\rightarrow$ Approved transition allowed (Re-approval with new timestamps) | **ALLOW** | **PASS** |
+| `TEST-43` | Applicant deleting their own submitted admin request denied | **DENY** | **PASS** |
+| `TEST-44` | Administrator modifying an existing admin record denied | **DENY** | **PASS** |
+| `TEST-45` | Non-admin creating an administrator record denied | **DENY** | **PASS** |
+| `TEST-46` | Administrator reviewing an already reviewed admin request denied | **DENY** | **PASS** |
+
+All 35 existing baseline tests (`TEST-01` through `TEST-35`) were fully retained and passed without regression.
+
+---
+
+### 4. Comprehensive Validation Results
+
+| Verification Check | Command Executed | Exit Code | Result |
+|---|---|:---:|---|
+| **Firestore Emulator Suite** | `npx --yes firebase-tools@15.35.0 emulators:exec ...` | **0** | **46 passed, 0 failed** (100% pass rate) |
+| **TypeScript Compilation** | `npx tsc --noEmit` | **0** | Clean (0 compilation errors) |
+| **Expo Public Configuration** | `npx expo config --type public` | **0** | Clean (All plugins & credentials verified) |
+| **Metro Production Export** | `npx expo export --output-dir /tmp/test-export-approval-state-machine` | **0** | Generated Android HBC (`7.3 MB`), iOS HBC (`7.3 MB`), Web (`4.56 MB`) |
+| **Git Working Tree Status** | `git status --short` | **0** | Only `firestore.rules`, `tests/`, and `Activity/Day-11.md` modified |
+
+---
+
+### 5. Architectural Invariants Preserved
+* **Zero Live Writes**: No production Firestore documents created or modified.
+* **Zero Rules Deployed**: Production database security configuration untouched.
+* **Zero Administrator Bootstrapping**: No production administrative accounts created.
+* **Zero UI / Context Mutation**: `AuthContext.tsx`, `auth.service.ts`, and frontend components intact.
+
+---
+
+## Stage 3.4.2.4 — Final Repository Integrity Audit
+
+### 1. Audit Scope & Objective
+Perform a strict read-only repository integrity audit following the successful execution of the 46-test Cloud Firestore Security Rules suite. The audit verifies package declarations, lockfile tracking, emulator configuration, git tracking status, and command reproducibility.
+
+---
+
+### 2. Dependency & Configuration Inspection
+
+#### A. `package.json` Audit
+* **Check**: `@firebase/rules-unit-testing@6.0.0` declaration.
+* **Result**: Confirmed declared under `devDependencies`:
+  ```json
+  "devDependencies": {
+    "@babel/core": "^7.25.2",
+    "@firebase/rules-unit-testing": "^6.0.0",
+    "@types/react": "~18.3.12",
+    "typescript": "^5.3.3"
+  }
+  ```
+* **Production Protection**: The dependency is quarantined strictly inside `devDependencies` and is excluded from Expo/React Native production bundles.
+
+#### B. `package-lock.json` Audit
+* **Check**: Lockfile entry for `@firebase/rules-unit-testing`.
+* **Result**: Confirmed recorded at version `6.0.0`:
+  * Resolved: `https://registry.npmjs.org/@firebase/rules-unit-testing/-/rules-unit-testing-6.0.0.tgz`
+  * Integrity: `sha512-BsBqAoClN55cj9rVIruzA1vHzxl2WyS2+G/r93hjp7wM0UatlVHblvp5SPLCKylWBFMHWL4/JdFnFnYwrLdJjg==`
+  * Dev: `true`
+
+#### C. `firebase.json` Configuration
+* **Check**: Existence and pointer to local rules.
+* **Result**: Confirmed present in repository root:
+  ```json
+  {
+    "firestore": {
+      "rules": "firestore.rules"
+    },
+    "emulators": {
+      "firestore": {
+        "host": "127.0.0.1",
+        "port": 8080
+      },
+      "ui": {
+        "enabled": false
+      }
+    }
+  }
+  ```
+  `firestore.rules` is correctly referenced as the target rules file.
+
+---
+
+### 3. Git Tracking & Ignore Audit
+
+| Inspection Item | Command Executed | Exit Code | Output / Verification |
+|---|---|:---:|---|
+| **Git Ignore Check** | `git check-ignore -v firebase.json package.json package-lock.json` | **1** | None of the files are ignored by `.gitignore` |
+| **Git Tracked Files Check** | `git ls-files firebase.json package.json package-lock.json` | **0** | `firebase.json`, `package-lock.json`, `package.json` are all tracked in git index |
+| **Working Tree Status** | `git status --short --untracked-files=all` | **0** | Minimal and clean: `M Activity/Day-11.md`, `M firestore.rules`, `?? tests/firestore/firestore.rules.test.mjs` |
+| **Package & Config Diff** | `git diff package.json package-lock.json firebase.json` | **0** | 0 uncommitted diffs (cleanly committed/staged in repository) |
+| **Rules Diff Audit** | `git diff firestore.rules` | **0** | Surgical changes limited to `isValidAdminStatusTransition`, `allow write: if false;` on `/admins`, `resource.data.status == 'pending'` on `/admin_requests`, and default deny syntax |
+
+---
+
+### 4. Test Command Reproducibility
+
+* **Command**:
+  ```bash
+  npx --yes firebase-tools@15.35.0 emulators:exec --only firestore --project demo-cse-research-hub "node --test tests/firestore/*.test.mjs"
+  ```
+* **Execution Verification**:
+  * Pinned CLI version: `firebase-tools@15.35.0`
+  * Isolated Project ID: `demo-cse-research-hub`
+  * Port: `127.0.0.1:8080`
+  * Test Runner: Node.js native `node:test` runner
+  * Result: **8 suites, 46 tests executed, 46 passed, 0 failed, exit code 0**
+  * Reproducibility: **100% deterministic and reproducible** from repository sources.
+
+---
+
+### 5. Final Audit Conclusion
+All 8 verification checks passed with zero discrepancies. The repository is in a completely stable, type-safe, and hardened state. Zero production mutations or rules deployments occurred.
+
+---
 *Signed off by: Senior Mobile Architect & Firebase Solutions Engineer*

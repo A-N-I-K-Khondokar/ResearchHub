@@ -319,6 +319,41 @@ service cloud.firestore {
           ]);
       }
 
+      // Helper: Enforces the exact 5 permitted administrator status transitions
+      function isValidAdminStatusTransition(prevStatus, nextStatus) {
+        return (
+          // Transition 1: pending -> approved
+          (prevStatus == 'pending' && nextStatus == 'approved' &&
+           request.resource.data.approvedBy == request.auth.uid &&
+           request.resource.data.approvedAt == request.time &&
+           request.resource.data.rejectionReason == null) ||
+
+          // Transition 2: pending -> rejected
+          (prevStatus == 'pending' && nextStatus == 'rejected' &&
+           request.resource.data.approvedBy == request.auth.uid &&
+           request.resource.data.approvedAt == null &&
+           isOptionalString(request.resource.data, 'rejectionReason', 500)) ||
+
+          // Transition 3: approved -> suspended (preserves established approval history)
+          (prevStatus == 'approved' && nextStatus == 'suspended' &&
+           request.resource.data.approvedBy == resource.data.approvedBy &&
+           request.resource.data.approvedAt == resource.data.approvedAt &&
+           request.resource.data.rejectionReason == resource.data.rejectionReason) ||
+
+          // Transition 4: suspended -> approved (Re-approval: records current admin & timestamp)
+          (prevStatus == 'suspended' && nextStatus == 'approved' &&
+           request.resource.data.approvedBy == request.auth.uid &&
+           request.resource.data.approvedAt == request.time &&
+           request.resource.data.rejectionReason == null) ||
+
+          // Transition 5: rejected -> approved (Re-consideration: records current admin & timestamp)
+          (prevStatus == 'rejected' && nextStatus == 'approved' &&
+           request.resource.data.approvedBy == request.auth.uid &&
+           request.resource.data.approvedAt == request.time &&
+           request.resource.data.rejectionReason == null)
+        );
+      }
+
       // Helper: Validates administrator-initiated status and review updates using an explicit positive allowlist
       function isAdminApprovalUpdate() {
         return isAdmin() &&
@@ -335,22 +370,7 @@ service cloud.firestore {
             'rejectionReason',
             'updatedAt'
           ]) &&
-          request.resource.data.approvalStatus in ['pending', 'approved', 'rejected', 'suspended'] &&
-          (
-            request.resource.data.approvalStatus != 'approved' ||
-            (
-              request.resource.data.approvedBy == request.auth.uid &&
-              request.resource.data.approvedAt == request.time &&
-              request.resource.data.rejectionReason == null
-            )
-          ) &&
-          (
-            request.resource.data.approvalStatus != 'rejected' ||
-            (
-              request.resource.data.approvedBy == request.auth.uid &&
-              request.resource.data.approvedAt == null
-            )
-          );
+          isValidAdminStatusTransition(resource.data.approvalStatus, request.resource.data.approvalStatus);
       }
 
       // Delete permissions: Administrators only. Ordinary users cannot delete profiles.
@@ -367,7 +387,7 @@ service cloud.firestore {
       // Client-side administrator creation, modification, and deletion are disabled.
       // The initial administrator and any subsequent administrators must be
       // provisioned manually in Firebase Console or via trusted Firebase Admin SDK.
-      allow write: false;
+      allow write: if false;
     }
 
     // ===============================================================
@@ -439,8 +459,10 @@ service cloud.firestore {
         request.resource.data.reviewedAt == null &&
         request.resource.data.reviewedBy == null;
 
-      // Only administrators can review / update admin requests via an explicit positive allowlist
+      // Only administrators can review / update admin requests via an explicit positive allowlist.
+      // Once reviewed, a request cannot be reviewed again or have its status reversed.
       allow update: if isAdmin() &&
+        resource.data.status == 'pending' &&
         isValidAdminRequestDoc(request.resource.data) &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'status',
@@ -467,7 +489,7 @@ service cloud.firestore {
     // ===============================================================
     // Deny read and write access to all other paths by default.
     match /{document=**} {
-      allow read, write: false;
+      allow read, write: if false;
     }
   }
 }
