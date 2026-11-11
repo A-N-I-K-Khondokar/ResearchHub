@@ -15,7 +15,7 @@
  *        present and non-empty.
  *      • When vars are missing the module still exports safe stubs so that
  *        import order never causes a crash during development.
- *  - Firestore (`db`) is deferred — export is `null` until Stage 3.3.
+ *  - Firestore (`db`) is initialized from the singleton Firebase app.
  *  - Credential values are never logged.
  */
 
@@ -27,6 +27,7 @@ import {
   getReactNativePersistence,
   type Auth,
 } from 'firebase/auth';
+import { getFirestore, type Firestore } from 'firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
@@ -125,15 +126,17 @@ if (isFirebaseConfigured && app) {
 }
 
 // ---------------------------------------------------------------------------
-// 5. Firestore — deferred until Stage 3.2
+// 5. Firestore — initialized with existing Firebase app instance
 // ---------------------------------------------------------------------------
 
 /**
  * Firestore database instance.
- * Remains `null` until Stage 3.3 (Firestore integration).
- * Import `db` only after checking `isFirebaseConfigured`.
+ * Initialized from the Firebase app singleton.
+ * Null when Firebase environment variables are unconfigured.
  */
-export const db = null;
+export const db: Firestore | null = isFirebaseConfigured && app
+  ? getFirestore(app)
+  : null;
 
 // ---------------------------------------------------------------------------
 // 6. Exports
