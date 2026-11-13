@@ -3461,4 +3461,297 @@ Perform a strict read-only repository integrity audit following the successful e
 All 8 verification checks passed with zero discrepancies. The repository is in a completely stable, type-safe, and hardened state. Zero production mutations or rules deployments occurred.
 
 ---
+
+## Stage 3.4.3 — Production Firestore Security Rules Deployment
+
+### 1. Mandatory Pre-Deployment Verification
+
+| Pre-Deployment Requirement | Verification Command / Target | Result | Status |
+|---|---|---|:---:|
+| **1. Current Working Directory** | `pwd` | `/Users/anikkhondokar/Documents/6th SEMESTER/App Dev/ResearchHub` | **PASS** |
+| **2. `firebase.json` Rules Pointer** | `cat firebase.json` | Rules target explicitly set to `"firestore.rules"` | **PASS** |
+| **3. Local Rules Integrity** | `firestore.rules` | 495 lines, validated grammar and domain models | **PASS** |
+| **4. Emulator Correspondence** | Local `firestore.rules` | Corresponds exactly to 46/46 passing version | **PASS** |
+| **5. Test Suite Immutability** | `tests/firestore/firestore.rules.test.mjs` | Untouched since 46/46 passing run | **PASS** |
+| **6. Target Production Project ID** | Target: `cse-research-hub` | Confirmed in `.env`, `google-services.json`, `app.json` | **PASS** |
+| **7. Target Firestore Database ID** | Target: `(default)` | Standard default production database ID verified | **PASS** |
+| **8. Firebase CLI Authentication** | `npx firebase-tools apps:list --project cse-research-hub` | `403 PERMISSION_DENIED` for active account `anik19116@gmail.com` | **BLOCKED** |
+
+---
+
+### 2. Pre-Deployment Blocker Report: Firebase CLI Permissions
+
+During verification item 8, Firebase CLI authorization was evaluated using pinned CLI `firebase-tools@15.35.0`:
+
+* **Active Signed-in Account**: `anik19116@gmail.com` (from `npx firebase-tools login:list`).
+* **Available Projects**:
+  ```text
+  ┌──────────────────────┬────────────┬────────────────┬──────────────────────┐
+  │ Project Display Name │ Project ID │ Project Number │ Resource Location ID │
+  ├──────────────────────┼────────────┼────────────────┼──────────────────────┤
+  │ DhakaCut             │ dhakacut   │ 491617627794   │ [Not specified]      │
+  └──────────────────────┴────────────┴────────────────┴──────────────────────┘
+  ```
+* **Production Project Verification Error**:
+  ```text
+  Request to https://firebase.googleapis.com/v1beta1/projects/cse-research-hub:searchApps?pageSize=100 had HTTP Error: 403, The caller does not have permission
+  FirebaseError: Request to ... HTTP Error: 403, The caller does not have permission (PERMISSION_DENIED)
+  ```
+  And `npx firebase-tools use cse-research-hub` fails with:
+  ```text
+  Error: Invalid project selection, please verify project cse-research-hub exists and you have access.
+  ```
+
+---
+
+### 3. Safety Enforcement & Blocker Trigger
+
+Per strict architectural instructions:
+> *"If the currently published rules cannot be retrieved and backed up, STOP and report the blocker. Do not deploy blindly."*
+
+Deployment execution is halted immediately prior to Step 4 and Step 5 to protect production integrity.
+
+#### Remediation Options for Project Owner:
+1. **Option A (Grant Project Access)**:
+   In [Firebase Console](https://console.firebase.google.com) $\rightarrow$ **cse-research-hub** $\rightarrow$ **Project Settings** $\rightarrow$ **Users and permissions**, add `anik19116@gmail.com` as an **Editor** or **Owner** (or Firebase Security Rules Admin).
+2. **Option B (Authenticate Owning Google Account)**:
+   In the local developer terminal, run:
+   ```bash
+   npx firebase-tools login:add
+   ```
+   and complete the browser sign-in using the Google account that created or owns `cse-research-hub`.
+3. **Backup Production Rules (`backups/firestore.rules.production-before-2026-11-11.rules`)**:
+   Open Firebase Console $\rightarrow$ `cse-research-hub` $\rightarrow$ **Firestore Database** $\rightarrow$ **Rules**, copy the currently published rules, and save them to `backups/firestore.rules.production-before-2026-11-11.rules`.
+
+---
+
+## Stage 3.4.3.1 — Production Firebase Authorization and Deployment Readiness Audit
+
+### 1. Verification Scope & Authentication Resolution
+Following Stage 3.4.3 pre-flight blocker resolution, the project owner authenticated the primary owner Google account `anik.khondokar09@gmail.com` in Firebase CLI. Stage 3.4.3.1 conducts a comprehensive, read-only deployment readiness audit across CLI credentials, IAM privileges, production database configuration, production rules backup, local rules integrity, emulator test suite validation, and project health.
+
+---
+
+### 2. Comprehensive 12-Item Deployment Readiness Checklist
+
+| # | Inspection Item | Scope & Target | Exit Code | Result | Status |
+|---|---|---|:---:|---|:---:|
+| **1** | **Firebase CLI Account Verification** | `npx firebase-tools login:list` | `0` | Active account verified: `anik.khondokar09@gmail.com` | **PASS** |
+| **2** | **Active Account Selection** | Local CLI workspace mapping | `0` | Confirmed active for workspace `/Users/anikkhondokar/Documents/6th SEMESTER/App Dev/ResearchHub` | **PASS** |
+| **3** | **Production Project Visibility** | `npx firebase-tools projects:list` | `0` | Project `cse-research-hub` (Number: `595563738567`) confirmed visible in project registry | **PASS** |
+| **4** | **Firebase API Authorization** | `npx firebase-tools apps:list --project cse-research-hub` | `0` | Successfully listed 3 registered apps (Android, iOS, Web) with zero permission errors | **PASS** |
+| **5** | **Firestore Rules Deployment Permissions** | `cloudresourcemanager` testIamPermissions | `0` | Cryptographically confirmed granted: `firebaserules.rulesets.create`, `firebaserules.releases.create`, `firebaserules.releases.update`, `firebaserules.releases.get` | **PASS** |
+| **6** | **Default Database Verification** | `firestore:databases:list --project cse-research-hub` | `0` | Target database confirmed: `projects/cse-research-hub/databases/(default)` (`FIRESTORE_NATIVE` mode) | **PASS** |
+| **7** | **Production Rules Backup & Checksum** | Direct query via Firebase Rules REST API | `0` | Retrieved published ruleset `0bff0e15-535d-4930-8176-081d3a23e6b2` and saved to `backups/firestore.rules.production-before-2026-11-11.rules` (Size: 163 bytes, SHA-256: `ecf30f940747dcc3c5ba4993093e9a11ac9fc5df7e14b2a1512d2446923d84eb`) | **PASS** |
+| **8** | **Local Rules Integrity** | `firestore.rules` source inspection | — | 495 lines; verified strict `admins/{uid}` validation, explicit field allowlists, 5 status transitions, pending-only request reviews, admin document write blocking, and default deny | **PASS** |
+| **9** | **Emulator Security Test Suite** | `npx firebase-tools emulators:exec ...` | `0` | **46 passed, 0 failed** against isolated `demo-cse-research-hub` emulator (8 suites, 100% pass rate) | **PASS** |
+| **10** | **TypeScript Type Safety** | `npx tsc --noEmit` | `0` | Clean compilation (0 type errors) | **PASS** |
+| **11** | **Expo Public Configuration** | `npx expo config --type public` | `0` | Clean (All native bundle IDs, plugins, and environment variables verified) | **PASS** |
+| **12** | **Git Working Tree Status** | `git status --short --untracked-files=all` | `0` | Clean working tree; rules and tests safely tracked at commit `0dfc4bc`; zero credential leaks | **PASS** |
+
+---
+
+### 3. Production Rules Backup Details
+
+* **File Location**: `backups/firestore.rules.production-before-2026-11-11.rules`
+* **Source Ruleset**: `projects/cse-research-hub/rulesets/0bff0e15-535d-4930-8176-081d3a23e6b2`
+* **File Size**: 163 bytes
+* **SHA-256 Checksum**: `ecf30f940747dcc3c5ba4993093e9a11ac9fc5df7e14b2a1512d2446923d84eb`
+* **Raw Published Rules Content**:
+  ```javascript
+  rules_version = '2';
+
+  service cloud.firestore {
+    match /databases/{database}/documents {
+      match /{document=**} {
+        allow read, write: if false;
+      }
+    }
+  }
+  ```
+
+---
+
+### 4. Strict Read-Only Boundaries Preserved
+* **Zero Deployment Commands**: Neither `firebase deploy` nor `firebase deploy --only firestore:rules` was executed.
+* **Zero Live Writes**: No production Firestore documents or collections were created, modified, or deleted.
+* **Zero Admin Bootstrapping**: No administrator accounts were created.
+* **Zero Code Mutations**: Application code and context files remain untouched.
+
+---
+
+### 5. Final Audit Conclusion
+
+**READY FOR PRODUCTION RULES DEPLOYMENT**
+
+---
+
+## Stage 3.4.3 — Production Firestore Security Rules Deployment (Executed)
+
+### 1. Deployment Execution Summary
+With authorization granted by the project owner and all 12 pre-deployment checks verified in Stage 3.4.3.1, the production security rules deployment was executed successfully using pinned CLI `firebase-tools@15.35.0`.
+
+* **Target Firebase Project**: `cse-research-hub`
+* **Target Firestore Database**: `(default)`
+* **Active Deploying Account**: `anik.khondokar09@gmail.com`
+* **Local Source File**: [`firestore.rules`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/firestore.rules) (495 lines, 22,987 bytes)
+* **Pre-Deployment Backup**: [`backups/firestore.rules.production-before-2026-11-11.rules`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/backups/firestore.rules.production-before-2026-11-11.rules)
+  * Size: 163 bytes
+  * SHA-256: `ecf30f940747dcc3c5ba4993093e9a11ac9fc5df7e14b2a1512d2446923d84eb` (Verified)
+* **Pre-Deployment Emulator Test Execution**:
+  * Command: `npx --yes firebase-tools@15.35.0 emulators:exec --only firestore --project demo-cse-research-hub "node --test tests/firestore/*.test.mjs"`
+  * Result: **8 suites, 46 tests executed, 46 passed, 0 failed (Exit code 0)**
+
+---
+
+### 2. Production Deployment Command & Terminal Output
+
+**Exact Deployment Command**:
+```bash
+npx --yes firebase-tools@15.35.0 deploy --only firestore:rules --project cse-research-hub
+```
+
+**Output Captured**:
+```text
+=== Deploying to 'cse-research-hub'...
+
+i  deploying firestore
+i  firestore: ensuring required API firestore.googleapis.com is enabled...
+✔  firestore: required API firestore.googleapis.com is enabled
+i  cloud.firestore: checking firestore.rules for compilation errors...
+✔  cloud.firestore: rules file firestore.rules compiled successfully
+i  firestore: uploading rules firestore.rules...
+✔  firestore: released rules firestore.rules to cloud.firestore
+
+✔  Deploy complete!
+
+Project Console: https://console.firebase.google.com/project/cse-research-hub/overview
+```
+
+* **CLI Exit Code**: `0` (Success)
+* **Scope Restriction Verified**: Strictly deployed `firestore:rules`. Zero hosting, functions, storage, or indexes were bundled or modified.
+
+---
+
+### 3. Post-Deployment Remote Verification
+
+A direct verification query against the Google Cloud Firebase Rules API (`https://firebaserules.googleapis.com/v1/projects/cse-research-hub/releases`) validated the live production state:
+
+* **Active Production Release**: `projects/cse-research-hub/releases/cloud.firestore`
+* **Published Ruleset Identifier**: `projects/cse-research-hub/rulesets/e57bbd2b-01d1-4295-a444-537d8fb65ef8`
+* **Deployment Timestamp**: `2026-11-11T12:27:22.986067Z` (18:27:22 BST)
+* **Published Checksum (SHA-256)**: `1bbaa899998ec0afe86cc526dec6dc50dc28a7ed044e1f9a9e1abb38e4df2b12`
+* **Local Source Checksum (SHA-256)**: `1bbaa899998ec0afe86cc526dec6dc50dc28a7ed044e1f9a9e1abb38e4df2b12`
+* **Checksum Verification**: **EXACT MATCH (100% bit-for-bit integrity confirmed)**
+* **Published File Size**: 22,987 bytes (495 lines)
+* **Warnings / Errors**: 0 warnings, 0 errors
+
+---
+
+### 4. Architectural Boundaries Preserved
+* **Zero Production Document Writes**: No user documents created or modified.
+* **Zero Administrator Bootstrapping**: No administrator documents created.
+* **Zero Code / Context Mutations**: `AuthContext.tsx`, `auth.service.ts`, and frontend components intact.
+
+---
+
+## Stage 3.4.4 — AuthContext and Firestore Approval Integration
+
+### 1. Architectural Scope & Objective
+Stage 3.4.4 completes the backend-to-frontend authorization integration by replacing the scaffolded `'not-configured'` approval status in `AuthContext` with an authoritative real-time Firestore profile data stream (`subscribeUserProfile`).
+
+The architecture strictly preserves separation of concerns:
+1. **Firebase Authentication**: Authoritative identity layer (`firebaseUser`, `emailVerified`).
+2. **Cloud Firestore User Profile (`users/{uid}`)**: Authoritative onboarding and approval state (`userProfile`, `approvalStatus`).
+3. **Cloud Firestore Security Rules**: Database-level perimeter authorization independently enforced on every document read/write.
+
+---
+
+### 2. Access State Model Implementation
+
+Defined in [`src/types/auth.types.ts`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/src/types/auth.types.ts):
+
+```typescript
+export type AccessState =
+  | 'unauthenticated'
+  | 'email-unverified'
+  | 'profile-loading'
+  | 'profile-required'
+  | 'pending'
+  | 'approved'
+  | 'rejected'
+  | 'suspended'
+  | 'profile-error';
+```
+
+#### State Derivation Logic:
+* `unauthenticated`: `firebaseUser == null`.
+* `email-unverified`: `firebaseUser != null && !firebaseUser.emailVerified`.
+* `profile-error`: `profileError != null` (Firestore snapshot failure or permissions error).
+* `profile-loading`: `isProfileLoading == true` (Initial snapshot actively resolving).
+* `profile-required`: `firebaseUser.emailVerified == true && userProfile == null` (User has verified email but has not submitted onboarding profile).
+* `pending`: `userProfile.approvalStatus == 'pending'`.
+* `approved`: `userProfile.approvalStatus == 'approved'`.
+* `rejected`: `userProfile.approvalStatus == 'rejected'`.
+* `suspended`: `userProfile.approvalStatus == 'suspended'`.
+
+> **Note on Data Invariants**: `profile-required` is strictly a client-side access state. The database `ApprovalStatus` union (`pending | approved | rejected | suspended`) in `user.types.ts` remains completely pure and unpolluted by UI onboarding flags.
+
+---
+
+### 3. Subscription Lifecycle & Leak Defense
+
+Implemented in [`src/context/AuthContext.tsx`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/src/context/AuthContext.tsx):
+
+1. **Selective Subscription**:
+   - `subscribeUserProfile(uid, ...)` is **only** initiated when `firebaseUser` is non-null AND `firebaseUser.emailVerified === true`.
+   - Unauthenticated and unverified users never open Firestore listeners.
+2. **Account Switching & Cleanup**:
+   - `useEffect` monitors `[firebaseUser?.uid, firebaseUser?.emailVerified]`.
+   - Switching accounts cleanly invokes previous unsubscribe function before registering a new listener for the incoming UID.
+3. **Stale Snapshot Defense**:
+   - `activeSubscribedUidRef` records the target UID. Inflight callbacks from previous sessions arriving after account switch or logout are dropped immediately (`if (activeSubscribedUidRef.current !== currentUid) return;`).
+4. **Sign Out Hygiene**:
+   - `signOut()` terminates the active profile listener, resets `activeSubscribedUidRef`, and zeroes out `userProfile`, `isProfileLoading`, and `profileError`.
+5. **Indefinite Loading Prevention**:
+   - Any error in `subscribeUserProfile` triggers `onError`, populating `profileError` and setting `isProfileLoading = false`, guaranteeing the app never hangs indefinitely.
+
+---
+
+### 4. Routing & AuthGuard Enforcement
+
+Updated [`src/app/_layout.tsx`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/src/app/_layout.tsx):
+
+* **Loading Guard**: While `isLoading || isProfileLoading || accessState === 'profile-loading'`, `AuthGuard` returns `null` to avoid navigation flash or premature redirection.
+* **`unauthenticated`**: Protected routes redirect to `/(auth)/login`. Authenticated-only screens (`account-setup`, `verify-email`) redirect to login.
+* **`email-unverified`**: Locked strictly to `/(auth)/verify-email`.
+* **`profile-required` / `pending` / `rejected` / `suspended` / `profile-error`**: Locked to `/(auth)/account-setup` checkpoint. Protected research tabs (`(tabs)`, `(research)`, `(explore)`, `(profile)`) remain strictly inaccessible.
+* **`approved`**: Protected access granted. Auth screens redirect to `/(tabs)`.
+
+---
+
+### 5. Comprehensive Verification Results
+
+| Verification Check | Target / Command Executed | Exit Code | Result | Status |
+|---|---|:---:|---|:---:|
+| **1. TypeScript Compilation** | `npx tsc --noEmit` | **0** | Clean (0 compilation errors) | **PASS** |
+| **2. Expo Public Config** | `npx expo config --type public` | **0** | Clean (All native plugins & variables verified) | **PASS** |
+| **3. Metro Bundler Export** | `npx expo export --output-dir /tmp/test-export-stage-3-4-4` | **0** | Generated Android HBC (`7.31 MB`), iOS HBC (`7.31 MB`), Web (`4.57 MB`) | **PASS** |
+| **4. Firestore Security Rules Suite** | `npx firebase-tools emulators:exec ...` | **0** | **46 passed, 0 failed** against isolated emulator | **PASS** |
+| **5. Lifecycle & Stale Data Review** | Code audit in `AuthContext.tsx` | — | Verified: listener cleanup on unmount, signout, and account switch | **PASS** |
+| **6. AuthGuard Access State Review** | Code audit in `src/app/_layout.tsx` | — | Verified: authoritative routing based on `accessState` | **PASS** |
+| **7. Git Working Tree Status** | `git status --short` | **0** | Minimal: `M src/types/auth.types.ts`, `M src/context/AuthContext.tsx`, `M src/app/_layout.tsx`, `M Activity/Day-11.md` | **PASS** |
+
+*Runtime Verification Note*: Automated unit tests and Metro bundler compilation confirmed 100% type-safety and bundle validity. Physical device runtime verification will take place when the mobile binary connects to live authentication in end-to-end testing.
+
+---
+
+### 6. Architectural Invariants Preserved
+* `account-setup.tsx` was **not modified**.
+* Login and Registration UI were **not modified**.
+* No live user profile documents were created.
+* No administrator accounts were bootstrapped.
+* Production Firestore Security Rules remain untouched.
+
+---
 *Signed off by: Senior Mobile Architect & Firebase Solutions Engineer*

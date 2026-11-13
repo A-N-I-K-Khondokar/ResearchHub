@@ -29,23 +29,25 @@ SplashScreen.preventAutoHideAsync().catch(() => {
  * Auth-aware routing guard.
  *
  * Rules:
- *  1. While auth is loading → render nothing (avoid navigation flicker).
- *  2. Signed out → allow only public (auth) routes; redirect others to login.
- *  3. Signed in + email NOT verified → lock to verify-email screen.
- *  4. Signed in + email verified → route to account-setup (approval checkpoint).
- *     Protected research tabs remain inaccessible (Stage 3.3 approval required).
+ *  1. While auth or profile is loading → render nothing (avoid navigation flicker).
+ *  2. Unauthenticated → allow only public auth screens; redirect protected routes to login.
+ *  3. Email unverified → lock to verify-email screen.
+ *  4. Profile loading → hold in loading state; no premature redirect.
+ *  5. Profile required / Pending / Rejected / Suspended / Error → restrict to account-setup checkpoint.
+ *  6. Approved → grant access to protected research tabs; redirect auth screens to (tabs).
  *
  * Public segments: (auth), index (redirects to auth/splash).
  * Protected segments: (tabs), (onboarding), (research), (profile), (explore).
  */
 function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { isLoading, isAuthenticated, emailVerified } = useAuth();
+  const { isLoading, isProfileLoading, accessState } = useAuth();
   const segments = useSegments();
   const router = useRouter();
 
   useEffect(() => {
-    if (isLoading) return; // Wait for Firebase session to resolve
-    if (!segments) return; // Wait for route segments to resolve
+    // 1. Wait for both Firebase Auth and Firestore profile to resolve
+    if (isLoading || isProfileLoading || accessState === 'profile-loading') return;
+    if (!segments) return;
 
     const inAuthGroup = segments[0] === '(auth)';
     const inTabs = segments[0] === '(tabs)';
@@ -55,43 +57,58 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     const inExplore = segments[0] === '(explore)';
     const inProtected = inTabs || inOnboarding || inResearch || inProfile || inExplore;
 
-    if (!isAuthenticated) {
-      // Signed out: redirect away from protected routes
-      if (inProtected) {
-        router.replace('/(auth)/login' as any);
+    const currentScreen = segments[1];
+
+    switch (accessState) {
+      case 'unauthenticated': {
+        // Unauthenticated: redirect protected routes to login
+        if (inProtected) {
+          router.replace('/(auth)/login' as any);
+        } else if (inAuthGroup) {
+          const authRestrictedScreens = ['account-setup', 'verify-email'];
+          if (authRestrictedScreens.includes(currentScreen ?? '')) {
+            router.replace('/(auth)/login' as any);
+          }
+        }
+        break;
       }
-      return;
-    }
 
-    // Signed in but email not verified: lock to verify-email
-    if (!emailVerified) {
-      const currentScreen = segments[1];
-      const allowedUnverifiedScreens = ['verify-email', 'splash'];
-      if (!inAuthGroup || !allowedUnverifiedScreens.includes(currentScreen ?? '')) {
-        router.replace('/(auth)/verify-email' as any);
+      case 'email-unverified': {
+        // Unverified email: lock to verify-email screen
+        const allowedUnverifiedScreens = ['verify-email', 'splash'];
+        if (!inAuthGroup || !allowedUnverifiedScreens.includes(currentScreen ?? '')) {
+          router.replace('/(auth)/verify-email' as any);
+        }
+        break;
       }
-      return;
-    }
 
-    // Signed in + email verified: route to account-setup (approval checkpoint).
-    // Protected research tabs remain inaccessible until Stage 3.3 approval.
-    if (inProtected) {
-      router.replace('/(auth)/account-setup' as any);
-      return;
-    }
-
-    // If on auth screens while fully signed in and verified, go to account-setup
-    if (inAuthGroup) {
-      const currentScreen = segments[1];
-      const allowedVerifiedScreens = ['account-setup'];
-      if (!allowedVerifiedScreens.includes(currentScreen ?? '')) {
-        router.replace('/(auth)/account-setup' as any);
+      case 'profile-required':
+      case 'pending':
+      case 'rejected':
+      case 'suspended':
+      case 'profile-error': {
+        // Unapproved / Onboarding / Restricted: lock to account-setup checkpoint
+        if (!inAuthGroup || currentScreen !== 'account-setup') {
+          router.replace('/(auth)/account-setup' as any);
+        }
+        break;
       }
-    }
-  }, [isLoading, isAuthenticated, emailVerified, segments, router]);
 
-  // Prevent flash: show nothing while loading auth
-  if (isLoading) return null;
+      case 'approved': {
+        // Approved: grant protected access; redirect away from auth flow screens
+        if (inAuthGroup) {
+          router.replace('/(tabs)' as any);
+        }
+        break;
+      }
+
+      default:
+        break;
+    }
+  }, [isLoading, isProfileLoading, accessState, segments, router]);
+
+  // Prevent flash: show nothing while loading auth session or Firestore profile
+  if (isLoading || isProfileLoading || accessState === 'profile-loading') return null;
 
   return <>{children}</>;
 }

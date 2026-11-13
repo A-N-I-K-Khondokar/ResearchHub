@@ -36,10 +36,13 @@ import {
   resetPassword,
   mapFirebaseError,
 } from '@/services/auth.service';
+import { subscribeUserProfile } from '@/services/user.service';
+import type { UserProfile } from '@/types/user.types';
 import type {
   AuthContextType,
   AuthState,
   ApprovalStatus,
+  AccessState,
   SignUpParams,
   SignInParams,
 } from '@/types/auth.types';
@@ -50,11 +53,15 @@ import type {
 
 const DEFAULT_STATE: AuthState = {
   firebaseUser: null,
+  userProfile: null,
   isLoading: true,
+  isProfileLoading: false,
   isAuthenticated: false,
   emailVerified: false,
-  approvalStatus: 'not-configured',
+  approvalStatus: null,
+  accessState: 'unauthenticated',
   authError: null,
+  profileError: null,
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -78,20 +85,31 @@ export interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [approvalStatus] = useState<ApprovalStatus>('not-configured');
+  const [isProfileLoading, setIsProfileLoading] = useState(false);
   const [authError, setAuthError] = useState<{ code: string; message: string } | null>(null);
+  const [profileError, setProfileError] = useState<Error | null>(null);
+
+  // References for active Firestore profile subscription & stale snapshot prevention
+  const profileUnsubscribeRef = useRef<(() => void) | null>(null);
+  const activeSubscribedUidRef = useRef<string | null>(null);
 
   // Guard against state updates after unmount
   const isMounted = useRef(true);
   useEffect(() => {
     return () => {
       isMounted.current = false;
+      if (profileUnsubscribeRef.current) {
+        profileUnsubscribeRef.current();
+        profileUnsubscribeRef.current = null;
+      }
+      activeSubscribedUidRef.current = null;
     };
   }, []);
 
   // ---------------------------------------------------------------------------
-  // Single onAuthStateChanged subscription
+  // Single onAuthStateChanged subscription (Identity & Session Persistence)
   // ---------------------------------------------------------------------------
 
   useEffect(() => {
@@ -123,11 +141,110 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   // ---------------------------------------------------------------------------
-  // Derived state
+  // Firestore Profile Subscription (Authoritative Onboarding & Approval State)
+  // ---------------------------------------------------------------------------
+
+  useEffect(() => {
+    // 1. Guard: If no user or email is unverified, do not subscribe
+    if (!firebaseUser || !firebaseUser.emailVerified) {
+      if (profileUnsubscribeRef.current) {
+        profileUnsubscribeRef.current();
+        profileUnsubscribeRef.current = null;
+      }
+      activeSubscribedUidRef.current = null;
+      if (isMounted.current) {
+        setUserProfile(null);
+        setIsProfileLoading(false);
+        setProfileError(null);
+      }
+      return;
+    }
+
+    const currentUid = firebaseUser.uid;
+
+    // 2. Unsubscribe previous listener if UID changed
+    if (profileUnsubscribeRef.current && activeSubscribedUidRef.current !== currentUid) {
+      profileUnsubscribeRef.current();
+      profileUnsubscribeRef.current = null;
+    }
+
+    // 3. Mark profile loading and register listener for current verified UID
+    activeSubscribedUidRef.current = currentUid;
+    if (isMounted.current) {
+      setIsProfileLoading(true);
+      setProfileError(null);
+    }
+
+    const unsubscribe = subscribeUserProfile(
+      currentUid,
+      (profile) => {
+        if (!isMounted.current) return;
+        // Stale snapshot guard: Ensure snapshot matches active subscribed UID
+        if (activeSubscribedUidRef.current !== currentUid) return;
+
+        setUserProfile(profile);
+        setIsProfileLoading(false);
+        setProfileError(null);
+      },
+      (error) => {
+        if (!isMounted.current) return;
+        // Stale error guard: Ensure error matches active subscribed UID
+        if (activeSubscribedUidRef.current !== currentUid) return;
+
+        console.error(`[AuthContext] Profile subscription error for ${currentUid}:`, error);
+        setProfileError(error);
+        setIsProfileLoading(false);
+      },
+    );
+
+    profileUnsubscribeRef.current = unsubscribe;
+
+    return () => {
+      if (profileUnsubscribeRef.current) {
+        profileUnsubscribeRef.current();
+        profileUnsubscribeRef.current = null;
+      }
+      activeSubscribedUidRef.current = null;
+    };
+  }, [firebaseUser?.uid, firebaseUser?.emailVerified]);
+
+  // ---------------------------------------------------------------------------
+  // Derived state & Access State Model
   // ---------------------------------------------------------------------------
 
   const isAuthenticated = firebaseUser !== null;
   const emailVerified = firebaseUser?.emailVerified ?? false;
+  const approvalStatus: ApprovalStatus | null = userProfile?.approvalStatus ?? null;
+
+  const accessState = useMemo<AccessState>(() => {
+    if (!firebaseUser) {
+      return 'unauthenticated';
+    }
+    if (!emailVerified) {
+      return 'email-unverified';
+    }
+    if (profileError) {
+      return 'profile-error';
+    }
+    if (isProfileLoading) {
+      return 'profile-loading';
+    }
+    if (!userProfile) {
+      return 'profile-required';
+    }
+    switch (userProfile.approvalStatus) {
+      case 'approved':
+        return 'approved';
+      case 'pending':
+        return 'pending';
+      case 'rejected':
+        return 'rejected';
+      case 'suspended':
+        return 'suspended';
+      default:
+        return 'pending';
+    }
+  }, [firebaseUser, emailVerified, profileError, isProfileLoading, userProfile]);
 
   // ---------------------------------------------------------------------------
   // Actions
@@ -175,6 +292,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const signOut = useCallback(async (): Promise<void> => {
     clearError();
+    if (profileUnsubscribeRef.current) {
+      profileUnsubscribeRef.current();
+      profileUnsubscribeRef.current = null;
+    }
+    activeSubscribedUidRef.current = null;
+    if (isMounted.current) {
+      setUserProfile(null);
+      setIsProfileLoading(false);
+      setProfileError(null);
+    }
     try {
       await serviceSignOut();
       // onAuthStateChanged fires → sets firebaseUser = null automatically.
@@ -202,7 +329,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       await reloadUser(firebaseUser);
       // After reload, force a local state refresh from the updated user object.
-      if (isMounted.current) {
+      if (isMounted.current && auth) {
         // auth.currentUser now has updated emailVerified — trigger a re-render
         setFirebaseUser(auth.currentUser);
       }
@@ -231,11 +358,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const value = useMemo<AuthContextType>(
     () => ({
       firebaseUser,
+      userProfile,
       isLoading,
+      isProfileLoading,
       isAuthenticated,
       emailVerified,
       approvalStatus,
+      accessState,
       authError,
+      profileError,
       signUpWithEmail,
       signInWithEmail,
       signInWithGoogle,
@@ -246,11 +377,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }),
     [
       firebaseUser,
+      userProfile,
       isLoading,
+      isProfileLoading,
       isAuthenticated,
       emailVerified,
       approvalStatus,
+      accessState,
       authError,
+      profileError,
       signUpWithEmail,
       signInWithEmail,
       signInWithGoogle,

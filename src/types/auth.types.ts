@@ -9,26 +9,28 @@
  */
 
 import type { User } from 'firebase/auth';
+import type { ApprovalStatus, UserProfile } from './user.types';
+
+export type { ApprovalStatus };
 
 // ---------------------------------------------------------------------------
-// Account approval lifecycle
+// Access State Model (Client-side Session & Onboarding Lifecycle)
 // ---------------------------------------------------------------------------
 
 /**
- * Approval status for a registered CSE Research Hub account.
- *
- * The authoritative source will be a server-side Firestore user profile
- * document (Stage 3.3). Until then, the status is `not-configured`.
- *
- * IMPORTANT: This value is NEVER determined client-side. It must come from
- * a trusted server-side source verified by Firebase Security Rules.
+ * Authoritative high-level access state representing the user's current session & onboarding phase.
+ * Derived from Firebase Authentication identity and the Cloud Firestore `users/{uid}` document.
  */
-export type ApprovalStatus =
-  | 'not-configured' // Stage 3.2 placeholder — Firestore not yet integrated
-  | 'pending'        // Account created; awaiting App Admin review
-  | 'approved'       // App Admin has explicitly approved this account
-  | 'rejected'       // App Admin has rejected this account
-  | 'suspended';     // Previously approved account; access revoked
+export type AccessState =
+  | 'unauthenticated'
+  | 'email-unverified'
+  | 'profile-loading'
+  | 'profile-required'
+  | 'pending'
+  | 'approved'
+  | 'rejected'
+  | 'suspended'
+  | 'profile-error';
 
 // ---------------------------------------------------------------------------
 // Auth error types
@@ -47,8 +49,14 @@ export interface AuthState {
   /** The raw Firebase Auth user object. `null` = signed out. */
   firebaseUser: User | null;
 
-  /** `true` while the initial `onAuthStateChanged` callback has not yet fired. */
+  /** Authoritative Firestore user profile document from `users/{uid}`. `null` if no profile exists or unauthenticated. */
+  userProfile: UserProfile | null;
+
+  /** `true` while the initial auth observer or profile subscription is loading. */
   isLoading: boolean;
+
+  /** `true` specifically while the Firestore profile subscription is actively resolving. */
+  isProfileLoading: boolean;
 
   /** `true` when `firebaseUser` is non-null. */
   isAuthenticated: boolean;
@@ -61,15 +69,23 @@ export interface AuthState {
   emailVerified: boolean;
 
   /**
-   * Account approval status from the trusted Firestore profile service.
-   * `not-configured` during Stage 3.2 until Stage 3.3 connects Firestore.
+   * Account approval status from the authoritative Firestore user profile document.
+   * `null` when user profile is not loaded or does not exist.
    *
    * Protected research features MUST NOT be accessible unless this is `approved`.
    */
-  approvalStatus: ApprovalStatus;
+  approvalStatus: ApprovalStatus | null;
+
+  /**
+   * Authoritative client-side access state derived from Firebase Auth & Firestore profile.
+   */
+  accessState: AccessState;
 
   /** Most recent authentication error, if any. `null` when there is no error. */
   authError: AuthError | null;
+
+  /** Error encountered while subscribing to or fetching user profile, if any. */
+  profileError: Error | null;
 }
 
 // ---------------------------------------------------------------------------
