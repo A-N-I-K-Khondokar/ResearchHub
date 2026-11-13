@@ -3755,3 +3755,84 @@ Updated [`src/app/_layout.tsx`](file:///Users/anikkhondokar/Documents/6th%20SEME
 
 ---
 *Signed off by: Senior Mobile Architect & Firebase Solutions Engineer*
+
+---
+
+## Stage 3.5.1 — User Profile Submission UI and Onboarding Workflow
+
+### 1. Executive Summary & Objective
+Stage 3.5.1 implements the complete user onboarding and profile submission experience for the CSE Research Hub. Building on the authoritative 9-state access model established in Stage 3.4.4, the static approval placeholder in [`src/app/(auth)/account-setup.tsx`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/src/app/(auth)/account-setup.tsx) has been replaced with a dynamic, state-aware onboarding interface.
+
+The screen responds reactively to the user's real-time `accessState` derived from Firebase Authentication and Cloud Firestore:
+* **`profile-required`**: Renders the complete, multi-section academic profile submission form.
+* **`pending`**: Renders the pending administrative review checkpoint with submitted profile details, real-time status notices, status refresh, and sign-out actions.
+* **`rejected`**: Renders the application rejection notice, reviewer notes (if available), and guidance on contacting the department chair/administrator.
+* **`suspended`**: Renders the account suspension notice, restricted-access advisories, and sign-out action.
+* **`profile-loading`**: Displays a non-blocking scholarly loading interface.
+* **`profile-error`**: Displays a controlled error interface with retry mechanisms.
+* **`approved`**: Delegated cleanly to `AuthGuard` in `_layout.tsx`, redirecting the user to `/(tabs)`.
+
+---
+
+### 2. Form Architecture & Data Integrity
+
+#### Section A — Personal Information
+* **Display Name**: Required (`1-100` characters). Prefilled automatically from `firebaseUser.displayName` if present.
+* **Email Address**: Sourced directly from `firebaseUser.email`. Rendered as an immutable, read-only verified identity badge to prevent arbitrary email spoofing.
+* **Profile Photo URL**: Optional (`max 500` characters). Prefilled from `firebaseUser.photoURL` if present, with live avatar preview.
+
+#### Section B — Academic Information
+* **Department**: Required (`1-100` characters). Prefilled with `"Computer Science and Engineering"`.
+* **Designation / Academic Role**: Required (`1-100` characters). Includes quick-selection chips (`Undergraduate Student`, `Graduate Researcher`, `Lecturer`, `Assistant Professor`, `Associate Professor`, `Professor`, `Alumni Researcher`) while allowing custom input.
+* **Program**: Optional (`max 100` characters). Includes quick-selection chips (`B.Sc. in CSE`, `M.Sc. in CSE`, `Ph.D. in CSE`, `Faculty Member`).
+* **Batch / Cohort**: Optional (`max 50` characters, e.g. `Batch 14`, `2021-2022`).
+* **Student / Faculty ID**: Optional (`max 50` characters, e.g. `190104001`).
+
+#### Section C — Research Profile & Links
+* **Biography / Focus Summary**: Optional multi-line input (`max 2000` characters) with live character counter.
+* **Research Interests**: String array (`string[]`, up to 30 tags). Supports custom tag entry (with keyboard submit / tap add) and 12 quick-toggle CSE domain chips (`Machine Learning`, `Computer Vision`, `Natural Language Processing`, `Artificial Intelligence`, `Cloud Computing`, `Cybersecurity`, `Software Engineering`, `Distributed Systems`, `Bioinformatics`, `Human-Computer Interaction`, `Robotics`, `Data Science`).
+* **Academic & Social Links**: Sub-object `socialLinks` supporting `website`, `github`, `linkedin`, `googleScholar`, and `researchGate`.
+
+---
+
+### 3. Service Layer & Timestamp Handling Hardening
+
+In [`src/services/user.service.ts`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/src/services/user.service.ts):
+* In `getUserProfile` and `subscribeUserProfile`, passed `{ serverTimestamps: 'estimate' }` to `docSnap.data({ serverTimestamps: 'estimate' })`. This prevents pending local writes with `serverTimestamp()` from returning `null` or uninitialized values during optimistic local snapshot updates.
+* In [`src/app/(auth)/account-setup.tsx`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/src/app/(auth)/account-setup.tsx), implemented defensive timestamp formatting (`formatTimestamp`) that safely inspects `.toDate()`, `Date` instances, or falls back to `"Just now"` without throwing runtime exceptions.
+* Submissions strictly invoke `createPendingUserProfile(firebaseUser, input)` from the service layer. No direct Firestore SDK mutations are performed from the UI.
+* Double-submission defense: Guarded via `isSubmittingRef` to prevent rapid concurrent tap execution.
+
+---
+
+### 4. Visual Design & Theme System Parity
+
+* Fully compliant with the **Scholarly Crisp** (Light) and **Deep Scholar Slate** (Dark) themes defined in `design-reference/DESIGN.md` and `src/constants/colors.ts`.
+* Consumes semantic tokens via `useTheme()`: `colors.surface`, `colors.surfaceSubtle`, `colors.primary`, `colors.secondary`, `colors.accent`, `colors.error`, and `colors.border`.
+* Utilizes mobile-optimized input layout with `ScreenContainer` keyboard avoidance (`withKeyboardAvoidance`, `keyboardShouldPersistTaps="handled"`).
+
+---
+
+### 5. Verification & Testing Matrix
+
+| Verification Check | Target / Command Executed | Exit Code | Result | Status |
+|---|---|:---:|---|:---:|
+| **1. TypeScript Compilation** | `npx tsc --noEmit` | **0** | Clean (0 compilation errors) | **PASS** |
+| **2. Expo Public Config** | `npx expo config --type public` | **0** | Clean (All native plugins & variables verified) | **PASS** |
+| **3. Metro Bundler Export** | `npx expo export --output-dir /tmp/test-export-stage-3-5-1` | **0** | Web (`4.6 MB`), iOS (`7.35 MB`), Android (`7.35 MB`) | **PASS** |
+| **4. Firestore Security Rules Suite** | `npx firebase-tools emulators:exec ...` | **0** | **46 passed, 0 failed** against isolated emulator | **PASS** |
+| **5. Form Validation & Security Review** | Code audit in `account-setup.tsx` | — | Field limits match Firestore Security Rules | **PASS** |
+| **6. Theme & Responsive Review** | Code audit in `account-setup.tsx` | — | Dual light/dark support with semantic tokens | **PASS** |
+| **7. Git Working Tree Status** | `git status --short` | **0** | Minimal: `M src/app/(auth)/account-setup.tsx`, `M src/services/user.service.ts`, `M Activity/Day-11.md` | **PASS** |
+
+---
+
+### 6. Commitments & Architectural Invariants Preserved
+* No administrator account has been provisioned.
+* No administrative approval actions or endpoints were created.
+* No live user profile documents were automatically generated.
+* Production Firestore Security Rules (`firestore.rules`) remain untouched and bit-identical.
+* Protected tab screens remain untouched.
+
+---
+*Signed off by: Senior Mobile Architect & Firebase Solutions Engineer*

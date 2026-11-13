@@ -144,7 +144,7 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
     return null;
   }
 
-  const data = docSnap.data();
+  const data = docSnap.data({ serverTimestamps: 'estimate' });
 
   return {
     uid: data.uid ?? docSnap.id,
@@ -216,7 +216,7 @@ export function subscribeUserProfile(
         return;
       }
 
-      const data = docSnap.data();
+      const data = docSnap.data({ serverTimestamps: 'estimate' });
       const profile: UserProfile = {
         uid: data.uid ?? docSnap.id,
         email: data.email ?? '',
