@@ -12,5 +12,9 @@
     "**/*.tsx",
     ".expo/types/**/*.ts",
     "expo-env.d.ts"
+  ],
+  "exclude": [
+    "admin-portal",
+    "node_modules"
   ]
 }

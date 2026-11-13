@@ -4471,4 +4471,78 @@ In accordance with project guidelines prioritizing university project simplicity
 - **Rules Safety**: Production `firestore.rules` and application code unchanged.
 
 ---
-*Signed off by: Senior Mobile Architect & Firebase Solutions Engineer*
+
+## Stage 3.6.1 — Separate Admin Management Website
+
+**Implementation Date**: November 13, 2026  
+**Target Repository**: `admin-portal/`  
+**Architecture**: React 18 + Vite 6 + TypeScript + Firebase JS SDK v11 (Modular)  
+**Authentication**: Firebase Google Sign-In (`signInWithPopup`) + Firestore `/admins/{uid}` Authorization Check  
+**Status**: **IMPLEMENTED & VALIDATED**
+
+---
+
+### 1. Project Architecture & Isolation
+
+The Admin Portal is constructed as a separate, self-contained single-page application within [`admin-portal/`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/admin-portal):
+
+- **Zero Root Pollution**: Independent `package.json`, `package-lock.json`, and `node_modules` inside `admin-portal/`. The root Expo mobile application was not modified, retaining complete package independence.
+- **Root Typecheck Independence**: Updated root `tsconfig.json` with `"exclude": ["admin-portal", "node_modules"]` to ensure the mobile Expo app and admin web app maintain distinct TypeScript compiler targets.
+- **Security Credentials Isolation**: Private `.env.local` generated safely from existing Firebase configuration; `.env.local` is ignored by Git in both root and `admin-portal/.gitignore`. Provided [`admin-portal/.env.example`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/admin-portal/.env.example).
+- **Design Tokens Parity**: Implemented Scholarly Crisp (light) and Deep Scholar Slate (dark) themes reflecting `design-reference/DESIGN.md`, utilizing CSS variables, Inter, and Source Serif typography.
+
+---
+
+### 2. Dual-Boundary Administrator Authentication
+
+Access to the administrative interface is protected by a two-factor identity and database authorization boundary:
+
+1. **Identity Provider**: Google Sign-In with Firebase Authentication (`signInWithPopup`).
+2. **Email Allowlist Enforcement**: Matches `user.email.toLowerCase() === 'anik.khondokar09@gmail.com'`. Non-admin accounts are rejected and immediately signed out.
+3. **Database Authorization (`admins/{uid}`)**:
+   - Queries `doc(db, 'admins', user.uid)`.
+   - Production `firestore.rules` permit this read only if `exists(/databases/$(database)/documents/admins/$(request.auth.uid))`.
+   - Confirms that `adminDoc.exists()` and `adminDoc.data().email === user.email`.
+   - If missing, displays an informative setup guide explaining that `/admins/{uid}` must be provisioned in Cloud Firestore by the project owner.
+4. **Session Persistence**: Restores session across reloads using `onAuthStateChanged()` with `browserLocalPersistence`.
+
+---
+
+### 3. Core Feature Implementation
+
+| Feature | Implementation | Real-Time & Security Behavior |
+|---|---|---|
+| **Dashboard Overview** | [`OverviewPage.tsx`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/admin-portal/src/pages/OverviewPage.tsx) | Uses Firestore `getCountFromServer()` for Total, Pending, Approved, Rejected, and Suspended users; displays recent registrations sorted client-side |
+| **Pending Management** | [`PendingPage.tsx`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/admin-portal/src/pages/PendingPage.tsx) | Live Firestore `onSnapshot()` listener; displays new applications immediately; client-side sort on `requestedAt` avoiding composite index |
+| **Scholar Directory** | [`UsersPage.tsx`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/admin-portal/src/pages/UsersPage.tsx) | Search by name, email, or department; status filters (All, Pending, Approved, Rejected, Suspended); paginated status queries |
+| **Profile Inspection** | [`ApplicantDetailModal.tsx`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/admin-portal/src/components/users/ApplicantDetailModal.tsx) | Displays bio, research interest badges, student ID, program, batch, and academic social links (GitHub, LinkedIn, Google Scholar, ResearchGate) |
+| **Approval State Machine** | [`ApprovalActionDialog.tsx`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/admin-portal/src/components/users/ApprovalActionDialog.tsx) & [`admin.service.ts`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/admin-portal/src/services/admin.service.ts) | Strictly complies with `firestore.rules` allowed transitions (`pending -> approved`, `pending -> rejected`, `approved -> suspended`, `suspended -> approved`, `rejected -> approved`) using `serverTimestamp()` |
+| **In-App Notifications** | [`NotificationContext.tsx`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/admin-portal/src/context/NotificationContext.tsx) | Detects newly added pending documents after initial load; shows toasts; increments top bar unread badge; session activity log |
+
+---
+
+### 4. Verification Matrix
+
+| Verification Item | Command / Method | Result | Status |
+|---|---|---|:---:|
+| **1. Admin Portal Dependencies** | `npm install` in `admin-portal/` | 156 packages installed | **PASS** |
+| **2. Admin Portal Typecheck** | `npm run typecheck` in `admin-portal/` | 0 errors | **PASS** |
+| **3. Admin Portal Production Build** | `npm run build` in `admin-portal/` | Built in 1.36s (HTML, CSS, JS chunks) | **PASS** |
+| **4. Root Project Typecheck** | `npm run typecheck` in project root | 0 errors | **PASS** |
+| **5. Rules Immutability Check** | `git status` check on `firestore.rules` | 0 modifications | **PASS** |
+| **6. Secret Isolation Check** | `.gitignore` verification on `.env.local` | Ignored by Git | **PASS** |
+| **7. Code Chunking Optimization** | Rollup manualChunks configuration | Cleanly split into vendor, firebase, icons | **PASS** |
+
+---
+
+### 5. Strict Stop Condition Sign-Off
+
+In compliance with instructions:
+- No Firebase Hosting deployment was performed.
+- No production database documents or administrative records were created or modified.
+- No changes were made to production Firestore Security Rules.
+- No live approval actions were executed against production users.
+- The Admin Portal is verified, production-built, and documented in [`admin-portal/README.md`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/admin-portal/README.md).
+
+---
+*Signed off by: Senior Mobile & Web Full-Stack Architect*
