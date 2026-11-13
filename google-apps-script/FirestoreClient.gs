@@ -1,75 +1,62 @@
 /**
- * CSE Research Hub — Firestore REST API Client
+ * CSE Research Hub — Simplified Firestore REST API Client
  *
- * Implements lightweight REST operations for Cloud Firestore without
- * external SDK dependencies, operating strictly on the Firebase Spark (free) plan.
+ * Communicates with Cloud Firestore via Google Apps Script's native OAuth token
+ * (ScriptApp.getOAuthToken()). Operates under the administrator's Google account
+ * (anik.khondokar09@gmail.com) on the Firebase Spark (free) plan without service accounts.
  *
- * Supports two distinct authorization boundaries:
- * 1. Bot Token: Authenticates via Firebase ID token for outbox queue processing
- *    under deployed Firestore Security Rules (`isNotificationService()`).
- * 2. Admin OAuth Token: Authenticates via ScriptApp.getOAuthToken() for the
- *    administrator approval Web App under Google Cloud IAM.
+ * Security Boundaries:
+ * - Uses Google Cloud IAM permissions of the administrator account.
+ * - Outbox operations are restricted to reading queued documents and patching delivery metadata.
+ * - Profile mutations are strictly restricted to the approval fields allowlist.
+ * - OAuth tokens are never logged or exposed to client-side code.
  */
 
 var FirestoreClient = (function () {
-  var FIRESTORE_BASE_URL = 'https://firestore.googleapis.com/v1/projects';
+  var FIRESTORE_BASE_URL = 'https://firestore.googleapis.com/v1';
 
   function getProjectId() {
     var projectId = PropertiesService.getScriptProperties().getProperty('FIREBASE_PROJECT_ID');
-    if (!projectId) {
-      throw new Error('[FirestoreClient] Missing required Script Property: FIREBASE_PROJECT_ID');
-    }
-    return projectId;
+    return projectId || 'cse-research-hub';
   }
 
   function getDocumentsUrl() {
-    return FIRESTORE_BASE_URL + '/' + encodeURIComponent(getProjectId()) + '/databases/(default)/documents';
+    return FIRESTORE_BASE_URL + '/projects/' + encodeURIComponent(getProjectId()) + '/databases/(default)/documents';
   }
 
   // ---------------------------------------------------------------------------
-  // Firestore REST Value Converters
+  // Value Serialization & Deserialization
   // ---------------------------------------------------------------------------
 
   /**
-   * Converts a native JavaScript value into a Firestore REST Value object.
-   * Accurately distinguishes timestamps (Date or ISO-8601 UTC strings) so that
-   * Firestore Security Rules 'is timestamp' checks succeed.
-   *
-   * @param {*} val - Value to convert
-   * @returns {Object} Firestore typed value object
+   * Converts a JS value into Firestore REST API value mapping.
    */
   function toFirestoreValue(val) {
     if (val === null || val === undefined) {
       return { nullValue: null };
     }
-    if (typeof val === 'boolean') {
-      return { booleanValue: val };
+    if (typeof val === 'string') {
+      // Encode ISO-8601 UTC timestamp strings as native Firestore timestampValue
+      if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/.test(val)) {
+        return { timestampValue: val };
+      }
+      return { stringValue: val };
     }
     if (typeof val === 'number') {
-      if (Math.floor(val) === val) {
-        return { integerValue: String(val) };
-      }
-      return { doubleValue: val };
+      return (val % 1 === 0) ? { integerValue: String(val) } : { doubleValue: val };
+    }
+    if (typeof val === 'boolean') {
+      return { booleanValue: val };
     }
     if (val instanceof Date) {
       return { timestampValue: val.toISOString() };
     }
-    if (typeof val === 'string') {
-      // Check for strict ISO-8601 UTC timestamp format (e.g. 2026-11-13T05:27:33.978Z)
-      if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/.test(val)) {
-        var parsed = Date.parse(val);
-        if (!isNaN(parsed)) {
-          return { timestampValue: val };
-        }
-      }
-      return { stringValue: val };
-    }
     if (Array.isArray(val)) {
-      var arrValues = [];
+      var arr = [];
       for (var i = 0; i < val.length; i++) {
-        arrValues.push(toFirestoreValue(val[i]));
+        arr.push(toFirestoreValue(val[i]));
       }
-      return { arrayValue: { values: arrValues } };
+      return { arrayValue: { values: arr } };
     }
     if (typeof val === 'object') {
       var mapFields = {};
@@ -83,33 +70,16 @@ var FirestoreClient = (function () {
   }
 
   /**
-   * Converts a Firestore REST Value object into a native JavaScript value.
-   *
-   * @param {Object} valObj - Firestore typed value object
-   * @returns {*} Native JavaScript value
+   * Converts a Firestore REST API value object into a standard JS value.
    */
   function fromFirestoreValue(valObj) {
-    if (!valObj) {
-      return null;
-    }
-    if (valObj.hasOwnProperty('stringValue')) {
-      return valObj.stringValue;
-    }
-    if (valObj.hasOwnProperty('integerValue')) {
-      return parseInt(valObj.integerValue, 10);
-    }
-    if (valObj.hasOwnProperty('doubleValue')) {
-      return parseFloat(valObj.doubleValue);
-    }
-    if (valObj.hasOwnProperty('booleanValue')) {
-      return valObj.booleanValue;
-    }
-    if (valObj.hasOwnProperty('nullValue')) {
-      return null;
-    }
-    if (valObj.hasOwnProperty('timestampValue')) {
-      return valObj.timestampValue;
-    }
+    if (!valObj || typeof valObj !== 'object') return null;
+    if (valObj.hasOwnProperty('stringValue')) return valObj.stringValue;
+    if (valObj.hasOwnProperty('integerValue')) return parseInt(valObj.integerValue, 10);
+    if (valObj.hasOwnProperty('doubleValue')) return parseFloat(valObj.doubleValue);
+    if (valObj.hasOwnProperty('booleanValue')) return valObj.booleanValue;
+    if (valObj.hasOwnProperty('nullValue')) return null;
+    if (valObj.hasOwnProperty('timestampValue')) return valObj.timestampValue;
     if (valObj.hasOwnProperty('arrayValue')) {
       var list = [];
       var items = (valObj.arrayValue && valObj.arrayValue.values) ? valObj.arrayValue.values : [];
@@ -132,9 +102,6 @@ var FirestoreClient = (function () {
 
   /**
    * Converts a standard JS object into Firestore REST `fields` mapping.
-   *
-   * @param {Object} obj
-   * @returns {Object} Object with `fields` property
    */
   function toFirestoreFields(obj) {
     var fields = {};
@@ -147,14 +114,9 @@ var FirestoreClient = (function () {
 
   /**
    * Flattens a raw Firestore document response into a clean JavaScript object.
-   *
-   * @param {Object} doc - Raw Firestore document
-   * @returns {Object} Flattened document with extracted document ID
    */
   function fromFirestoreDoc(doc) {
-    if (!doc || !doc.name) {
-      return null;
-    }
+    if (!doc || !doc.name) return null;
     var parts = doc.name.split('/');
     var docId = parts[parts.length - 1];
     var out = {
@@ -173,17 +135,16 @@ var FirestoreClient = (function () {
   }
 
   // ---------------------------------------------------------------------------
-  // Notification Outbox Operations (Bot Token)
+  // Notification Outbox Operations
   // ---------------------------------------------------------------------------
 
   /**
    * Queries queued notifications from `/admin_email_outbox` using Firestore runQuery.
    *
-   * @param {string} botIdToken - Verified Firebase ID token for the bot
-   * @param {number} limit - Maximum number of queued records to return (up to 10)
+   * @param {number} [limit=10] - Maximum number of records to return (capped at 10)
    * @returns {Array<Object>} List of flattened outbox documents
    */
-  function queryQueuedOutbox(botIdToken, limit) {
+  function queryQueuedOutbox(limit) {
     var maxItems = Math.min(Math.max(1, limit || 10), 10);
     var url = getDocumentsUrl() + ':runQuery';
 
@@ -205,17 +166,13 @@ var FirestoreClient = (function () {
       method: 'post',
       contentType: 'application/json',
       headers: {
-        Authorization: 'Bearer ' + botIdToken
+        Authorization: 'Bearer ' + ScriptApp.getOAuthToken()
       },
       payload: JSON.stringify(queryPayload),
       muteHttpExceptions: true
     });
 
     var status = response.getResponseCode();
-    if (status === 401) {
-      FirebaseAuth.clearBotTokenCache();
-      throw new Error('[FirestoreClient] 401 Unauthorized reading outbox queue. Token cache invalidated.');
-    }
     if (status !== 200) {
       throw new Error('[FirestoreClient] Failed to query outbox queue: HTTP ' + status + ' - ' + response.getContentText());
     }
@@ -231,71 +188,17 @@ var FirestoreClient = (function () {
   }
 
   /**
-   * Queries in-progress notifications with 'sending' status from /admin_email_outbox.
-   * Used exclusively for stale-worker recovery after unexpected timeouts or crashes.
-   *
-   * @param {string} botIdToken - Verified Firebase ID token for the bot
-   * @param {number} limit - Maximum number of records to return
-   * @returns {Array<Object>} List of flattened outbox documents
-   */
-  function querySendingOutbox(botIdToken, limit) {
-    var maxItems = Math.min(Math.max(1, limit || 10), 10);
-    var url = getDocumentsUrl() + ':runQuery';
-
-    var queryPayload = {
-      structuredQuery: {
-        from: [{ collectionId: 'admin_email_outbox' }],
-        where: {
-          fieldFilter: {
-            field: { fieldPath: 'deliveryStatus' },
-            op: 'EQUAL',
-            value: { stringValue: 'sending' }
-          }
-        },
-        limit: maxItems
-      }
-    };
-
-    var response = UrlFetchApp.fetch(url, {
-      method: 'post',
-      contentType: 'application/json',
-      headers: {
-        Authorization: 'Bearer ' + botIdToken
-      },
-      payload: JSON.stringify(queryPayload),
-      muteHttpExceptions: true
-    });
-
-    var status = response.getResponseCode();
-    if (status === 401) {
-      FirebaseAuth.clearBotTokenCache();
-      throw new Error('[FirestoreClient] 401 Unauthorized reading sending queue. Token cache invalidated.');
-    }
-    if (status !== 200) {
-      throw new Error('[FirestoreClient] Failed to query sending queue: HTTP ' + status + ' - ' + response.getContentText());
-    }
-
-    var results = JSON.parse(response.getContentText());
-    var documents = [];
-    for (var i = 0; i < results.length; i++) {
-      if (results[i].document) {
-        documents.push(fromFirestoreDoc(results[i].document));
-      }
-    }
-    return documents;
-  }
-
-  /**
    * Updates delivery status and metadata for an outbox document using an explicit updateMask.
-   * Strict adherence to firestore.rules positive allowlist:
-   * ['deliveryStatus', 'sentAt', 'attemptCount', 'lastAttemptAt', 'lastError']
    *
-   * @param {string} botIdToken - Verified Firebase ID token for the bot
    * @param {string} uid - Target applicant UID / document ID
    * @param {Object} updateFields - Key-value map of fields to update
    */
-  function updateOutboxDelivery(botIdToken, uid, updateFields) {
-    var allowedKeys = ['deliveryStatus', 'sentAt', 'attemptCount', 'lastAttemptAt', 'lastError'];
+  function updateOutboxDelivery(uid, updateFields) {
+    if (!uid || typeof uid !== 'string' || uid.trim().length === 0) {
+      throw new Error('[FirestoreClient] Missing or invalid uid for outbox update.');
+    }
+
+    var allowedKeys = ['deliveryStatus', 'sentAt', 'lastAttemptAt', 'lastError'];
     var keys = Object.keys(updateFields);
     var maskParams = [];
     var fieldsToUpdate = {};
@@ -309,24 +212,20 @@ var FirestoreClient = (function () {
       fieldsToUpdate[k] = updateFields[k];
     }
 
-    var url = getDocumentsUrl() + '/admin_email_outbox/' + encodeURIComponent(uid) + '?' + maskParams.join('&');
+    var url = getDocumentsUrl() + '/admin_email_outbox/' + encodeURIComponent(uid.trim()) + '?' + maskParams.join('&');
     var payload = toFirestoreFields(fieldsToUpdate);
 
     var response = UrlFetchApp.fetch(url, {
       method: 'patch',
       contentType: 'application/json',
       headers: {
-        Authorization: 'Bearer ' + botIdToken
+        Authorization: 'Bearer ' + ScriptApp.getOAuthToken()
       },
       payload: JSON.stringify(payload),
       muteHttpExceptions: true
     });
 
     var status = response.getResponseCode();
-    if (status === 401) {
-      FirebaseAuth.clearBotTokenCache();
-      throw new Error('[FirestoreClient] 401 Unauthorized updating outbox. Token cache invalidated.');
-    }
     if (status !== 200) {
       throw new Error('[FirestoreClient] Failed to update outbox for ' + uid + ': HTTP ' + status + ' - ' + response.getContentText());
     }
@@ -335,31 +234,31 @@ var FirestoreClient = (function () {
   }
 
   // ---------------------------------------------------------------------------
-  // Administrator Approval Operations (Admin OAuth Token)
+  // Administrator Approval Operations
   // ---------------------------------------------------------------------------
 
   /**
    * Retrieves an applicant user profile from `/users/{uid}`.
    *
-   * @param {string} authToken - Admin OAuth access token
    * @param {string} uid - Applicant Firebase UID
    * @returns {Object|null} Flattened profile object or null if not found
    */
-  function getUserProfile(authToken, uid) {
-    var url = getDocumentsUrl() + '/users/' + encodeURIComponent(uid);
+  function getUserProfile(uid) {
+    if (!uid || typeof uid !== 'string' || uid.trim().length === 0) {
+      throw new Error('[FirestoreClient] Missing or invalid uid for user profile lookup.');
+    }
 
+    var url = getDocumentsUrl() + '/users/' + encodeURIComponent(uid.trim());
     var response = UrlFetchApp.fetch(url, {
       method: 'get',
       headers: {
-        Authorization: 'Bearer ' + authToken
+        Authorization: 'Bearer ' + ScriptApp.getOAuthToken()
       },
       muteHttpExceptions: true
     });
 
     var status = response.getResponseCode();
-    if (status === 404) {
-      return null;
-    }
+    if (status === 404) return null;
     if (status !== 200) {
       throw new Error('[FirestoreClient] Failed to get user profile: HTTP ' + status + ' - ' + response.getContentText());
     }
@@ -370,25 +269,25 @@ var FirestoreClient = (function () {
   /**
    * Retrieves the administrator record from `/admins/{adminUid}`.
    *
-   * @param {string} authToken - Admin OAuth access token
    * @param {string} adminUid - Administrator Firebase UID
    * @returns {Object|null} Flattened admin record or null if not found
    */
-  function getAdminRecord(authToken, adminUid) {
-    var url = getDocumentsUrl() + '/admins/' + encodeURIComponent(adminUid);
+  function getAdminRecord(adminUid) {
+    if (!adminUid || typeof adminUid !== 'string' || adminUid.trim().length === 0) {
+      throw new Error('[FirestoreClient] Missing or invalid adminUid for admin record lookup.');
+    }
 
+    var url = getDocumentsUrl() + '/admins/' + encodeURIComponent(adminUid.trim());
     var response = UrlFetchApp.fetch(url, {
       method: 'get',
       headers: {
-        Authorization: 'Bearer ' + authToken
+        Authorization: 'Bearer ' + ScriptApp.getOAuthToken()
       },
       muteHttpExceptions: true
     });
 
     var status = response.getResponseCode();
-    if (status === 404) {
-      return null;
-    }
+    if (status === 404) return null;
     if (status !== 200) {
       throw new Error('[FirestoreClient] Failed to get admin record: HTTP ' + status + ' - ' + response.getContentText());
     }
@@ -401,11 +300,14 @@ var FirestoreClient = (function () {
    * Restricted strictly to:
    * ['approvalStatus', 'approvedBy', 'approvedAt', 'rejectionReason', 'updatedAt']
    *
-   * @param {string} adminOAuthToken - Authenticated admin OAuth token
    * @param {string} uid - Applicant Firebase UID
    * @param {Object} approvalData - Fields to update
    */
-  function updateUserApproval(adminOAuthToken, uid, approvalData) {
+  function updateUserApproval(uid, approvalData) {
+    if (!uid || typeof uid !== 'string' || uid.trim().length === 0) {
+      throw new Error('[FirestoreClient] Missing or invalid uid for user approval update.');
+    }
+
     var allowedFields = ['approvalStatus', 'approvedBy', 'approvedAt', 'rejectionReason', 'updatedAt'];
     var maskParams = [];
     var fieldsToUpdate = {};
@@ -420,14 +322,14 @@ var FirestoreClient = (function () {
       fieldsToUpdate[k] = approvalData[k];
     }
 
-    var url = getDocumentsUrl() + '/users/' + encodeURIComponent(uid) + '?' + maskParams.join('&');
+    var url = getDocumentsUrl() + '/users/' + encodeURIComponent(uid.trim()) + '?' + maskParams.join('&');
     var payload = toFirestoreFields(fieldsToUpdate);
 
     var response = UrlFetchApp.fetch(url, {
       method: 'patch',
       contentType: 'application/json',
       headers: {
-        Authorization: 'Bearer ' + adminOAuthToken
+        Authorization: 'Bearer ' + ScriptApp.getOAuthToken()
       },
       payload: JSON.stringify(payload),
       muteHttpExceptions: true
@@ -447,11 +349,9 @@ var FirestoreClient = (function () {
     toFirestoreFields: toFirestoreFields,
     fromFirestoreDoc: fromFirestoreDoc,
     queryQueuedOutbox: queryQueuedOutbox,
-    querySendingOutbox: querySendingOutbox,
     updateOutboxDelivery: updateOutboxDelivery,
     getUserProfile: getUserProfile,
     getAdminRecord: getAdminRecord,
     updateUserApproval: updateUserApproval
   };
 })();
-

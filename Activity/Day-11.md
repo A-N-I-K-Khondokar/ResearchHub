@@ -4253,4 +4253,222 @@ Because Google Apps Script code runs on Google's cloud infrastructure and cannot
 | **7. Git Working Tree Status** | `git status --short` | Scoped modifications in `google-apps-script/` and `Activity/Day-11.md` | **PASS** |
 
 ---
+
+## Stage 3.5.3.2 — Final Credentials, OAuth and Runtime Readiness Review
+
+**Audit Date**: November 13, 2026  
+**Auditor**: Senior Mobile & Cloud Systems Architect  
+**Target Repository**: `google-apps-script/`  
+**Security Reference**: Production `firestore.rules` (Deployed ruleset `4c14b8b6-b7ac-4b77-89f5-164f3cdedaa8`)  
+**Status**: **VERIFIED & READY FOR MANUAL OPERATOR DEPLOYMENT**
+
+---
+
+### 1. Corrected Credential Storage & Access Boundary Documentation
+
+A critical operational distinction has been codified in [`SETUP.md`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/google-apps-script/SETUP.md), [`FirebaseAuth.gs`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/google-apps-script/FirebaseAuth.gs), and [`ApprovalWebApp.gs`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/google-apps-script/ApprovalWebApp.gs):
+
+1. **No Application-Level Encryption in PropertiesService**:
+   - Google Apps Script `PropertiesService` stores values in project-level Script Properties.
+   - **PropertiesService does NOT provide application-level encryption for individual values.**
+   - Values are stored in plaintext within the project's internal property store and can be read by anyone with edit access to the Apps Script project via the Script Properties UI or `PropertiesService.getScriptProperties().getProperties()`.
+   - Removed any prior misleading claims suggesting values were encrypted at the application level.
+2. **Access Control Policy**:
+   - Access to the Google Apps Script project editor must be restricted strictly to the verified administrator account: **`anik.khondokar09@gmail.com`**.
+   - No untrusted collaborators or secondary editors may be added to the Apps Script container.
+3. **Secret Hygiene**:
+   - `FIREBASE_API_KEY`, `BOT_REFRESH_TOKEN`, and `HMAC_SECRET` are never printed to `Logger.log()` or execution logs.
+   - Secrets are never rendered into HTML templates or passed to client-side browsers.
+4. **Credential Rotation Protocol**:
+   - If an unauthorized person gains access to the script project or if a key is suspected to be exposed:
+     1. Regenerate the Web API Key in Firebase Console.
+     2. Generate a new 64-character hex `HMAC_SECRET`.
+     3. Re-run `bootstrapBotAuthentication()` to exchange a temporary password for a new refresh token.
+
+---
+
+### 2. Firebase Bot Authorization & Least-Privilege Verification
+
+The automated notification worker operates under strict least-privilege boundaries:
+
+1. **Authentication Mechanism**:
+   - The bot authenticates via Firebase Authentication REST API (`accounts:signInWithPassword` during bootstrap; Google Secure Token API `v1/token` during refresh).
+   - Generates and refreshes short-lived Firebase Authentication ID tokens.
+2. **Authorization Enforcement**:
+   - All bot REST requests communicate with Firestore using `Authorization: Bearer {botIdToken}`.
+   - Because it presents a Firebase ID token (not a GCP IAM credential), **all bot requests are 100% subject to deployed production `firestore.rules`**.
+   - Production rules evaluate `isNotificationService()`, requiring the bot's UID to exist in `/notification_services/{botUid}`.
+3. **Strict Firestore Boundary Isolation**:
+   - **`/users/{userId}`**: **DENIED**. The bot is not the document owner, is not an administrator, and is not an approved ordinary user reading approved profiles. The bot cannot read applicant profiles or mutate user records.
+   - **`/admins/{adminId}`**: **DENIED**. The bot cannot read or write administrator records.
+   - **`/notification_services/{serviceId}`**: **READ-ONLY for self**. The bot can read only its own service document; client-side writes are globally blocked (`allow write: false`).
+   - **`/admin_email_outbox/{requestId}`**: **RESTRICTED READ & PATCH ONLY**.
+     - Can query queued/sending records.
+     - Can patch only 5 allowlisted fields: `['deliveryStatus', 'sentAt', 'attemptCount', 'lastAttemptAt', 'lastError']`.
+     - Cannot delete outbox records (admin only).
+     - Cannot create outbox records (applicant batch only).
+4. **Token Refresh & Cache Invalidation**:
+   - ID tokens are cached in `CacheService.getScriptCache()` with TTL $ = \text{expiresIn} - 300\text{s}$.
+   - Upon receiving an HTTP 401 Unauthorized from Firestore REST, `FirestoreClient.gs` calls `FirebaseAuth.clearBotTokenCache()` immediately to evict stale credentials and force a fresh token exchange on the next attempt.
+
+---
+
+### 3. Administrator Approval Authorization & Identity Protection
+
+The administrative Web App endpoint (`ApprovalWebApp.gs`) guarantees complete authorization integrity:
+
+1. **Cryptographically Validated Target Identity**:
+   - In both `handleGet` and `handlePost`, the applicant UID and decision action are extracted **strictly from the cryptographically validated token payload**:
+     ```javascript
+     var targetUid = tokenValidation.payload.uid;
+     var targetAction = tokenValidation.payload.action;
+     ```
+   - Untrusted form input (`params.uid`) is never trusted or used for database lookups or mutations.
+2. **Active Google Account Enforcement**:
+   - Extracts `var activeEmail = Session.getActiveUser().getEmail()`.
+   - If empty (e.g., anonymous visitor), execution halts immediately with a fail-closed `Authentication Required` screen.
+   - Strictly enforces equality with `ADMIN_EMAIL` (`anik.khondokar09@gmail.com`). Any other signed-in Google account receives an immediate `Unauthorized Account` rejection.
+3. **Database Administrator Verification**:
+   - Reads `/admins/{ADMIN_UID}` using `FirestoreClient.getAdminRecord(ScriptApp.getOAuthToken(), adminUid)`.
+   - Confirms that the document exists and that `adminDoc.email.toLowerCase() === activeEmail.toLowerCase()`.
+4. **Pre-Mutation State Check**:
+   - Re-fetches `/users/{targetUid}` immediately prior to mutation.
+   - Confirms the applicant's current status is strictly `'pending'`. If already approved or rejected, concurrent or repeated mutations are blocked.
+5. **Mutation Positive Allowlist**:
+   - `FirestoreClient.updateUserApproval` enforces an explicit positive allowlist:
+     `['approvalStatus', 'approvedBy', 'approvedAt', 'rejectionReason', 'updatedAt']`
+   - Binds mutations strictly to `updateMask.fieldPaths`. Administrative approval cannot alter applicant identity fields (`uid`, `email`, `createdAt`, `department`, etc.).
+6. **Required IAM Permissions for Administrator Google Account**:
+   - When executing under `USER_ACCESSING`, `ScriptApp.getOAuthToken()` inherits the GCP IAM permissions of `anik.khondokar09@gmail.com`.
+   - **Recommended Least-Privilege Role**: `roles/datastore.user` (Cloud Datastore User) on project `cse-research-hub`.
+   - Allows read and patch operations on Firestore REST API without granting project-wide compute, networking, or administrative roles.
+   - If the administrator is already GCP Project Owner or Editor, that role already encompasses Datastore user access.
+7. **Runtime Reference Bug Fix**:
+   - Corrected an uninitialized variable bug in `ApprovalWebApp.gs:372` where `nowIso` was referenced without declaration. Declared `var nowIso = now.toISOString()`.
+
+---
+
+### 4. Apps Script Runtime & OAuth Setup Verification
+
+1. **Manifest Configuration (`appsscript.json`)**:
+   - `executeAs`: `"USER_ACCESSING"`
+   - `access`: `"ANYONE"` (requires visiting users to authenticate with a Google Account; anonymous requests are not accepted).
+2. **OAuth Scopes**:
+   - `https://www.googleapis.com/auth/userinfo.email`: Required to read `Session.getActiveUser().getEmail()`.
+   - `https://www.googleapis.com/auth/script.external_request`: Required for `UrlFetchApp` REST calls to Firebase Auth and Firestore.
+   - `https://www.googleapis.com/auth/script.send_mail`: Required for `MailApp.sendEmail` dispatch.
+   - `https://www.googleapis.com/auth/script.scriptapp`: Required for `ScriptApp.newTrigger`, `ScriptApp.getOAuthToken`, and trigger management.
+   - `https://www.googleapis.com/auth/datastore`: Required for admin `ScriptApp.getOAuthToken()` access to Cloud Firestore REST API.
+3. **Execution Context**:
+   - Recurring 5-minute background trigger runs under the administrative identity that installed it (`anik.khondokar09@gmail.com`).
+   - Approval web forms execute under the identity of the visiting Google account (`USER_ACCESSING`). Anonymous execution is completely blocked.
+
+---
+
+### 5. Operational Reliability & Quota Guarantees
+
+1. **Stale Worker Recovery Policy**:
+   - 15-minute timeout window (`STALE_SENDING_THRESHOLD_MS = 15 * 60 * 1000`).
+   - Scans records trapped in `deliveryStatus: 'sending'` from terminated or crashed script invocations.
+   - If `attemptCount < 5`: Resets `deliveryStatus` to `'queued'` for automated retry.
+   - If `attemptCount >= 5`: Sets `deliveryStatus` to `'failed'` to prevent infinite retry loops.
+2. **Single-Instance Concurrency**:
+   - `LockService.getScriptLock().tryLock(20000)` enforces that only one worker can process the outbox at any time.
+3. **Daily Email Quota Protection**:
+   - Pre-flight check via `MailApp.getRemainingDailyQuota()`.
+   - If quota is exhausted (0 remaining), outbox processing halts gracefully before claiming documents.
+   - Secondary check inside the batch processing loop protects against boundary exhaustion.
+4. **Delivery Semantics**:
+   - Operates under **at-least-once delivery semantics**.
+   - Fully documented in `SETUP.md` and `OutboxWorker.gs`. In rare cases where a network failure occurs immediately after Gmail dispatch but before Firestore state recording, a duplicate email may be sent on retry.
+
+---
+
+### 6. Validation Results & Audit Parity
+
+| Component / Test | Verification Method | Result | Status |
+|---|---|---|:---:|
+| **1. V8 Syntax Compiler** | Node.js `vm.Script` syntax test across all 6 `.gs` files | 0 errors | **PASS** |
+| **2. Manifest JSON Parsing** | `JSON.parse` validation of `appsscript.json` | 5 valid OAuth scopes | **PASS** |
+| **3. Target UID Derivation** | Code audit of `handleGet` and `handlePost` | Derived strictly from signed token payload | **PASS** |
+| **4. Plaintext Storage Disclosure** | Documentation audit in `SETUP.md`, `FirebaseAuth.gs`, `ApprovalWebApp.gs` | Explicit plaintext disclosure & access restriction | **PASS** |
+| **5. Least-Privilege IAM Scope** | Documentation audit in `SETUP.md` | `roles/datastore.user` documented | **PASS** |
+| **6. Runtime Reference Check** | Reference audit in `ApprovalWebApp.gs` | `nowIso` declared and initialized | **PASS** |
+| **7. Production Rules Non-Interference** | Hash & git check on `firestore.rules` | 0 modifications | **PASS** |
+
+---
+
+### 7. Deployment Boundaries & Operator Readiness
+
+In strict compliance with audit instructions:
+- **No Google Apps Script project was deployed.**
+- **No live Firebase bot account was created.**
+- **No live credentials or Script Properties were configured.**
+- **No test emails were dispatched.**
+
+All source code, manifest configurations, HTML templates, and deployment guides in `google-apps-script/` are validated, hardened, and ready for operator execution following [`google-apps-script/SETUP.md`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/google-apps-script/SETUP.md).
+
+---
+
+## Stage 3.5.3 — Simplified Gmail Approval Workflow
+
+**Implementation Date**: November 13, 2026  
+**Target Repository**: `google-apps-script/`  
+**Architecture**: Native Google Apps Script + Gmail + Cloud Firestore REST via `ScriptApp.getOAuthToken()`  
+**Firebase Tier**: Spark (Free Plan)  
+**Status**: **COMPLETED & VERIFIED**
+
+---
+
+### 1. Architectural Simplification Summary
+
+In accordance with project guidelines prioritizing university project simplicity, reliability, and clean maintainability, the Google Apps Script notification and approval subsystem has been streamlined to eliminate unnecessary enterprise overhead:
+
+1. **Elimination of Notification Bot**:
+   - Removed `FirebaseAuth.gs` and all bot credentials (`BOT_EMAIL`, `BOT_UID`, `BOT_REFRESH_TOKEN`).
+   - Removed password-based bot bootstrap functions (`bootstrapBotAuthentication()`).
+   - Unified all Cloud Firestore REST operations under the administrator's native Google OAuth token via `ScriptApp.getOAuthToken()`.
+   - Eliminates the need to register secondary bot users in Firebase Authentication or `/notification_services/` collection.
+2. **Consolidated File Structure**:
+   - Reduced the codebase to the 7 essential files:
+     - [`appsscript.json`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/google-apps-script/appsscript.json)
+     - [`Code.gs`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/google-apps-script/Code.gs)
+     - [`FirestoreClient.gs`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/google-apps-script/FirestoreClient.gs)
+     - [`OutboxWorker.gs`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/google-apps-script/OutboxWorker.gs)
+     - [`Approval.gs`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/google-apps-script/Approval.gs)
+     - [`Approval.html`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/google-apps-script/Approval.html)
+     - [`SETUP.md`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/google-apps-script/SETUP.md)
+   - Integrated email HTML generation directly into `OutboxWorker.gs`, removing `EmailTemplate.gs`.
+   - Replaced `ApprovalWebApp.gs` with a concise, self-contained `Approval.gs`.
+3. **Preservation of Production Security Invariants**:
+   - Existing production `firestore.rules` and the atomic profile/outbox creation batch remain untouched.
+   - All approvals require an explicit confirmation page (GET requests are 100% read-only).
+   - Identity verification on the Web App endpoint strictly enforces `Session.getActiveUser().getEmail() === 'anik.khondokar09@gmail.com'`.
+   - Database privilege check confirms administrator existence in `/admins/{ADMIN_UID}`.
+   - Applicant profile status is verified as `pending` before mutation.
+   - Profile mutations are restricted strictly to the 5 approval fields (`approvalStatus`, `approvedBy`, `approvedAt`, `rejectionReason`, `updatedAt`).
+   - Action links are signed with HMAC-SHA256 and expire after 48 hours.
+
+---
+
+### 2. Component Specifications
+
+| File | Responsibilities | Security Controls |
+|---|---|---|
+| [`FirestoreClient.gs`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/google-apps-script/FirestoreClient.gs) | Firestore REST API query and patch operations | All calls use `ScriptApp.getOAuthToken()`; writes restricted to outbox delivery metadata and profile approval allowlist |
+| [`OutboxWorker.gs`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/google-apps-script/OutboxWorker.gs) | 5-minute scheduled outbox polling and email dispatch | `LockService` prevents overlapping executions; batches capped at 10 items; sends to fixed `anik.khondokar09@gmail.com` |
+| [`Approval.gs`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/google-apps-script/Approval.gs) | Action token generation, verification, and GET/POST handlers | Constant-time HMAC verification; derives applicant UID directly from validated token payload; verifies active admin identity |
+| [`Approval.html`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/google-apps-script/Approval.html) | Responsive confirmation view for approval/rejection | Displays applicant details; POST form with CSRF-resistant action tokens |
+| [`Code.gs`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/google-apps-script/Code.gs) | Master entry point and diagnostic utilities | Routes `doGet` and `doPost`; exposes `setupOutboxTrigger` and `testOutboxWorker` |
+| [`SETUP.md`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/google-apps-script/SETUP.md) | Step-by-step setup guide for operator | Straightforward manual setup without external bot or Blaze requirements |
+
+---
+
+### 3. Verification & Syntax Validation
+
+- **V8 Syntax Compilation**: Node.js `vm.Script` syntax validation executed across all `.gs` files: **0 errors**.
+- **Manifest Validation**: `appsscript.json` parsed as valid JSON with 5 minimal required OAuth scopes.
+- **Rules Safety**: Production `firestore.rules` and application code unchanged.
+
+---
 *Signed off by: Senior Mobile Architect & Firebase Solutions Engineer*

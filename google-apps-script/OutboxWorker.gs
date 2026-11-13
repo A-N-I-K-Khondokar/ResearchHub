@@ -1,30 +1,18 @@
 /**
- * CSE Research Hub — Automated Notification Outbox Worker
+ * CSE Research Hub — Simplified Notification Outbox Worker
  *
- * Polls queued applicant notifications from Firestore, renders signed review
- * emails, and dispatches them to the configured administrator via Gmail.
- *
- * Operational Model:
- * - Triggered every 5 minutes via an installable time-driven trigger.
- * - Single-instance concurrency enforced via LockService.
- * - Delivery semantics: At-least-once delivery. In rare cases where a network
- *   failure occurs after Gmail dispatch but before Firestore status mutation,
- *   a duplicate email may be sent upon subsequent retry. Exactly-once email delivery
- *   cannot be guaranteed across distributed network boundaries.
+ * Polls queued applicant notifications from Firestore /admin_email_outbox,
+ * formats approval emails with secure action links, and sends them to
+ * the administrator (anik.khondokar09@gmail.com) via Gmail/MailApp.
  */
 
 var OutboxWorker = (function () {
   var MAX_BATCH_SIZE = 10;
   var LOCK_WAIT_MS = 20000;
-  var MAX_RETRIES = 5;
-  var STALE_SENDING_THRESHOLD_MS = 15 * 60 * 1000; // 15 minutes (stale recovery window)
 
-  function getExpectedAdminEmail() {
+  function getAdminEmail() {
     var email = PropertiesService.getScriptProperties().getProperty('ADMIN_EMAIL');
-    if (!email) {
-      throw new Error('[OutboxWorker] Missing required Script Property: ADMIN_EMAIL');
-    }
-    return email.toLowerCase().trim();
+    return (email || 'anik.khondokar09@gmail.com').toLowerCase().trim();
   }
 
   function getHmacSecret() {
@@ -46,212 +34,163 @@ var OutboxWorker = (function () {
     return url.trim();
   }
 
-  /**
-   * Sanitizes an error message before persisting to Firestore, stripping
-   * potential tokens, keys, or sensitive credentials.
-   */
-  function sanitizeErrorMessage(err) {
-    if (!err) return 'Unknown error';
-    var raw = String(err.message || err);
-    return raw
-      .replace(/key=[^&\s]+/gi, 'key=[REDACTED]')
-      .replace(/Bearer\s+[A-Za-z0-9\-_.]+/gi, 'Bearer [REDACTED]')
-      .replace(/token=[^&\s]+/gi, 'token=[REDACTED]')
-      .substring(0, 500);
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 
   /**
-   * Validates that an outbox record contains required applicant fields.
+   * Builds the HTML and plain-text email representation for applicant approval.
    */
-  function validateOutboxRecord(item) {
-    if (!item.uid || typeof item.uid !== 'string') {
-      throw new Error('Outbox record missing valid uid');
-    }
-    if (!item.userEmail || typeof item.userEmail !== 'string') {
-      throw new Error('Outbox record missing valid userEmail');
-    }
-    if (!item.displayName || typeof item.displayName !== 'string') {
-      throw new Error('Outbox record missing valid displayName');
-    }
-    if (!item.department || typeof item.department !== 'string') {
-      throw new Error('Outbox record missing valid department');
-    }
-    if (!item.designation || typeof item.designation !== 'string') {
-      throw new Error('Outbox record missing valid designation');
-    }
-  }
+  function buildEmail(item, approveUrl, rejectUrl) {
+    var subject = 'New Account Approval Request — CSE Research Hub';
+    var displayName = escapeHtml(item.displayName || 'Unknown Applicant');
+    var email = escapeHtml(item.userEmail || item.email || 'N/A');
+    var department = escapeHtml(item.department || 'N/A');
+    var designation = escapeHtml(item.designation || 'N/A');
+    var program = escapeHtml(item.program || 'Not specified');
+    var batch = escapeHtml(item.batch || 'Not specified');
+    var submissionDate = item.createdAt ? new Date(item.createdAt).toUTCString() : new Date().toUTCString();
 
-  /**
-   * Recovers stale 'sending' records caused by previous worker timeouts or interruptions.
-   * If an item has been in 'sending' status for longer than STALE_SENDING_THRESHOLD_MS:
-   * - If attemptCount >= MAX_RETRIES: marks deliveryStatus as 'failed'.
-   * - If attemptCount < MAX_RETRIES: re-queues deliveryStatus back to 'queued' for retry.
-   *
-   * @param {string} botIdToken - Verified bot Firebase ID token
-   */
-  function recoverStaleSendingRecords(botIdToken) {
-    try {
-      var sendingItems = FirestoreClient.querySendingOutbox(botIdToken, MAX_BATCH_SIZE);
-      if (!sendingItems || sendingItems.length === 0) {
-        return;
+    var interestsHtml = '<em>None listed</em>';
+    var rawInterests = item.researchInterests;
+    if (Array.isArray(rawInterests) && rawInterests.length > 0) {
+      var pills = [];
+      for (var p = 0; p < rawInterests.length; p++) {
+        pills.push('<span style="display:inline-block;background:#EBF2FF;color:#1B5ECC;border-radius:9999px;padding:3px 10px;font-size:12px;font-weight:600;margin:2px 4px 2px 0;">' + escapeHtml(rawInterests[p]) + '</span>');
       }
-
-      var now = Date.now();
-      for (var i = 0; i < sendingItems.length; i++) {
-        var item = sendingItems[i];
-        var lastAttemptTime = item.lastAttemptAt ? new Date(item.lastAttemptAt).getTime() : 0;
-        var isStale = (now - lastAttemptTime) > STALE_SENDING_THRESHOLD_MS;
-
-        if (isStale) {
-          var attempts = item.attemptCount || 1;
-          if (attempts >= MAX_RETRIES) {
-            Logger.log('[OutboxWorker] Stale sending record ' + item.uid + ' exceeded max retries (' + MAX_RETRIES + '). Marking failed.');
-            FirestoreClient.updateOutboxDelivery(botIdToken, item.uid, {
-              deliveryStatus: 'failed',
-              lastError: 'Stale delivery attempt timed out and exceeded maximum retry limit (' + MAX_RETRIES + ').'
-            });
-          } else {
-            Logger.log('[OutboxWorker] Stale sending record ' + item.uid + ' recovered. Re-queuing for retry attempt ' + (attempts + 1) + '.');
-            FirestoreClient.updateOutboxDelivery(botIdToken, item.uid, {
-              deliveryStatus: 'queued',
-              lastError: 'Recovered from interrupted worker execution; re-queued.'
-            });
-          }
-        }
-      }
-    } catch (err) {
-      Logger.log('[OutboxWorker] Warning during stale-sending recovery: ' + err.message);
+      interestsHtml = pills.join(' ');
     }
+
+    var htmlBody =
+      '<!DOCTYPE html>' +
+      '<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">' +
+      '<title>' + subject + '</title>' +
+      '</head><body style="margin:0;padding:24px 16px;background:#F8FAFC;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif;color:#0F172A;">' +
+      '<div style="max-width:580px;margin:0 auto;background:#FFFFFF;border:1px solid #E2E8F0;border-radius:12px;overflow:hidden;box-shadow:0 2px 4px rgba(0,0,0,0.04);">' +
+      '<div style="background:#1E293B;padding:24px 28px;color:#FFFFFF;">' +
+      '<div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#94A3B8;margin-bottom:4px;">CSE Research Hub &bull; Administration</div>' +
+      '<h1 style="margin:0;font-size:20px;font-weight:700;color:#FFFFFF;">New Account Approval Request</h1>' +
+      '</div>' +
+      '<div style="padding:28px;">' +
+      '<p style="margin:0 0 20px 0;font-size:14.5px;line-height:22px;color:#334155;">' +
+      'A new researcher profile has been submitted and is awaiting your administrative review.' +
+      '</p>' +
+      '<table style="width:100%;border-collapse:collapse;margin-bottom:24px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;overflow:hidden;">' +
+      '<tr><td style="padding:10px 14px;font-weight:600;color:#64748B;background:#F1F5F9;width:130px;font-size:13px;border-bottom:1px solid #E2E8F0;">Applicant</td><td style="padding:10px 14px;color:#0F172A;font-weight:700;font-size:13.5px;border-bottom:1px solid #E2E8F0;">' + displayName + '</td></tr>' +
+      '<tr><td style="padding:10px 14px;font-weight:600;color:#64748B;background:#F1F5F9;font-size:13px;border-bottom:1px solid #E2E8F0;">Verified Email</td><td style="padding:10px 14px;color:#0F172A;font-size:13px;border-bottom:1px solid #E2E8F0;">' + email + '</td></tr>' +
+      '<tr><td style="padding:10px 14px;font-weight:600;color:#64748B;background:#F1F5F9;font-size:13px;border-bottom:1px solid #E2E8F0;">Department</td><td style="padding:10px 14px;color:#0F172A;font-size:13px;border-bottom:1px solid #E2E8F0;">' + department + '</td></tr>' +
+      '<tr><td style="padding:10px 14px;font-weight:600;color:#64748B;background:#F1F5F9;font-size:13px;border-bottom:1px solid #E2E8F0;">Designation</td><td style="padding:10px 14px;color:#0F172A;font-size:13px;border-bottom:1px solid #E2E8F0;">' + designation + '</td></tr>' +
+      '<tr><td style="padding:10px 14px;font-weight:600;color:#64748B;background:#F1F5F9;font-size:13px;border-bottom:1px solid #E2E8F0;">Program</td><td style="padding:10px 14px;color:#0F172A;font-size:13px;border-bottom:1px solid #E2E8F0;">' + program + '</td></tr>' +
+      '<tr><td style="padding:10px 14px;font-weight:600;color:#64748B;background:#F1F5F9;font-size:13px;border-bottom:1px solid #E2E8F0;">Batch</td><td style="padding:10px 14px;color:#0F172A;font-size:13px;border-bottom:1px solid #E2E8F0;">' + batch + '</td></tr>' +
+      '<tr><td style="padding:10px 14px;font-weight:600;color:#64748B;background:#F1F5F9;font-size:13px;border-bottom:1px solid #E2E8F0;">Interests</td><td style="padding:10px 14px;color:#0F172A;font-size:13px;border-bottom:1px solid #E2E8F0;">' + interestsHtml + '</td></tr>' +
+      '<tr><td style="padding:10px 14px;font-weight:600;color:#64748B;background:#F1F5F9;font-size:13px;">Submitted</td><td style="padding:10px 14px;color:#64748B;font-size:12.5px;">' + submissionDate + '</td></tr>' +
+      '</table>' +
+      '<div style="text-align:center;margin:28px 0 16px 0;">' +
+      '<a href="' + approveUrl + '" style="display:inline-block;padding:12px 24px;margin-right:12px;background:#16A34A;color:#FFFFFF;text-decoration:none;border-radius:6px;font-weight:700;font-size:14px;">Approve Application</a>' +
+      '<a href="' + rejectUrl + '" style="display:inline-block;padding:12px 24px;background:#DC2626;color:#FFFFFF;text-decoration:none;border-radius:6px;font-weight:700;font-size:14px;">Reject Application</a>' +
+      '</div>' +
+      '<p style="text-align:center;font-size:12px;color:#94A3B8;margin:16px 0 0 0;">' +
+      'Links are signed with HMAC-SHA256 and valid for 48 hours. Clicking an action presents a confirmation page before changes take effect.' +
+      '</p>' +
+      '</div>' +
+      '<div style="background:#F8FAFC;border-top:1px solid #E2E8F0;padding:14px 28px;font-size:11.5px;color:#64748B;text-align:center;">' +
+      'CSE Research Hub Notification System &bull; University of Dhaka' +
+      '</div></div></body></html>';
+
+    var plainText =
+      'New Account Approval Request — CSE Research Hub\n\n' +
+      'Applicant: ' + item.displayName + '\n' +
+      'Email: ' + (item.userEmail || item.email) + '\n' +
+      'Department: ' + item.department + '\n' +
+      'Designation: ' + item.designation + '\n' +
+      'Program: ' + (item.program || 'N/A') + '\n' +
+      'Batch: ' + (item.batch || 'N/A') + '\n' +
+      'Interests: ' + (Array.isArray(item.researchInterests) ? item.researchInterests.join(', ') : 'None') + '\n' +
+      'Submitted: ' + submissionDate + '\n\n' +
+      'Approve Link: ' + approveUrl + '\n\n' +
+      'Reject Link: ' + rejectUrl + '\n\n' +
+      'Note: Links expire in 48 hours and require confirmation.';
+
+    return {
+      subject: subject,
+      htmlBody: htmlBody,
+      plainText: plainText
+    };
   }
 
   /**
-   * Primary cron worker function.
-   * Processes up to 10 queued notification records from /admin_email_outbox.
+   * Primary scheduled function.
+   * Polls queued notification documents and dispatches email alerts.
    */
   function processOutbox() {
     var lock = LockService.getScriptLock();
     var acquired = lock.tryLock(LOCK_WAIT_MS);
     if (!acquired) {
-      Logger.log('[OutboxWorker] Could not acquire script lock within ' + LOCK_WAIT_MS + 'ms. Another worker is active. Skipping run.');
+      Logger.log('[OutboxWorker] Another instance is running. Skipping this cycle.');
       return;
     }
 
     try {
-      // 1. Quota Pre-check: Ensure Gmail daily sending quota is available
-      var remainingQuota = MailApp.getRemainingDailyQuota();
-      if (remainingQuota <= 0) {
-        Logger.log('[OutboxWorker] Gmail daily quota exhausted (0 remaining). Halting outbox processing until quota resets.');
-        return;
-      }
-
-      var adminEmail = getExpectedAdminEmail();
+      var adminEmail = getAdminEmail();
       var hmacSecret = getHmacSecret();
       var webAppUrl = getWebAppUrl();
 
-      // Retrieve bot credentials
-      var botIdToken = FirebaseAuth.getBotIdToken();
-
-      // 2. Stale-worker recovery: inspect any records stuck in 'sending'
-      recoverStaleSendingRecords(botIdToken);
-
-      // 3. Query queued items (up to 10)
-      var queuedItems = FirestoreClient.queryQueuedOutbox(botIdToken, MAX_BATCH_SIZE);
-
+      var queuedItems = FirestoreClient.queryQueuedOutbox(MAX_BATCH_SIZE);
       if (!queuedItems || queuedItems.length === 0) {
-        Logger.log('[OutboxWorker] Outbox queue is empty. 0 items to process.');
+        Logger.log('[OutboxWorker] Outbox queue is empty (0 queued items).');
         return;
       }
 
-      Logger.log('[OutboxWorker] Found ' + queuedItems.length + ' queued notification(s). Remaining quota: ' + remainingQuota + '. Commencing dispatch...');
+      Logger.log('[OutboxWorker] Found ' + queuedItems.length + ' queued notification(s). Commencing dispatch...');
 
       for (var i = 0; i < queuedItems.length; i++) {
-        // Dynamic quota check during batch processing
-        if (MailApp.getRemainingDailyQuota() <= 0) {
-          Logger.log('[OutboxWorker] Gmail daily quota exhausted during batch execution. Pausing remaining items.');
-          break;
-        }
-
         var item = queuedItems[i];
         var uid = item.uid;
-        var attempt = (item.attemptCount || 0) + 1;
-        var now = new Date();
 
-        // Guard against excessive retries
-        if (attempt > MAX_RETRIES) {
-          Logger.log('[OutboxWorker] Item ' + uid + ' exceeded maximum retries (' + MAX_RETRIES + '). Leaving failed for admin inspection.');
-          FirestoreClient.updateOutboxDelivery(botIdToken, uid, {
-            deliveryStatus: 'failed',
-            attemptCount: attempt,
-            lastAttemptAt: now,
-            lastError: 'Exceeded maximum automated retry limit (' + MAX_RETRIES + ').'
-          });
-          continue;
-        }
-
-        // Validate applicant details
         try {
-          validateOutboxRecord(item);
-        } catch (valErr) {
-          Logger.log('[OutboxWorker] Validation failed for ' + uid + ': ' + valErr.message);
-          FirestoreClient.updateOutboxDelivery(botIdToken, uid, {
-            deliveryStatus: 'failed',
-            attemptCount: attempt,
-            lastAttemptAt: now,
-            lastError: 'Validation error: ' + sanitizeErrorMessage(valErr)
-          });
-          continue;
-        }
+          var approveToken = Approval.generateActionToken('approve', uid, hmacSecret, 48);
+          var rejectToken = Approval.generateActionToken('reject', uid, hmacSecret, 48);
 
-        // Mark item as 'sending' prior to email transmission
-        try {
-          FirestoreClient.updateOutboxDelivery(botIdToken, uid, {
-            deliveryStatus: 'sending',
-            attemptCount: attempt,
-            lastAttemptAt: now
-          });
-        } catch (markErr) {
-          Logger.log('[OutboxWorker] Failed to mark ' + uid + ' as sending: ' + markErr.message);
-          continue;
-        }
+          var approveUrl = webAppUrl + '?action=approve&token=' + encodeURIComponent(approveToken);
+          var rejectUrl = webAppUrl + '?action=reject&token=' + encodeURIComponent(rejectToken);
 
-        // Generate signed action links and send email
-        try {
-          var approveToken = ApprovalWebApp.generateActionToken('approve', uid, hmacSecret, 48);
-          var rejectToken = ApprovalWebApp.generateActionToken('reject', uid, hmacSecret, 48);
+          var email = buildEmail(item, approveUrl, rejectUrl);
 
-          var approveUrl = webAppUrl + '?action=approve&uid=' + encodeURIComponent(uid) + '&token=' + encodeURIComponent(approveToken);
-          var rejectUrl = webAppUrl + '?action=reject&uid=' + encodeURIComponent(uid) + '&token=' + encodeURIComponent(rejectToken);
-
-          var emailContent = EmailTemplate.buildApprovalNotificationEmail(item, approveUrl, rejectUrl);
-
-          // Dispatch email strictly to configured ADMIN_EMAIL
           MailApp.sendEmail({
             to: adminEmail,
-            subject: emailContent.subject,
-            htmlBody: emailContent.htmlBody,
-            body: emailContent.plainTextBody,
+            subject: email.subject,
+            htmlBody: email.htmlBody,
+            body: email.plainText,
             name: 'CSE Research Hub Administration'
           });
 
-          // Mark as successfully 'sent'
-          FirestoreClient.updateOutboxDelivery(botIdToken, uid, {
+          // Mark notification as successfully sent
+          var now = new Date();
+          FirestoreClient.updateOutboxDelivery(uid, {
             deliveryStatus: 'sent',
-            sentAt: new Date(),
+            sentAt: now,
+            lastAttemptAt: now,
             lastError: null
           });
 
-          Logger.log('[OutboxWorker] Successfully notified ' + adminEmail + ' for applicant: ' + item.displayName + ' (' + uid + ')');
-        } catch (dispatchErr) {
-          var sanitized = sanitizeErrorMessage(dispatchErr);
-          Logger.log('[OutboxWorker] Dispatch failed for ' + uid + ': ' + sanitized);
+          Logger.log('[OutboxWorker] Successfully dispatched notification for: ' + item.displayName + ' (' + uid + ')');
+        } catch (err) {
+          Logger.log('[OutboxWorker] Failed to dispatch for ' + uid + ': ' + err.message);
 
           try {
-            FirestoreClient.updateOutboxDelivery(botIdToken, uid, {
+            FirestoreClient.updateOutboxDelivery(uid, {
               deliveryStatus: 'failed',
-              lastError: sanitized
+              lastAttemptAt: new Date(),
+              lastError: String(err.message || err).substring(0, 500)
             });
           } catch (updateErr) {
-            Logger.log('[OutboxWorker] Secondary failure recording error state for ' + uid + ': ' + updateErr.message);
+            Logger.log('[OutboxWorker] Could not record failed status for ' + uid + ': ' + updateErr.message);
           }
         }
       }
@@ -261,14 +200,12 @@ var OutboxWorker = (function () {
   }
 
   /**
-   * Idempotent trigger installer.
-   * Checks for an existing trigger on `processOutbox` before creating one.
+   * Installs the 5-minute recurring time-driven trigger for processOutbox().
    */
   function setupOutboxTrigger() {
     var triggers = ScriptApp.getProjectTriggers();
     for (var i = 0; i < triggers.length; i++) {
       if (triggers[i].getHandlerFunction() === 'processOutbox') {
-        Logger.log('[OutboxWorker] Trigger already installed. Trigger ID: ' + triggers[i].getUniqueId());
         return 'Trigger already active (ID: ' + triggers[i].getUniqueId() + ')';
       }
     }
@@ -278,12 +215,12 @@ var OutboxWorker = (function () {
       .everyMinutes(5)
       .create();
 
-    Logger.log('[OutboxWorker] Installed 5-minute cron trigger. Trigger ID: ' + newTrigger.getUniqueId());
+    Logger.log('[OutboxWorker] Installed 5-minute cron trigger (ID: ' + newTrigger.getUniqueId() + ')');
     return 'Trigger installed successfully (ID: ' + newTrigger.getUniqueId() + ')';
   }
 
   /**
-   * Removes all installable triggers associated with `processOutbox`.
+   * Removes all active triggers for processOutbox().
    */
   function removeOutboxTrigger() {
     var triggers = ScriptApp.getProjectTriggers();
@@ -301,7 +238,7 @@ var OutboxWorker = (function () {
   return {
     processOutbox: processOutbox,
     setupOutboxTrigger: setupOutboxTrigger,
-    removeOutboxTrigger: removeOutboxTrigger
+    removeOutboxTrigger: removeOutboxTrigger,
+    buildEmail: buildEmail
   };
 })();
-

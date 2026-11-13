@@ -1,11 +1,13 @@
 /**
- * CSE Research Hub — Google Apps Script Master Entry Point
+ * CSE Research Hub — Simplified Apps Script Entry Point
  *
- * Exposes top-level functions required by Google Apps Script runtime:
- * - doGet(e): Renders read-only applicant review confirmation page.
+ * Exposes top-level functions required by the Google Apps Script runtime:
+ * - doGet(e): Serves the confirmation page for email review links.
  * - doPost(e): Processes authenticated administrative approval / rejection.
- * - processOutbox(): Cron task invoked by installable 5-minute trigger.
- * - Administrative utilities for setup, authentication, and diagnostic testing.
+ * - processOutbox(): Scheduled cron function triggered every 5 minutes.
+ * - setupOutboxTrigger(): Installs the 5-minute recurring time-driven trigger.
+ * - removeOutboxTrigger(): Removes active triggers for processOutbox().
+ * - testOutboxWorker(): Manual diagnostic test to verify Firestore and Gmail access.
  */
 
 /**
@@ -13,7 +15,7 @@
  * Serves read-only confirmation screen for email action links.
  */
 function doGet(e) {
-  return ApprovalWebApp.handleGet(e);
+  return Approval.handleGet(e);
 }
 
 /**
@@ -21,7 +23,7 @@ function doGet(e) {
  * Executes administrative profile status mutation after confirmation.
  */
 function doPost(e) {
-  return ApprovalWebApp.handlePost(e);
+  return Approval.handlePost(e);
 }
 
 /**
@@ -34,8 +36,6 @@ function processOutbox() {
 
 /**
  * Installs the 5-minute recurring time-driven trigger for processOutbox().
- * Idempotent: checks for existing triggers before creating.
- *
  * Run once from the Apps Script editor after configuration.
  */
 function setupOutboxTrigger() {
@@ -51,48 +51,37 @@ function removeOutboxTrigger() {
 }
 
 /**
- * One-time setup function to bootstrap the notification bot account.
- * Exchanging a temporary password for a long-lived refresh token.
- *
- * @param {string} tempPassword - Temporary bot password (or stored in TEMP_BOT_PASSWORD)
+ * Manual diagnostic utility to verify configuration, Firestore REST access,
+ * and remaining email quota. Run from the Apps Script editor toolbar.
  */
-function bootstrapBotAuthentication(tempPassword) {
-  return FirebaseAuth.bootstrapBotAuthentication(tempPassword);
-}
-
-/**
- * Diagnostic utility to test bot credentials and Firestore connectivity.
- * Verifies that the bot can authenticate and read the outbox collection.
- *
- * Run manually from the Apps Script editor to verify setup before enabling triggers.
- */
-function testBotConnection() {
+function testOutboxWorker() {
   try {
-    Logger.log('[Diagnostic] 1. Testing bot ID token acquisition...');
-    var token = FirebaseAuth.getBotIdToken();
-    Logger.log('[Diagnostic] ID token successfully retrieved.');
+    Logger.log('[Diagnostic] 1. Checking Script Properties...');
+    var props = PropertiesService.getScriptProperties().getProperties();
+    var projectId = props.FIREBASE_PROJECT_ID || 'cse-research-hub';
+    var adminEmail = props.ADMIN_EMAIL || 'anik.khondokar09@gmail.com';
+    var adminUid = props.ADMIN_UID;
+    var hmacSecret = props.HMAC_SECRET;
 
-    Logger.log('[Diagnostic] 2. Testing outbox queue query...');
-    var items = FirestoreClient.queryQueuedOutbox(token, 1);
-    Logger.log('[Diagnostic] Outbox query succeeded. Queued items count: ' + items.length);
+    if (!adminUid) {
+      throw new Error('Missing required Script Property: ADMIN_UID');
+    }
+    if (!hmacSecret || hmacSecret.length < 32) {
+      throw new Error('Missing or too short Script Property: HMAC_SECRET (min 32 chars)');
+    }
+    Logger.log('[Diagnostic] Properties verified. Project: ' + projectId + ', Admin: ' + adminEmail);
+
+    Logger.log('[Diagnostic] 2. Testing Firestore REST API connectivity via OAuth token...');
+    var queuedItems = FirestoreClient.queryQueuedOutbox(1);
+    Logger.log('[Diagnostic] Firestore connectivity verified. Queued items count: ' + queuedItems.length);
 
     Logger.log('[Diagnostic] 3. Testing remaining daily email quota...');
     var quota = MailApp.getRemainingDailyQuota();
     Logger.log('[Diagnostic] Remaining daily email quota: ' + quota);
 
-    return 'Bot connection and Firestore connectivity verified successfully. Remaining email quota: ' + quota;
+    return 'All checks passed! Project: ' + projectId + ', Remaining email quota: ' + quota;
   } catch (err) {
     Logger.log('[Diagnostic ERROR] ' + err.message);
     throw err;
   }
 }
-
-/**
- * Checks and logs the remaining daily email quota for the active account.
- */
-function checkDailyEmailQuota() {
-  var remaining = MailApp.getRemainingDailyQuota();
-  Logger.log('Remaining daily email quota: ' + remaining);
-  return remaining;
-}
-
