@@ -1,11 +1,5 @@
 import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
-import {
-  initializeAuth,
-  getAuth,
-  browserLocalPersistence,
-  GoogleAuthProvider,
-  type Auth
-} from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, type Auth } from 'firebase/auth';
 import { getFirestore, type Firestore } from 'firebase/firestore';
 import { ENV } from './env';
 
@@ -17,23 +11,12 @@ const firebaseConfig = {
   messagingSenderId: ENV.firebaseMessagingSenderId
 };
 
-const app: FirebaseApp = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-
-let authInstance: Auth;
-try {
-  authInstance = initializeAuth(app, {
-    persistence: browserLocalPersistence
-  });
-} catch {
-  authInstance = getAuth(app);
-}
-
-export const auth = authInstance;
-export const db: Firestore = getFirestore(app);
-export const googleAuthProvider = new GoogleAuthProvider();
-googleAuthProvider.setCustomParameters({
+export const app: FirebaseApp = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+export const auth: Auth = getAuth(app);
+export const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({
   prompt: 'select_account'
 });
+export const db: Firestore = getFirestore(app);
 
 export default app;
-

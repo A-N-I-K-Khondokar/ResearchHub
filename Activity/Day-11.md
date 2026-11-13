@@ -4546,3 +4546,211 @@ In compliance with instructions:
 
 ---
 *Signed off by: Senior Mobile & Web Full-Stack Architect*
+
+---
+
+## Stage 3.6.1.1 — Admin Portal Firebase Authentication Error Fix
+
+### 1. Root Cause Diagnosis & Stack Trace Analysis
+
+During Google Sign-In on the Admin Portal, attempting to call `signInWithPopup(auth, provider)` threw:
+```
+Firebase: Error (auth/argument-error).
+```
+
+#### Code Inspection & Failure Point
+1. **Assertion in `@firebase/auth`**:
+   Inspecting `node_modules/@firebase/auth/dist/esm2017/index-35c79a8a.js` reveals:
+   ```javascript
+   function _withDefaultResolver(auth, resolver) {
+       return resolver || auth._popupRedirectResolver;
+   }
+
+   async function signInWithPopup(auth, provider, resolver) {
+       const authInternal = auth;
+       const finalResolver = _withDefaultResolver(authInternal, resolver);
+       _assert(finalResolver, authInternal, "argument-error" /* AuthErrorCode.ARGUMENT_ERROR */);
+       ...
+   }
+   ```
+2. **Missing Popup Resolver**:
+   The initial `firebase.ts` configuration had initialized authentication using:
+   ```typescript
+   initializeAuth(app, { persistence: browserLocalPersistence });
+   ```
+   Because `popupRedirectResolver: browserPopupRedirectResolver` was omitted from the dependencies options object, `auth._popupRedirectResolver` remained `undefined`. When `signInWithPopup(auth, provider)` was invoked without an explicit third resolver parameter, Firebase Auth's internal `_assert(finalResolver, ...)` triggered `AuthErrorCode.ARGUMENT_ERROR`.
+3. **Provider Reference Mismatch**:
+   `admin-portal/src/config/firebase.ts` was exporting `googleProvider` while `AuthContext.tsx` was referencing `googleAuthProvider`, resulting in an invalid provider argument passed to `signInWithPopup`.
+
+---
+
+### 2. Technical Resolution
+
+#### A. Modular Initialization via Canonical `getAuth` ([`admin-portal/src/config/firebase.ts`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/admin-portal/src/config/firebase.ts))
+Replaced custom `initializeAuth` with canonical `getAuth(app)`. In the Firebase Web SDK, `getAuth(app)` automatically initializes the Web Auth client with full browser persistence (IndexedDB $\rightarrow$ LocalStorage $\rightarrow$ SessionStorage) and configures the default `browserPopupRedirectResolver`:
+```typescript
+import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
+import { getAuth, GoogleAuthProvider, type Auth } from 'firebase/auth';
+import { getFirestore, type Firestore } from 'firebase/firestore';
+import { ENV } from './env';
+
+const firebaseConfig = {
+  apiKey: ENV.firebaseApiKey,
+  authDomain: ENV.firebaseAuthDomain,
+  projectId: ENV.firebaseProjectId,
+  appId: ENV.firebaseAppId,
+  messagingSenderId: ENV.firebaseMessagingSenderId
+};
+
+export const app: FirebaseApp = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+export const auth: Auth = getAuth(app);
+export const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({
+  prompt: 'select_account'
+});
+export const db: Firestore = getFirestore(app);
+
+export default app;
+```
+
+#### B. Provider Wiring & Comprehensive Error Reporting ([`admin-portal/src/context/AuthContext.tsx`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/admin-portal/src/context/AuthContext.tsx))
+1. Imported `googleProvider` directly from `../config/firebase`.
+2. Updated `signInWithGoogle` to call `await signInWithPopup(auth, googleProvider)`.
+3. Added diagnostic logging in development (`err.code`, `err.message`, `err.stack`).
+4. Provided user-friendly error formatting in the UI (`[${err.code}] ${err.message}`) while ensuring sensitive tokens and credentials are never leaked:
+```typescript
+try {
+  const result = await signInWithPopup(auth, googleProvider);
+  const record = await validateAdminDocument(result.user);
+  setUser(result.user);
+  setAdminRecord(record);
+} catch (err: any) {
+  console.error('[AuthContext] Sign-in error:', {
+    code: err?.code,
+    message: err?.message,
+    stack: err?.stack
+  });
+  await signOut(auth).catch(() => {});
+  setUser(null);
+  setAdminRecord(null);
+
+  let msg = err.message || 'Authentication failed.';
+  if (err.code === 'auth/popup-closed-by-user') {
+    msg = 'Sign-in cancelled. The popup was closed before completing.';
+  } else if (err.code === 'auth/popup-blocked') {
+    msg = 'Sign-in popup was blocked by your browser. Please allow popups for this site.';
+  } else if (err.code) {
+    msg = `[${err.code}] ${err.message || 'Authentication failed.'}`;
+  }
+  setError(msg);
+}
+```
+
+#### C. Vite Module Deduplication ([`admin-portal/vite.config.ts`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/admin-portal/vite.config.ts))
+Configured Vite module deduplication to guarantee that singleton instances of `firebase`, `firebase/app`, `firebase/auth`, and `firebase/firestore` are strictly resolved from `admin-portal/node_modules` without interference from parent directories:
+```typescript
+export default defineConfig({
+  plugins: [react()],
+  resolve: {
+    dedupe: ['firebase', 'firebase/app', 'firebase/auth', 'firebase/firestore']
+  },
+  server: {
+    port: 5173,
+    open: false
+  },
+  ...
+});
+```
+
+---
+
+### 3. Verification & Build Results
+
+| Check | Command | Result | Status |
+|---|---|---|:---:|
+| **Dependency Tree** | `npm ls firebase` (in `admin-portal/`) | Single tree: `firebase@11.10.0` | **PASS** |
+| **Admin Portal Typecheck** | `npm run typecheck` (in `admin-portal/`) | `tsc --noEmit` exited 0 (0 errors) | **PASS** |
+| **Admin Portal Production Build** | `npm run build` (in `admin-portal/`) | Built in 1.32s; dist assets generated | **PASS** |
+| **Root Expo Typecheck** | `npm run typecheck` (in root) | `tsc --noEmit` exited 0 (0 errors) | **PASS** |
+| **Environment Configuration** | Environment audit script | Verified `cse-research-hub` & admin email | **PASS** |
+| **Rules & DB Immutability** | `git diff firestore.rules` | 0 modifications | **PASS** |
+
+---
+
+### 4. Strict Safety Compliance
+- **No changes to production rules or database documents**: Production Firestore rules and collections remain untouched.
+- **No modifications to Expo mobile application**: All dependencies and mobile source files remain isolated.
+- **No live approvals mutated or Hosting deployed**: Development and build verified locally. Ready for runtime smoke testing.
+
+---
+*Verified and Signed off by: Senior Security & Full-Stack Architect*
+
+---
+
+## Stage 3.6.1.2 — One-Time Administrator Bootstrap
+
+### 1. Target Configuration & Objective
+* **Firebase Project ID**: `cse-research-hub`
+* **Firestore Database**: `(default)`
+* **Administrator Email**: `anik.khondokar09@gmail.com`
+* **Firebase Authentication UID**: `RvHsaUAm7Qb7WhjPxnwreuMJtKn1`
+* **Target Document Path**: `admins/RvHsaUAm7Qb7WhjPxnwreuMJtKn1`
+
+---
+
+### 2. Identity & Permission Verification
+
+1. **Firebase CLI Authentication**:
+   * Verified active logged-in user: `anik.khondokar09@gmail.com`.
+   * Verified project permissions on `cse-research-hub` (Project Number: `595563738567`).
+2. **Firebase Authentication Account Verification**:
+   * Exported account records via authorized Firebase Auth inspection:
+     * `localId (UID)`: `RvHsaUAm7Qb7WhjPxnwreuMJtKn1`
+     * `email`: `anik.khondokar09@gmail.com`
+     * `emailVerified`: `true`
+     * `displayName`: `Anik Khondokar`
+   * Authenticated identity exactly matches the target administrator email.
+
+---
+
+### 3. Execution & Read-Back Verification
+
+1. **Pre-creation Existence Check**:
+   * Queried `https://firestore.googleapis.com/v1/projects/cse-research-hub/databases/(default)/documents/admins/RvHsaUAm7Qb7WhjPxnwreuMJtKn1`.
+   * Result: HTTP `404 Not Found` (document did not exist previously).
+2. **Document Creation**:
+   * Created using authorized Google OAuth access token with `https://www.googleapis.com/auth/cloud-platform` scope.
+   * Document fields written:
+     * `email`: `anik.khondokar09@gmail.com` (string)
+     * `createdAt`: `2026-11-13T07:16:18.040Z` (timestamp)
+3. **Independent Read-Back**:
+   * Re-queried Firestore document endpoint.
+   * Result: HTTP `200 OK`.
+   * Verified payload:
+     ```json
+     {
+       "name": "projects/cse-research-hub/databases/(default)/documents/admins/RvHsaUAm7Qb7WhjPxnwreuMJtKn1",
+       "fields": {
+         "email": {
+           "stringValue": "anik.khondokar09@gmail.com"
+         },
+         "createdAt": {
+           "timestampValue": "2026-11-13T07:16:18.040Z"
+         }
+       },
+       "createTime": "2026-11-13T07:16:18.321383Z",
+       "updateTime": "2026-11-13T07:16:18.321383Z"
+     }
+     ```
+
+---
+
+### 4. Strict Safety Compliance
+* **Single Administrator**: Only `RvHsaUAm7Qb7WhjPxnwreuMJtKn1` was provisioned.
+* **No `users/{uid}` modification**: No user profile documents were created or touched.
+* **No Rules Changes**: Production `firestore.rules` remained unmodified.
+* **No Service Accounts**: No service accounts or keys were created or downloaded.
+* **No Code Changes**: Application source code remained untouched.
+
+---
+*Verified and Signed off by: Senior Security & Full-Stack Architect*

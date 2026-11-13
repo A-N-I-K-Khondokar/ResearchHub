@@ -6,7 +6,7 @@ import {
   type User
 } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
-import { auth, db, googleAuthProvider } from '../config/firebase';
+import { auth, db, googleProvider } from '../config/firebase';
 import { isAuthorizedAdminEmail, ENV } from '../config/env';
 import type { AdminAuthContextType, AdminRecord } from '../types/auth.types';
 
@@ -119,12 +119,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setAttemptedUserEmail(null);
 
     try {
-      const result = await signInWithPopup(auth, googleAuthProvider);
+      const result = await signInWithPopup(auth, googleProvider);
       const record = await validateAdminDocument(result.user);
       setUser(result.user);
       setAdminRecord(record);
     } catch (err: any) {
-      console.error('[AuthContext] Sign-in error:', err);
+      console.error('[AuthContext] Sign-in error:', {
+        code: err?.code,
+        message: err?.message,
+        stack: err?.stack
+      });
       // Clean up Firebase Auth state on failure
       await signOut(auth).catch(() => {});
       setUser(null);
@@ -135,6 +139,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         msg = 'Sign-in cancelled. The popup was closed before completing.';
       } else if (err.code === 'auth/popup-blocked') {
         msg = 'Sign-in popup was blocked by your browser. Please allow popups for this site.';
+      } else if (err.code) {
+        msg = `[${err.code}] ${err.message || 'Authentication failed.'}`;
       }
       setError(msg);
     } finally {
