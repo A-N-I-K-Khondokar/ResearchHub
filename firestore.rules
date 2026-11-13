@@ -110,6 +110,42 @@ service cloud.firestore {
     //   - update: Administrators ONLY via positive allowlist (`status`, `reviewedAt`, `reviewedBy`, `reviewNotes`).
     //   - delete: Administrators ONLY.
     //
+    // ---------------------------------------------------------------
+    // 4. Collection: /admin_email_outbox/{requestId}
+    // ---------------------------------------------------------------
+    // Document ID: Firebase Authentication UID of the applicant (`requestId == request.auth.uid`).
+    //
+    // Schema & Constraints:
+    //   - uid: string (required, immutable) - Applicant UID matching document ID.
+    //   - userEmail: string (required, immutable) - Verified email from auth token.
+    //   - displayName: string (required, immutable, 1-100 chars) - Full scholarly name.
+    //   - department: string (required, immutable, 1-100 chars) - Academic department.
+    //   - designation: string (required, immutable, 1-100 chars) - Academic designation.
+    //   - program: string | null (optional, max 100 chars) - Academic program.
+    //   - batch: string | null (optional, max 50 chars) - Academic cohort/batch.
+    //   - researchInterests: list of strings (required, max 30 items) - Research domain tags.
+    //   - deliveryStatus: string (required, 'queued' | 'sending' | 'sent' | 'failed').
+    //   - createdAt: timestamp (required, immutable, request.time) - Queue timestamp.
+    //   - sentAt: timestamp | null (set when email is sent).
+    //   - attemptCount: int (required, >= 0, initially 0).
+    //   - lastAttemptAt: timestamp | null (set upon dispatch attempt).
+    //   - lastError: string | null (optional, max 1000 chars) - Dispatch error message.
+    //
+    // Access Policies:
+    //   - read: Notification service identity or administrators only.
+    //   - create: Authenticated email-verified applicant creating in an atomic batch with /users/{uid}.
+    //   - update: Notification service identity only via positive allowlist.
+    //   - delete: Administrators ONLY.
+    //
+    // ---------------------------------------------------------------
+    // 5. Collection: /notification_services/{serviceId}
+    // ---------------------------------------------------------------
+    // Document ID: Firebase Authentication UID of dedicated notification service accounts.
+    //
+    // Access Policies:
+    //   - read: Administrators or service account itself.
+    //   - write: Console / Admin SDK ONLY (`allow write: false`).
+    //
     // ===============================================================
 
     // ===============================================================
@@ -142,6 +178,12 @@ service cloud.firestore {
       return isAuthenticated() &&
         exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.approvalStatus == 'approved';
+    }
+
+    // Check if the authenticated user is registered in the notification services collection
+    function isNotificationService() {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/notification_services/$(request.auth.uid));
     }
 
     // Validate email format and bounded length
@@ -276,6 +318,7 @@ service cloud.firestore {
       // 6. Approval metadata must be null.
       // 7. Timestamps must be set to request.time.
       // 8. Strict schema and field constraints enforced via domain validator.
+      // 9. Mandatory matching notification outbox request created in the same atomic batch.
       allow create: if isOwner(userId) &&
         isEmailVerified() &&
         !exists(/databases/$(database)/documents/users/$(userId)) &&
@@ -288,7 +331,19 @@ service cloud.firestore {
         request.resource.data.rejectionReason == null &&
         request.resource.data.createdAt == request.time &&
         request.resource.data.updatedAt == request.time &&
-        request.resource.data.requestedAt == request.time;
+        request.resource.data.requestedAt == request.time &&
+        existsAfter(/databases/$(database)/documents/admin_email_outbox/$(userId)) &&
+        getAfter(/databases/$(database)/documents/admin_email_outbox/$(userId)).data.uid == userId &&
+        getAfter(/databases/$(database)/documents/admin_email_outbox/$(userId)).data.userEmail == request.auth.token.email &&
+        getAfter(/databases/$(database)/documents/admin_email_outbox/$(userId)).data.displayName == request.resource.data.displayName &&
+        getAfter(/databases/$(database)/documents/admin_email_outbox/$(userId)).data.department == request.resource.data.department &&
+        getAfter(/databases/$(database)/documents/admin_email_outbox/$(userId)).data.designation == request.resource.data.designation &&
+        getAfter(/databases/$(database)/documents/admin_email_outbox/$(userId)).data.program == request.resource.data.program &&
+        getAfter(/databases/$(database)/documents/admin_email_outbox/$(userId)).data.batch == request.resource.data.batch &&
+        getAfter(/databases/$(database)/documents/admin_email_outbox/$(userId)).data.researchInterests == request.resource.data.researchInterests &&
+        getAfter(/databases/$(database)/documents/admin_email_outbox/$(userId)).data.deliveryStatus == 'queued' &&
+        getAfter(/databases/$(database)/documents/admin_email_outbox/$(userId)).data.attemptCount == 0 &&
+        getAfter(/databases/$(database)/documents/admin_email_outbox/$(userId)).data.createdAt == request.time;
 
       // Update permissions:
       // Flow A: Owner updating their own editable profile details via explicit allowlist.
@@ -482,6 +537,140 @@ service cloud.firestore {
 
       // Only administrators can delete admin requests
       allow delete: if isAdmin();
+    }
+
+    // ===============================================================
+    // Domain Validators: Admin Email Notification Outbox
+    // ===============================================================
+
+    function outboxHasOnlyAllowedFields(data) {
+      return data.keys().hasOnly([
+        'uid',
+        'userEmail',
+        'displayName',
+        'department',
+        'designation',
+        'program',
+        'batch',
+        'researchInterests',
+        'deliveryStatus',
+        'createdAt',
+        'sentAt',
+        'attemptCount',
+        'lastAttemptAt',
+        'lastError'
+      ]);
+    }
+
+    function outboxHasRequiredFields(data) {
+      return data.keys().hasAll([
+        'uid',
+        'userEmail',
+        'displayName',
+        'department',
+        'designation',
+        'researchInterests',
+        'deliveryStatus',
+        'createdAt',
+        'attemptCount'
+      ]);
+    }
+
+    // Domain validator for /admin_email_outbox/{requestId} documents
+    function isValidOutboxDoc(data) {
+      return outboxHasOnlyAllowedFields(data) &&
+        outboxHasRequiredFields(data) &&
+        isValidString(data.uid, 1, 128) &&
+        isValidEmail(data.userEmail) &&
+        isValidString(data.displayName, 1, 100) &&
+        isValidString(data.department, 1, 100) &&
+        isValidString(data.designation, 1, 100) &&
+        isOptionalString(data, 'program', 100) &&
+        isOptionalString(data, 'batch', 50) &&
+        isValidList(data.researchInterests, 30) &&
+        data.deliveryStatus in ['queued', 'sending', 'sent', 'failed'] &&
+        data.createdAt is timestamp &&
+        isOptionalTimestamp(data, 'sentAt') &&
+        data.attemptCount is int && data.attemptCount >= 0 &&
+        isOptionalTimestamp(data, 'lastAttemptAt') &&
+        isOptionalString(data, 'lastError', 1000);
+    }
+
+    // ===============================================================
+    // Rules: Admin Email Notification Outbox (/admin_email_outbox/{requestId})
+    // ===============================================================
+    match /admin_email_outbox/{requestId} {
+      // Read permissions: Notification service identity or administrators only.
+      // Ordinary applicants cannot inspect, read, or list outbox records.
+      allow read: if isNotificationService() || isAdmin();
+
+      // Create permissions:
+      // 1. Must be authenticated with verified email.
+      // 2. Document ID and data.uid must match request.auth.uid.
+      // 3. Email must match auth token email.
+      // 4. Must not overwrite an existing outbox document.
+      // 5. Initial deliveryStatus must be strictly 'queued'.
+      // 6. attemptCount must be 0.
+      // 7. sentAt, lastAttemptAt, and lastError must be null.
+      // 8. createdAt must equal request.time.
+      // 9. Atomic verification: A corresponding pending profile in /users/{requestId}
+      //    must be created in the same atomic batch, matching all applicant details.
+      allow create: if isOwner(requestId) &&
+        isEmailVerified() &&
+        !exists(/databases/$(database)/documents/admin_email_outbox/$(requestId)) &&
+        isValidOutboxDoc(request.resource.data) &&
+        request.resource.data.uid == requestId &&
+        request.resource.data.userEmail == request.auth.token.email &&
+        request.resource.data.deliveryStatus == 'queued' &&
+        request.resource.data.attemptCount == 0 &&
+        request.resource.data.sentAt == null &&
+        request.resource.data.lastAttemptAt == null &&
+        request.resource.data.lastError == null &&
+        request.resource.data.createdAt == request.time &&
+        existsAfter(/databases/$(database)/documents/users/$(requestId)) &&
+        getAfter(/databases/$(database)/documents/users/$(requestId)).data.approvalStatus == 'pending' &&
+        getAfter(/databases/$(database)/documents/users/$(requestId)).data.uid == requestId &&
+        getAfter(/databases/$(database)/documents/users/$(requestId)).data.email == request.auth.token.email &&
+        getAfter(/databases/$(database)/documents/users/$(requestId)).data.displayName == request.resource.data.displayName &&
+        getAfter(/databases/$(database)/documents/users/$(requestId)).data.department == request.resource.data.department &&
+        getAfter(/databases/$(database)/documents/users/$(requestId)).data.designation == request.resource.data.designation &&
+        getAfter(/databases/$(database)/documents/users/$(requestId)).data.program == request.resource.data.program &&
+        getAfter(/databases/$(database)/documents/users/$(requestId)).data.batch == request.resource.data.batch &&
+        getAfter(/databases/$(database)/documents/users/$(requestId)).data.researchInterests == request.resource.data.researchInterests;
+
+      // Update permissions:
+      // Notification service bot only, updating delivery status and delivery metadata via positive allowlist.
+      // Ordinary applicants cannot update or mark notifications as sent.
+      allow update: if isNotificationService() &&
+        isValidOutboxDoc(request.resource.data) &&
+        request.resource.data.uid == resource.data.uid &&
+        request.resource.data.userEmail == resource.data.userEmail &&
+        request.resource.data.displayName == resource.data.displayName &&
+        request.resource.data.department == resource.data.department &&
+        request.resource.data.designation == resource.data.designation &&
+        request.resource.data.createdAt == resource.data.createdAt &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'deliveryStatus',
+          'sentAt',
+          'attemptCount',
+          'lastAttemptAt',
+          'lastError'
+        ]);
+
+      // Delete permissions: Administrators only. Applicants cannot delete outbox records.
+      allow delete: if isAdmin();
+    }
+
+    // ===============================================================
+    // Rules: Notification Services Collection (/notification_services/{serviceId})
+    // ===============================================================
+    match /notification_services/{serviceId} {
+      // Read permissions: Only administrators or the service account itself can read
+      allow read: if isAdmin() || (isAuthenticated() && request.auth.uid == serviceId && isNotificationService());
+
+      // Client-side creation, modification, and deletion are disabled.
+      // Service identities must be provisioned via Firebase Console or Admin SDK.
+      allow write: if false;
     }
 
     // ===============================================================

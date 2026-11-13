@@ -3836,3 +3836,243 @@ In [`src/services/user.service.ts`](file:///Users/anikkhondokar/Documents/6th%20
 
 ---
 *Signed off by: Senior Mobile Architect & Firebase Solutions Engineer*
+
+---
+
+## Stage 3.5.2 — Secure Admin Email Notification Outbox
+
+### 1. Architectural Purpose & Overview
+Stage 3.5.2 establishes the secure Firestore notification outbox foundation for CSE Research Hub (`admin_email_outbox/{uid}`). On the free Firebase Spark plan without native Cloud Functions for email dispatch, outbound notification requests are generated when an authenticated, email-verified user submits their academic profile.
+
+Delivery processing will eventually be handled asynchronously by an external worker (Google Apps Script consuming Gmail API to notify `anik.khondokar09@gmail.com`). Neither Apps Script nor active email sending is implemented in this stage; this stage exclusively establishes the database-level outbox data model, outbox types, atomic write guarantees, and granular Firestore Security Rules.
+
+---
+
+### 2. Notification Outbox Schema (`admin_email_outbox/{uid}`)
+
+Defined in [`src/types/user.types.ts`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/src/types/user.types.ts):
+
+```typescript
+export type OutboxDeliveryStatus = 'queued' | 'sending' | 'sent' | 'failed';
+
+export interface AdminEmailOutboxDoc {
+  uid: string;
+  userEmail: string;
+  displayName: string;
+  department: string;
+  designation: string;
+  program: string | null;
+  batch: string | null;
+  researchInterests: string[];
+  deliveryStatus: OutboxDeliveryStatus;
+  createdAt: Timestamp;
+  sentAt: Timestamp | null;
+  attemptCount: number;
+  lastAttemptAt: Timestamp | null;
+  lastError: string | null;
+}
+```
+
+* Strict applicant minimization: Contains only academic profile details necessary for administrative review.
+* No passwords, tokens, API keys, or sensitive credentials are ever recorded.
+* The outbox document ID matches the authenticated user UID (`admin_email_outbox/{uid}`).
+* `users/{uid}` remains the sole authoritative source of approval status. The outbox status tracks delivery state only (`deliveryStatus`).
+
+---
+
+### 3. Collection Rules & Service Architecture
+* Security rules for `/admin_email_outbox/{requestId}` and `/notification_services/{serviceId}` configured in `firestore.rules`.
+* Applicants are strictly denied read, update, or delete access to outbox records.
+* Notification service identities (`isNotificationService()`) are permitted to read outbox documents and update delivery status fields via an explicit allowlist.
+
+---
+
+## Stage 3.5.2.1 — Mandatory Atomic Profile and Notification Creation
+
+### 1. Architectural Purpose & Objective
+In Stage 3.5.2, `TEST-48: Standalone profile creation permitted for benchmark profile compatibility → ALLOW` was identified as violating the core architectural requirement that every new profile submission must generate an administrator email notification request in `admin_email_outbox/{uid}`. Under no circumstances should an applicant profile be registered without generating a notification request for review.
+
+Stage 3.5.2.1 enforces a strict, bi-directional transactional invariant between `/users/{userId}` and `/admin_email_outbox/{userId}` in Cloud Firestore Security Rules, ensuring that:
+1. A new profile in `/users/{userId}` **cannot** be created without a simultaneous matching document in `admin_email_outbox/{userId}` within the same atomic batch write.
+2. A new outbox record in `admin_email_outbox/{userId}` **cannot** be created without a simultaneous matching pending profile in `users/{userId}` within the same atomic batch write.
+3. Standalone profile creation (`setDoc(users/{uid})` alone) is strictly **DENIED**.
+
+---
+
+### 2. Firestore Security Rules Enforcement
+
+In [`firestore.rules`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/firestore.rules):
+
+#### A. `/users/{userId}` Create Rule
+Enforces transactional cross-document validation using `existsAfter()` and `getAfter()`:
+```javascript
+existsAfter(/databases/$(database)/documents/admin_email_outbox/$(userId)) &&
+getAfter(/databases/$(database)/documents/admin_email_outbox/$(userId)).data.uid == userId &&
+getAfter(/databases/$(database)/documents/admin_email_outbox/$(userId)).data.userEmail == request.auth.token.email &&
+getAfter(/databases/$(database)/documents/admin_email_outbox/$(userId)).data.displayName == request.resource.data.displayName &&
+getAfter(/databases/$(database)/documents/admin_email_outbox/$(userId)).data.department == request.resource.data.department &&
+getAfter(/databases/$(database)/documents/admin_email_outbox/$(userId)).data.designation == request.resource.data.designation &&
+getAfter(/databases/$(database)/documents/admin_email_outbox/$(userId)).data.program == request.resource.data.program &&
+getAfter(/databases/$(database)/documents/admin_email_outbox/$(userId)).data.batch == request.resource.data.batch &&
+getAfter(/databases/$(database)/documents/admin_email_outbox/$(userId)).data.researchInterests == request.resource.data.researchInterests &&
+getAfter(/databases/$(database)/documents/admin_email_outbox/$(userId)).data.deliveryStatus == 'queued' &&
+getAfter(/databases/$(database)/documents/admin_email_outbox/$(userId)).data.attemptCount == 0 &&
+getAfter(/databases/$(database)/documents/admin_email_outbox/$(userId)).data.createdAt == request.time;
+```
+
+#### B. `/admin_email_outbox/{requestId}` Create Rule
+Symmetrically cross-validates the accompanying pending user profile:
+```javascript
+existsAfter(/databases/$(database)/documents/users/$(requestId)) &&
+getAfter(/databases/$(database)/documents/users/$(requestId)).data.approvalStatus == 'pending' &&
+getAfter(/databases/$(database)/documents/users/$(requestId)).data.uid == requestId &&
+getAfter(/databases/$(database)/documents/users/$(requestId)).data.email == request.auth.token.email &&
+getAfter(/databases/$(database)/documents/users/$(requestId)).data.displayName == request.resource.data.displayName &&
+getAfter(/databases/$(database)/documents/users/$(requestId)).data.department == request.resource.data.department &&
+getAfter(/databases/$(database)/documents/users/$(requestId)).data.designation == request.resource.data.designation &&
+getAfter(/databases/$(database)/documents/users/$(requestId)).data.program == request.resource.data.program &&
+getAfter(/databases/$(database)/documents/users/$(requestId)).data.batch == request.resource.data.batch &&
+getAfter(/databases/$(database)/documents/users/$(requestId)).data.researchInterests == request.resource.data.researchInterests;
+```
+
+---
+
+### 3. Application Service Layer (`src/services/user.service.ts`)
+
+In [`src/services/user.service.ts`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/src/services/user.service.ts):
+* `createPendingUserProfile(user, input)` binds both document writes inside a single `writeBatch(firestore)` commit.
+* Pre-flight checks inspect both `userDocRef` and `outboxDocRef` concurrently using `Promise.all([getDoc(userDocRef), getDoc(outboxDocRef)])` to reject creation if either document already exists.
+* Enforces `user.emailVerified === true` before building the batch.
+* Outbox document is initialized strictly with `deliveryStatus: 'queued'`, `attemptCount: 0`, null sent metadata, and `serverTimestamp()`.
+
+---
+
+### 4. Comprehensive Security Rules Test Suite (`tests/firestore/firestore.rules.test.mjs`)
+
+The emulator test suite was expanded to **72 tests** across **9 test suites**:
+1. **TEST-03**: Updated to test atomic batch creation of profile and outbox (`ALLOW`).
+2. **TEST-07**: Updated initial profile creation to use atomic batch, verifying overwrite attempts fail (`DENY`).
+3. **TEST-48**: Updated from `ALLOW` to `DENY` (`TEST-48: Standalone profile creation without matching outbox → DENY`).
+4. **Added Regression & Integrity Tests (TEST-63 to TEST-72)**:
+   - `TEST-63`: Atomic batch with mismatched outbox UID → **DENY**
+   - `TEST-64`: Atomic batch with mismatched outbox userEmail → **DENY**
+   - `TEST-65`: Atomic batch with mismatched department → **DENY**
+   - `TEST-66`: Atomic batch with mismatched designation → **DENY**
+   - `TEST-67`: Atomic batch with mismatched program → **DENY**
+   - `TEST-68`: Atomic batch with mismatched batch → **DENY**
+   - `TEST-69`: Atomic batch with mismatched researchInterests → **DENY**
+   - `TEST-70`: Atomic batch with client-generated timestamp on outbox createdAt → **DENY**
+   - `TEST-71`: Atomic batch with non-queued initial outbox status → **DENY**
+   - `TEST-72`: Atomic batch with non-zero initial outbox attemptCount → **DENY**
+
+---
+
+### 5. Verification & Testing Matrix
+
+| Verification Check | Target / Command Executed | Exit Code | Result | Status |
+|---|---|:---:|---|:---:|
+| **1. Firestore Security Rules Suite** | `npx firebase-tools emulators:exec ...` | **0** | **72 passed, 0 failed** across 9 test suites | **PASS** |
+| **2. TypeScript Compilation** | `npx tsc --noEmit` | **0** | Clean (0 compilation errors) | **PASS** |
+| **3. Expo Public Config** | `npx expo config --type public` | **0** | Clean (All native plugins & variables verified) | **PASS** |
+| **4. Metro Bundler Export** | `npx expo export --output-dir /tmp/test-export-stage-3-5-2-1` | **0** | Web (`4.6 MB`), iOS (`7.35 MB`), Android (`7.35 MB`) | **PASS** |
+| **5. Bi-directional Atomic Enforcement** | Code audit in `firestore.rules` | — | Verified: `existsAfter` and `getAfter` on both collections | **PASS** |
+| **6. Standalone Creation Invariant** | TEST-48 verification | **0** | Verified: Standalone profile creation rejected | **PASS** |
+| **7. Git Working Tree Status** | `git status --short` | **0** | Clean scoped modifications | **PASS** |
+
+---
+
+### 6. Commitments & Architectural Invariants Preserved
+* Local `firestore.rules` updated for emulator testing only; **not deployed to production**.
+* No live Firestore writes were authorized or executed against production (`cse-research-hub`).
+* Google Apps Script, Gmail delivery, and email triggers remain strictly deferred to subsequent stages.
+* Administrator approval state machine remains intact and untouched.
+* All 72 emulator security tests pass without regression.
+
+---
+*Signed off by: Senior Mobile Architect & Firebase Solutions Engineer*
+
+---
+
+## Stage 3.5.2.2 — Production Atomic Notification Rules Deployment
+
+### 1. Deployment Execution Summary
+With explicit project owner authorization and all Stage 3.5.2.1 verifications satisfied (72/72 tests passing), the updated Cloud Firestore Security Rules were deployed to production project `cse-research-hub` using pinned CLI `firebase-tools@15.35.0`.
+
+* **Target Firebase Project**: `cse-research-hub`
+* **Target Firestore Database**: `(default)`
+* **Active Deploying Account**: `anik.khondokar09@gmail.com`
+* **Local Source File**: [`firestore.rules`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/firestore.rules) (685 lines, 33,550 bytes)
+* **Pre-Deployment Backup**: [`backups/firestore.rules.production-before-outbox-2026-11-13.rules`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/backups/firestore.rules.production-before-outbox-2026-11-13.rules)
+  * Size: `22,987 bytes` (496 lines)
+  * SHA-256: `1bbaa899998ec0afe86cc526dec6dc50dc28a7ed044e1f9a9e1abb38e4df2b12`
+* **Previous Ruleset Identifier**: `projects/cse-research-hub/rulesets/e57bbd2b-01d1-4295-a444-537d8fb65ef8`
+* **New Ruleset Identifier**: `projects/cse-research-hub/rulesets/4c14b8b6-b7ac-4b77-89f5-164f3cdedaa8`
+* **Deployment Timestamp**: `2026-11-13T05:27:33.978202Z` (11:27:33 BST)
+
+---
+
+### 2. Production Deployment Command & Terminal Output
+
+**Exact Deployment Command**:
+```bash
+npx --yes firebase-tools@15.35.0 deploy --only firestore:rules --project cse-research-hub
+```
+
+**Output Captured**:
+```text
+=== Deploying to 'cse-research-hub'...
+
+i  deploying firestore
+i  firestore: ensuring required API firestore.googleapis.com is enabled...
+i  firestore: ensuring required API firestore.googleapis.com is enabled...
+i  cloud.firestore: checking firestore.rules for compilation errors...
+✔  cloud.firestore: rules file firestore.rules compiled successfully
+i  firestore: uploading rules firestore.rules...
+✔  firestore: released rules firestore.rules to cloud.firestore
+
+✔  Deploy complete!
+
+Project Console: https://console.firebase.google.com/project/cse-research-hub/overview
+```
+
+* **CLI Exit Code**: `0` (Success)
+* **Scope Restriction Verified**: Strictly deployed `firestore:rules`. Zero hosting, functions, storage, or indexes deployed.
+
+---
+
+### 3. Post-Deployment Remote Verification & Cryptographic Parity
+
+A direct query against the Google Cloud Firebase Rules REST API (`https://firebaserules.googleapis.com/v1/projects/cse-research-hub/releases/cloud.firestore`) validated the active release:
+
+* **Active Production Release**: `projects/cse-research-hub/releases/cloud.firestore`
+* **Published Ruleset Identifier**: `projects/cse-research-hub/rulesets/4c14b8b6-b7ac-4b77-89f5-164f3cdedaa8`
+* **Deployment Timestamp**: `2026-11-13T05:27:33.978202Z` (11:27:33 BST)
+* **Published File Size**: `33,550 bytes` (685 lines)
+* **Local Source File Size**: `33,550 bytes` (685 lines)
+* **Published Checksum (SHA-256)**: `486e04466f4a6b23a1bf3a4cd45a3b01f3c33af24107da15e43d19613ab53fdb`
+* **Local Source Checksum (SHA-256)**: `486e04466f4a6b23a1bf3a4cd45a3b01f3c33af24107da15e43d19613ab53fdb`
+* **Cryptographic Parity**: **EXACT MATCH (100% bit-for-bit integrity confirmed)**
+* **Compiler Warnings / Errors**: 0 warnings, 0 errors
+
+---
+
+### 4. Backup Preservation & Summary
+
+| Backup File | Scope | Size | SHA-256 Checksum | Ruleset Identifier |
+|---|---|---|---|---|
+| `backups/firestore.rules.production-before-2026-11-11.rules` | Historical Initial Locked Rules | 163 B | `ecf30f940747dcc3c5ba4993093e9a11ac9fc5df7e14b2a1512d2446923d84eb` | `0bff0e15-535d-4930-8176-081d3a23e6b2` |
+| `backups/firestore.rules.production-before-outbox-2026-11-13.rules` | Pre-Outbox State (Stage 3.4.3) | 22,987 B | `1bbaa899998ec0afe86cc526dec6dc50dc28a7ed044e1f9a9e1abb38e4df2b12` | `e57bbd2b-01d1-4295-a444-537d8fb65ef8` |
+
+Both backups are preserved and available for instant rollback if required.
+
+---
+
+### 5. Architectural Boundaries Preserved
+* **Zero Production Data Mutations**: No user profile documents were created, modified, or deleted.
+* **Zero Admin Bootstrapping**: No administrator documents created.
+* **Zero Notification Bot Provisioning**: No bot records or credentials provisioned.
+* **Zero Apps Script / Email Execution**: No external email services or script triggers configured.
+* **Zero Code / Context Mutations**: Application UI and context components intact.
+
+---
+*Signed off by: Senior Mobile Architect & Firebase Solutions Engineer*

@@ -15,6 +15,7 @@ import {
   getDoc,
   setDoc,
   updateDoc,
+  writeBatch,
   onSnapshot,
   serverTimestamp,
   type Firestore,
@@ -25,6 +26,7 @@ import type {
   UserProfile,
   CreatePendingUserProfileInput,
   UpdateUserProfileInput,
+  AdminEmailOutboxDoc,
 } from '@/types/user.types';
 
 // ---------------------------------------------------------------------------
@@ -78,12 +80,25 @@ export async function createPendingUserProfile(
     throw new Error('[user.service] Authenticated user must have an email address associated with their account.');
   }
 
-  const userDocRef = doc(firestore, 'users', user.uid);
+  if (!user.emailVerified) {
+    throw new Error('[user.service] Authenticated user must have a verified email address to submit a profile.');
+  }
 
-  // Guard: Prevent overwriting an existing profile
-  const existingDoc = await getDoc(userDocRef);
-  if (existingDoc.exists()) {
+  const userDocRef = doc(firestore, 'users', user.uid);
+  const outboxDocRef = doc(firestore, 'admin_email_outbox', user.uid);
+
+  // Guard: Prevent overwriting an existing profile or outbox notification request
+  const [existingUserDoc, existingOutboxDoc] = await Promise.all([
+    getDoc(userDocRef),
+    getDoc(outboxDocRef),
+  ]);
+
+  if (existingUserDoc.exists()) {
     throw new Error(`[user.service] A profile already exists for UID "${user.uid}". Cannot overwrite.`);
+  }
+
+  if (existingOutboxDoc.exists()) {
+    throw new Error(`[user.service] A notification request already exists for UID "${user.uid}". Cannot overwrite.`);
   }
 
   const now = serverTimestamp();
@@ -110,7 +125,28 @@ export async function createPendingUserProfile(
     updatedAt: now,
   };
 
-  await setDoc(userDocRef, newProfileDoc);
+  const newOutboxDoc: AdminEmailOutboxDoc = {
+    uid: user.uid,
+    userEmail: user.email,
+    displayName: newProfileDoc.displayName,
+    department: newProfileDoc.department,
+    designation: newProfileDoc.designation,
+    program: newProfileDoc.program,
+    batch: newProfileDoc.batch,
+    researchInterests: newProfileDoc.researchInterests,
+    deliveryStatus: 'queued',
+    createdAt: now as any,
+    sentAt: null,
+    attemptCount: 0,
+    lastAttemptAt: null,
+    lastError: null,
+  };
+
+  // Atomic creation of user profile and outbox notification request in a single batch
+  const batch = writeBatch(firestore);
+  batch.set(userDocRef, newProfileDoc);
+  batch.set(outboxDocRef, newOutboxDoc);
+  await batch.commit();
 
   const created = await getUserProfile(user.uid);
   if (!created) {

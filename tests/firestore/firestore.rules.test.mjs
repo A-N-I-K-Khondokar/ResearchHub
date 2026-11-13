@@ -21,6 +21,7 @@ import {
   setDoc,
   updateDoc,
   deleteDoc,
+  writeBatch,
   serverTimestamp,
   Timestamp,
 } from 'firebase/firestore';
@@ -52,6 +53,9 @@ const EVE_EMAIL = 'eve@gmail.com';
 
 const ADMIN_UID = 'admin_super_user';
 const ADMIN_EMAIL = 'admin@cse.university.edu';
+
+const BOT_UID = 'bot_notification_service';
+const BOT_EMAIL = 'outbox-bot@cse.university.edu';
 
 function getValidProfile(uid, email, overrides = {}) {
   return {
@@ -91,6 +95,26 @@ function getValidAdminRequest(requestId, uid, email, overrides = {}) {
     reviewedAt: null,
     reviewedBy: null,
     reviewNotes: null,
+    ...overrides,
+  };
+}
+
+function getValidOutbox(uid, email, overrides = {}) {
+  return {
+    uid,
+    userEmail: email,
+    displayName: 'Scholar Name',
+    department: 'Computer Science and Engineering',
+    designation: 'Undergraduate Researcher',
+    program: 'B.Sc. in CSE',
+    batch: 'Batch 14',
+    researchInterests: ['Machine Learning', 'Systems'],
+    deliveryStatus: 'queued',
+    createdAt: serverTimestamp(),
+    sentAt: null,
+    attemptCount: 0,
+    lastAttemptAt: null,
+    lastError: null,
     ...overrides,
   };
 }
@@ -197,6 +221,14 @@ describe('Firestore Security Rules Suite — CSE Research Hub', () => {
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
       });
+
+      // 5. Seed notification service account in /notification_services
+      await setDoc(doc(db, 'notification_services', BOT_UID), {
+        uid: BOT_UID,
+        email: BOT_EMAIL,
+        serviceName: 'Gmail Notification Dispatcher',
+        registeredAt: Timestamp.now(),
+      });
     });
   });
 
@@ -216,10 +248,12 @@ describe('Firestore Security Rules Suite — CSE Research Hub', () => {
       await assertFails(setDoc(userRef, getValidProfile(BOB_UID, BOB_EMAIL)));
     });
 
-    it('TEST-03: Verified user creates their own pending profile → ALLOW', async () => {
+    it('TEST-03: Verified user creates their own pending profile with matching outbox in atomic batch → ALLOW', async () => {
       const db = testEnv.authenticatedContext(ALICE_UID, { email: ALICE_EMAIL, email_verified: true }).firestore();
-      const userRef = doc(db, 'users', ALICE_UID);
-      await assertSucceeds(setDoc(userRef, getValidProfile(ALICE_UID, ALICE_EMAIL)));
+      const batch = writeBatch(db);
+      batch.set(doc(db, 'users', ALICE_UID), getValidProfile(ALICE_UID, ALICE_EMAIL));
+      batch.set(doc(db, 'admin_email_outbox', ALICE_UID), getValidOutbox(ALICE_UID, ALICE_EMAIL));
+      await assertSucceeds(batch.commit());
     });
 
     it('TEST-04: User creates a profile for another UID → DENY', async () => {
@@ -241,12 +275,15 @@ describe('Firestore Security Rules Suite — CSE Research Hub', () => {
     });
 
     it('TEST-07: User attempts to overwrite an existing profile → DENY', async () => {
-      // First creation succeeds
+      // First creation succeeds via mandatory atomic batch
       const aliceDb = testEnv.authenticatedContext(ALICE_UID, { email: ALICE_EMAIL, email_verified: true }).firestore();
-      const userRef = doc(aliceDb, 'users', ALICE_UID);
-      await assertSucceeds(setDoc(userRef, getValidProfile(ALICE_UID, ALICE_EMAIL)));
+      const batch = writeBatch(aliceDb);
+      batch.set(doc(aliceDb, 'users', ALICE_UID), getValidProfile(ALICE_UID, ALICE_EMAIL));
+      batch.set(doc(aliceDb, 'admin_email_outbox', ALICE_UID), getValidOutbox(ALICE_UID, ALICE_EMAIL));
+      await assertSucceeds(batch.commit());
 
       // Second attempt to create/overwrite identical document must fail
+      const userRef = doc(aliceDb, 'users', ALICE_UID);
       await assertFails(setDoc(userRef, getValidProfile(ALICE_UID, ALICE_EMAIL)));
     });
   });
@@ -256,9 +293,15 @@ describe('Firestore Security Rules Suite — CSE Research Hub', () => {
   // -------------------------------------------------------------------------
   describe('2. Profile Updates', () => {
     beforeEach(async () => {
-      // Create Alice's pending profile initially
-      const aliceDb = testEnv.authenticatedContext(ALICE_UID, { email: ALICE_EMAIL, email_verified: true }).firestore();
-      await setDoc(doc(aliceDb, 'users', ALICE_UID), getValidProfile(ALICE_UID, ALICE_EMAIL));
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        const db = context.firestore();
+        await setDoc(doc(db, 'users', ALICE_UID), {
+          ...getValidProfile(ALICE_UID, ALICE_EMAIL),
+          createdAt: Timestamp.now(),
+          updatedAt: Timestamp.now(),
+          requestedAt: Timestamp.now(),
+        });
+      });
     });
 
     it('TEST-08: User updates permitted academic profile fields → ALLOW', async () => {
@@ -336,8 +379,15 @@ describe('Firestore Security Rules Suite — CSE Research Hub', () => {
   // -------------------------------------------------------------------------
   describe('3. Profile Reads', () => {
     beforeEach(async () => {
-      const aliceDb = testEnv.authenticatedContext(ALICE_UID, { email: ALICE_EMAIL, email_verified: true }).firestore();
-      await setDoc(doc(aliceDb, 'users', ALICE_UID), getValidProfile(ALICE_UID, ALICE_EMAIL));
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        const db = context.firestore();
+        await setDoc(doc(db, 'users', ALICE_UID), {
+          ...getValidProfile(ALICE_UID, ALICE_EMAIL),
+          createdAt: Timestamp.now(),
+          updatedAt: Timestamp.now(),
+          requestedAt: Timestamp.now(),
+        });
+      });
     });
 
     it('TEST-14: User reads their own pending profile → ALLOW', async () => {
@@ -373,8 +423,15 @@ describe('Firestore Security Rules Suite — CSE Research Hub', () => {
   // -------------------------------------------------------------------------
   describe('4. Administrator Authorization', () => {
     beforeEach(async () => {
-      const aliceDb = testEnv.authenticatedContext(ALICE_UID, { email: ALICE_EMAIL, email_verified: true }).firestore();
-      await setDoc(doc(aliceDb, 'users', ALICE_UID), getValidProfile(ALICE_UID, ALICE_EMAIL));
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        const db = context.firestore();
+        await setDoc(doc(db, 'users', ALICE_UID), {
+          ...getValidProfile(ALICE_UID, ALICE_EMAIL),
+          createdAt: Timestamp.now(),
+          updatedAt: Timestamp.now(),
+          requestedAt: Timestamp.now(),
+        });
+      });
     });
 
     it('TEST-18: Non-admin reads administrator records → DENY', async () => {
@@ -501,8 +558,15 @@ describe('Firestore Security Rules Suite — CSE Research Hub', () => {
   // -------------------------------------------------------------------------
   describe('6. General Security & Additional Lifecycle Transitions', () => {
     beforeEach(async () => {
-      const aliceDb = testEnv.authenticatedContext(ALICE_UID, { email: ALICE_EMAIL, email_verified: true }).firestore();
-      await setDoc(doc(aliceDb, 'users', ALICE_UID), getValidProfile(ALICE_UID, ALICE_EMAIL));
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        const db = context.firestore();
+        await setDoc(doc(db, 'users', ALICE_UID), {
+          ...getValidProfile(ALICE_UID, ALICE_EMAIL),
+          createdAt: Timestamp.now(),
+          updatedAt: Timestamp.now(),
+          requestedAt: Timestamp.now(),
+        });
+      });
     });
 
     it('TEST-29: Unspecified collection read → DENY', async () => {
@@ -582,8 +646,15 @@ describe('Firestore Security Rules Suite — CSE Research Hub', () => {
     const REQ_ID_2 = 'req_alice_regression_002';
 
     beforeEach(async () => {
-      const aliceDb = testEnv.authenticatedContext(ALICE_UID, { email: ALICE_EMAIL, email_verified: true }).firestore();
-      await setDoc(doc(aliceDb, 'users', ALICE_UID), getValidProfile(ALICE_UID, ALICE_EMAIL));
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        const db = context.firestore();
+        await setDoc(doc(db, 'users', ALICE_UID), {
+          ...getValidProfile(ALICE_UID, ALICE_EMAIL),
+          createdAt: Timestamp.now(),
+          updatedAt: Timestamp.now(),
+          requestedAt: Timestamp.now(),
+        });
+      });
     });
 
     it('TEST-36: Pending → Suspended transition denied', async () => {
@@ -736,6 +807,291 @@ describe('Firestore Security Rules Suite — CSE Research Hub', () => {
           reviewNotes: 'Reversal attempt must fail.',
         })
       );
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // 8. Admin Email Notification Outbox & Atomic Creation (TEST-47 to TEST-72)
+  // -------------------------------------------------------------------------
+  describe('8. Admin Email Notification Outbox & Atomic Creation', () => {
+    it('TEST-47: Verified applicant creates profile and outbox together in atomic batch → ALLOW', async () => {
+      const newUid = 'user_batch_verified';
+      const newEmail = 'batch_verified@gmail.com';
+      const db = testEnv.authenticatedContext(newUid, { email: newEmail, email_verified: true }).firestore();
+      const batch = writeBatch(db);
+      batch.set(doc(db, 'users', newUid), getValidProfile(newUid, newEmail));
+      batch.set(doc(db, 'admin_email_outbox', newUid), getValidOutbox(newUid, newEmail));
+      await assertSucceeds(batch.commit());
+    });
+
+    it('TEST-48: Standalone profile creation without matching outbox → DENY', async () => {
+      const zoeUid = 'user_zoe_profile_only';
+      const zoeEmail = 'zoe@gmail.com';
+      const zoeDb = testEnv.authenticatedContext(zoeUid, { email: zoeEmail, email_verified: true }).firestore();
+      await assertFails(setDoc(doc(zoeDb, 'users', zoeUid), getValidProfile(zoeUid, zoeEmail)));
+    });
+
+    it('TEST-49: Outbox created without matching user profile → DENY', async () => {
+      const newUid = 'user_outbox_alone';
+      const newEmail = 'outbox_alone@gmail.com';
+      const db = testEnv.authenticatedContext(newUid, { email: newEmail, email_verified: true }).firestore();
+      await assertFails(setDoc(doc(db, 'admin_email_outbox', newUid), getValidOutbox(newUid, newEmail)));
+    });
+
+    it('TEST-50: User creates an outbox for another UID → DENY', async () => {
+      const db = testEnv.authenticatedContext(ALICE_UID, { email: ALICE_EMAIL, email_verified: true }).firestore();
+      const batch = writeBatch(db);
+      batch.set(doc(db, 'users', 'victim_uid'), getValidProfile('victim_uid', 'victim@gmail.com'));
+      batch.set(doc(db, 'admin_email_outbox', 'victim_uid'), getValidOutbox('victim_uid', 'victim@gmail.com'));
+      await assertFails(batch.commit());
+    });
+
+    it('TEST-51: Unverified applicant creates outbox in batch → DENY', async () => {
+      const unverifiedUid = 'user_unverified_outbox';
+      const unverifiedEmail = 'unverified_outbox@gmail.com';
+      const db = testEnv.authenticatedContext(unverifiedUid, { email: unverifiedEmail, email_verified: false }).firestore();
+      const batch = writeBatch(db);
+      batch.set(doc(db, 'users', unverifiedUid), getValidProfile(unverifiedUid, unverifiedEmail));
+      batch.set(doc(db, 'admin_email_outbox', unverifiedUid), getValidOutbox(unverifiedUid, unverifiedEmail));
+      await assertFails(batch.commit());
+    });
+
+    it('TEST-52: User reads own outbox → DENY', async () => {
+      // Seed outbox for ALICE_UID
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        const db = context.firestore();
+        await setDoc(doc(db, 'admin_email_outbox', ALICE_UID), {
+          ...getValidOutbox(ALICE_UID, ALICE_EMAIL),
+          createdAt: Timestamp.now(),
+        });
+      });
+      const aliceDb = testEnv.authenticatedContext(ALICE_UID, { email: ALICE_EMAIL, email_verified: true }).firestore();
+      await assertFails(getDoc(doc(aliceDb, 'admin_email_outbox', ALICE_UID)));
+    });
+
+    it('TEST-53: User modifies delivery status → DENY', async () => {
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        const db = context.firestore();
+        await setDoc(doc(db, 'admin_email_outbox', ALICE_UID), {
+          ...getValidOutbox(ALICE_UID, ALICE_EMAIL),
+          createdAt: Timestamp.now(),
+        });
+      });
+      const aliceDb = testEnv.authenticatedContext(ALICE_UID, { email: ALICE_EMAIL, email_verified: true }).firestore();
+      await assertFails(
+        updateDoc(doc(aliceDb, 'admin_email_outbox', ALICE_UID), {
+          deliveryStatus: 'sent',
+        })
+      );
+    });
+
+    it('TEST-54: User deletes notification request → DENY', async () => {
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        const db = context.firestore();
+        await setDoc(doc(db, 'admin_email_outbox', ALICE_UID), {
+          ...getValidOutbox(ALICE_UID, ALICE_EMAIL),
+          createdAt: Timestamp.now(),
+        });
+      });
+      const aliceDb = testEnv.authenticatedContext(ALICE_UID, { email: ALICE_EMAIL, email_verified: true }).firestore();
+      await assertFails(deleteDoc(doc(aliceDb, 'admin_email_outbox', ALICE_UID)));
+    });
+
+    it('TEST-55: Duplicate outbox request → DENY', async () => {
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        const db = context.firestore();
+        await setDoc(doc(db, 'admin_email_outbox', ALICE_UID), {
+          ...getValidOutbox(ALICE_UID, ALICE_EMAIL),
+          createdAt: Timestamp.now(),
+        });
+      });
+      const aliceDb = testEnv.authenticatedContext(ALICE_UID, { email: ALICE_EMAIL, email_verified: true }).firestore();
+      await assertFails(setDoc(doc(aliceDb, 'admin_email_outbox', ALICE_UID), getValidOutbox(ALICE_UID, ALICE_EMAIL)));
+    });
+
+    it('TEST-56: Unexpected outbox field injection → DENY', async () => {
+      const newUid = 'user_inject_field';
+      const newEmail = 'inject@gmail.com';
+      const db = testEnv.authenticatedContext(newUid, { email: newEmail, email_verified: true }).firestore();
+      const batch = writeBatch(db);
+      batch.set(doc(db, 'users', newUid), getValidProfile(newUid, newEmail));
+      batch.set(doc(db, 'admin_email_outbox', newUid), getValidOutbox(newUid, newEmail, { hackerField: 'injected' }));
+      await assertFails(batch.commit());
+    });
+
+    it('TEST-57: Outbox email mismatches Firebase Auth email → DENY', async () => {
+      const newUid = 'user_email_forged';
+      const newEmail = 'real@gmail.com';
+      const db = testEnv.authenticatedContext(newUid, { email: newEmail, email_verified: true }).firestore();
+      const batch = writeBatch(db);
+      batch.set(doc(db, 'users', newUid), getValidProfile(newUid, newEmail));
+      batch.set(doc(db, 'admin_email_outbox', newUid), getValidOutbox(newUid, 'forged@gmail.com'));
+      await assertFails(batch.commit());
+    });
+
+    it('TEST-58: Outbox identity/details mismatch the accompanying user profile → DENY', async () => {
+      const newUid = 'user_name_mismatch';
+      const newEmail = 'mismatch@gmail.com';
+      const db = testEnv.authenticatedContext(newUid, { email: newEmail, email_verified: true }).firestore();
+      const batch = writeBatch(db);
+      batch.set(doc(db, 'users', newUid), getValidProfile(newUid, newEmail, { displayName: 'Real Scholar' }));
+      batch.set(doc(db, 'admin_email_outbox', newUid), getValidOutbox(newUid, newEmail, { displayName: 'Forged Scholar' }));
+      await assertFails(batch.commit());
+    });
+
+    it('TEST-59: Unauthenticated outbox creation → DENY', async () => {
+      const db = testEnv.unauthenticatedContext().firestore();
+      await assertFails(setDoc(doc(db, 'admin_email_outbox', 'anon_uid'), getValidOutbox('anon_uid', 'anon@gmail.com')));
+    });
+
+    it('TEST-60: Ordinary user creates notification service identity → DENY', async () => {
+      const aliceDb = testEnv.authenticatedContext(ALICE_UID, { email: ALICE_EMAIL, email_verified: true }).firestore();
+      await assertFails(
+        setDoc(doc(aliceDb, 'notification_services', ALICE_UID), {
+          uid: ALICE_UID,
+          serviceName: 'Rogue Service',
+        })
+      );
+    });
+
+    it('TEST-61: Administrator can read notification outbox records → ALLOW', async () => {
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        const db = context.firestore();
+        await setDoc(doc(db, 'admin_email_outbox', ALICE_UID), {
+          ...getValidOutbox(ALICE_UID, ALICE_EMAIL),
+          createdAt: Timestamp.now(),
+        });
+      });
+      const adminDb = testEnv.authenticatedContext(ADMIN_UID, { email: ADMIN_EMAIL, email_verified: true }).firestore();
+      await assertSucceeds(getDoc(doc(adminDb, 'admin_email_outbox', ALICE_UID)));
+    });
+
+    it('TEST-62: Notification service identity can read and update delivery status → ALLOW', async () => {
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        const db = context.firestore();
+        await setDoc(doc(db, 'admin_email_outbox', ALICE_UID), {
+          ...getValidOutbox(ALICE_UID, ALICE_EMAIL),
+          createdAt: Timestamp.now(),
+        });
+      });
+      const botDb = testEnv.authenticatedContext(BOT_UID, { email: BOT_EMAIL, email_verified: true }).firestore();
+      const outboxDocRef = doc(botDb, 'admin_email_outbox', ALICE_UID);
+      await assertSucceeds(getDoc(outboxDocRef));
+      await assertSucceeds(
+        updateDoc(outboxDocRef, {
+          deliveryStatus: 'sent',
+          sentAt: serverTimestamp(),
+          attemptCount: 1,
+          lastAttemptAt: serverTimestamp(),
+          lastError: null,
+        })
+      );
+    });
+
+    it('TEST-63: Atomic batch with mismatched outbox UID → DENY', async () => {
+      const newUid = 'user_mismatch_uid';
+      const newEmail = 'mismatch_uid@gmail.com';
+      const db = testEnv.authenticatedContext(newUid, { email: newEmail, email_verified: true }).firestore();
+      const batch = writeBatch(db);
+      batch.set(doc(db, 'users', newUid), getValidProfile(newUid, newEmail));
+      batch.set(doc(db, 'admin_email_outbox', newUid), getValidOutbox('different_uid_val', newEmail));
+      await assertFails(batch.commit());
+    });
+
+    it('TEST-64: Atomic batch with mismatched outbox userEmail → DENY', async () => {
+      const newUid = 'user_mismatch_email';
+      const newEmail = 'mismatch_email@gmail.com';
+      const db = testEnv.authenticatedContext(newUid, { email: newEmail, email_verified: true }).firestore();
+      const batch = writeBatch(db);
+      batch.set(doc(db, 'users', newUid), getValidProfile(newUid, newEmail));
+      batch.set(doc(db, 'admin_email_outbox', newUid), getValidOutbox(newUid, 'forged_email@gmail.com'));
+      await assertFails(batch.commit());
+    });
+
+    it('TEST-65: Atomic batch with mismatched department → DENY', async () => {
+      const newUid = 'user_mismatch_dept';
+      const newEmail = 'mismatch_dept@gmail.com';
+      const db = testEnv.authenticatedContext(newUid, { email: newEmail, email_verified: true }).firestore();
+      const batch = writeBatch(db);
+      batch.set(doc(db, 'users', newUid), getValidProfile(newUid, newEmail, { department: 'Computer Science and Engineering' }));
+      batch.set(doc(db, 'admin_email_outbox', newUid), getValidOutbox(newUid, newEmail, { department: 'Electrical and Electronic Engineering' }));
+      await assertFails(batch.commit());
+    });
+
+    it('TEST-66: Atomic batch with mismatched designation → DENY', async () => {
+      const newUid = 'user_mismatch_desig';
+      const newEmail = 'mismatch_desig@gmail.com';
+      const db = testEnv.authenticatedContext(newUid, { email: newEmail, email_verified: true }).firestore();
+      const batch = writeBatch(db);
+      batch.set(doc(db, 'users', newUid), getValidProfile(newUid, newEmail, { designation: 'Undergraduate Researcher' }));
+      batch.set(doc(db, 'admin_email_outbox', newUid), getValidOutbox(newUid, newEmail, { designation: 'Faculty Member' }));
+      await assertFails(batch.commit());
+    });
+
+    it('TEST-67: Atomic batch with mismatched program → DENY', async () => {
+      const newUid = 'user_mismatch_prog';
+      const newEmail = 'mismatch_prog@gmail.com';
+      const db = testEnv.authenticatedContext(newUid, { email: newEmail, email_verified: true }).firestore();
+      const batch = writeBatch(db);
+      batch.set(doc(db, 'users', newUid), getValidProfile(newUid, newEmail, { program: 'B.Sc. in CSE' }));
+      batch.set(doc(db, 'admin_email_outbox', newUid), getValidOutbox(newUid, newEmail, { program: 'M.Sc. in CSE' }));
+      await assertFails(batch.commit());
+    });
+
+    it('TEST-68: Atomic batch with mismatched batch → DENY', async () => {
+      const newUid = 'user_mismatch_batch';
+      const newEmail = 'mismatch_batch@gmail.com';
+      const db = testEnv.authenticatedContext(newUid, { email: newEmail, email_verified: true }).firestore();
+      const batch = writeBatch(db);
+      batch.set(doc(db, 'users', newUid), getValidProfile(newUid, newEmail, { batch: 'Batch 14' }));
+      batch.set(doc(db, 'admin_email_outbox', newUid), getValidOutbox(newUid, newEmail, { batch: 'Batch 15' }));
+      await assertFails(batch.commit());
+    });
+
+    it('TEST-69: Atomic batch with mismatched researchInterests → DENY', async () => {
+      const newUid = 'user_mismatch_interests';
+      const newEmail = 'mismatch_interests@gmail.com';
+      const db = testEnv.authenticatedContext(newUid, { email: newEmail, email_verified: true }).firestore();
+      const batch = writeBatch(db);
+      batch.set(doc(db, 'users', newUid), getValidProfile(newUid, newEmail, { researchInterests: ['Machine Learning'] }));
+      batch.set(doc(db, 'admin_email_outbox', newUid), getValidOutbox(newUid, newEmail, { researchInterests: ['Quantum Computing'] }));
+      await assertFails(batch.commit());
+    });
+
+    it('TEST-70: Atomic batch with client-generated timestamp on outbox createdAt → DENY', async () => {
+      const newUid = 'user_client_ts';
+      const newEmail = 'client_ts@gmail.com';
+      const db = testEnv.authenticatedContext(newUid, { email: newEmail, email_verified: true }).firestore();
+      const batch = writeBatch(db);
+      batch.set(doc(db, 'users', newUid), getValidProfile(newUid, newEmail));
+      batch.set(doc(db, 'admin_email_outbox', newUid), getValidOutbox(newUid, newEmail, {
+        createdAt: Timestamp.fromDate(new Date('2025-01-01T00:00:00Z')),
+      }));
+      await assertFails(batch.commit());
+    });
+
+    it('TEST-71: Atomic batch with non-queued initial outbox status → DENY', async () => {
+      const newUid = 'user_non_queued';
+      const newEmail = 'non_queued@gmail.com';
+      const db = testEnv.authenticatedContext(newUid, { email: newEmail, email_verified: true }).firestore();
+      const batch = writeBatch(db);
+      batch.set(doc(db, 'users', newUid), getValidProfile(newUid, newEmail));
+      batch.set(doc(db, 'admin_email_outbox', newUid), getValidOutbox(newUid, newEmail, {
+        deliveryStatus: 'sent',
+      }));
+      await assertFails(batch.commit());
+    });
+
+    it('TEST-72: Atomic batch with non-zero initial outbox attemptCount → DENY', async () => {
+      const newUid = 'user_nonzero_attempts';
+      const newEmail = 'nonzero_attempts@gmail.com';
+      const db = testEnv.authenticatedContext(newUid, { email: newEmail, email_verified: true }).firestore();
+      const batch = writeBatch(db);
+      batch.set(doc(db, 'users', newUid), getValidProfile(newUid, newEmail));
+      batch.set(doc(db, 'admin_email_outbox', newUid), getValidOutbox(newUid, newEmail, {
+        attemptCount: 1,
+      }));
+      await assertFails(batch.commit());
     });
   });
 });

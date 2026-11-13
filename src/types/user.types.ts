@@ -146,3 +146,54 @@ export interface UpdateUserProfileInput {
   socialLinks?: UserSocialLinks;
 }
 
+// ---------------------------------------------------------------------------
+// 5. Admin Email Notification Outbox Model (`admin_email_outbox/{uid}`)
+// ---------------------------------------------------------------------------
+
+export type OutboxDeliveryStatus = 'queued' | 'sending' | 'sent' | 'failed';
+
+export interface AdminEmailOutboxDoc {
+  /** Firebase Auth UID matching document ID. */
+  uid: string;
+
+  /** Applicant verified email from Firebase Auth token. */
+  userEmail: string;
+
+  /** Applicant full scholarly name. */
+  displayName: string;
+
+  /** Academic department. */
+  department: string;
+
+  /** Academic designation / role. */
+  designation: string;
+
+  /** Academic program (optional). */
+  program: string | null;
+
+  /** Academic cohort/batch (optional). */
+  batch: string | null;
+
+  /** Array of research interest tags. */
+  researchInterests: string[];
+
+  /** Delivery status in outbox queue. */
+  deliveryStatus: OutboxDeliveryStatus;
+
+  /** Timestamp when the notification request was queued. */
+  createdAt: Timestamp;
+
+  /** Timestamp when the email notification was successfully delivered. */
+  sentAt: Timestamp | null;
+
+  /** Number of dispatch attempts. */
+  attemptCount: number;
+
+  /** Timestamp of the most recent dispatch attempt. */
+  lastAttemptAt: Timestamp | null;
+
+  /** Error message from the most recent failed dispatch attempt. */
+  lastError: string | null;
+}
+
+
