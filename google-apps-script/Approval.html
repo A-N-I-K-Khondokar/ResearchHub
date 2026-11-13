@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Confirm <?= (action === 'approve') ? 'Approval' : 'Rejection' ?> — CSE Research Hub</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 32px 16px;
+      background-color: #F8FAFC;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: #0F172A;
+      line-height: 1.5;
+    }
+    .container {
+      max-width: 640px;
+      margin: 0 auto;
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+    }
+    .header {
+      background: #1E293B;
+      padding: 24px 32px;
+      color: #FFFFFF;
+    }
+    .header-tag {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: #94A3B8;
+      margin-bottom: 4px;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 700;
+      color: #FFFFFF;
+    }
+    .content {
+      padding: 32px;
+    }
+    .action-banner {
+      display: flex;
+      align-items: center;
+      padding: 16px 20px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+    }
+    .action-banner.approve {
+      background-color: #F0FDF4;
+      border: 1px solid #BBF7D0;
+      color: #166534;
+    }
+    .action-banner.reject {
+      background-color: #FEF2F2;
+      border: 1px solid #FECACA;
+      color: #991B1B;
+    }
+    .action-banner h2 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 700;
+    }
+    .action-banner p {
+      margin: 4px 0 0 0;
+      font-size: 13.5px;
+    }
+    .details-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 24px;
+      background: #F8FAFC;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid #E2E8F0;
+    }
+    .details-table td {
+      padding: 10px 16px;
+      font-size: 13.5px;
+      border-bottom: 1px solid #EDF2F7;
+    }
+    .details-table tr:last-child td {
+      border-bottom: none;
+    }
+    .details-table td.label {
+      width: 140px;
+      font-weight: 600;
+      color: #64748B;
+      background: #F1F5F9;
+    }
+    .details-table td.value {
+      color: #0F172A;
+      font-weight: 500;
+    }
+    .pills-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .pill {
+      display: inline-block;
+      background-color: #EBF2FF;
+      color: #1B5ECC;
+      border-radius: 9999px;
+      padding: 2px 8px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .form-group {
+      margin-bottom: 24px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 13.5px;
+      font-weight: 600;
+      color: #334155;
+      margin-bottom: 6px;
+    }
+    .form-group textarea {
+      width: 100%;
+      min-height: 90px;
+      padding: 10px 12px;
+      border: 1px solid #CBD5E1;
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 13.5px;
+      color: #0F172A;
+      resize: vertical;
+    }
+    .form-group textarea:focus {
+      outline: none;
+      border-color: #2563EB;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    }
+    .form-group .hint {
+      font-size: 12px;
+      color: #64748B;
+      margin-top: 4px;
+    }
+    .btn-submit {
+      width: 100%;
+      padding: 14px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 700;
+      color: #FFFFFF;
+      cursor: pointer;
+      transition: background-color 0.15s ease;
+    }
+    .btn-submit.approve {
+      background-color: #16A34A;
+    }
+    .btn-submit.approve:hover {
+      background-color: #15803D;
+    }
+    .btn-submit.reject {
+      background-color: #DC2626;
+    }
+    .btn-submit.reject:hover {
+      background-color: #B91C1C;
+    }
+    .auth-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      background: #EFF6FF;
+      border: 1px solid #DBEAFE;
+      border-radius: 6px;
+      font-size: 12.5px;
+      color: #1E40AF;
+      margin-bottom: 24px;
+    }
+    .footer {
+      background: #F8FAFC;
+      border-top: 1px solid #E2E8F0;
+      padding: 16px 32px;
+      font-size: 12px;
+      color: #64748B;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="header-tag">CSE Research Hub &bull; Administration</div>
+      <h1>Account Review Confirmation</h1>
+    </div>
+
+    <div class="content">
+      <div class="auth-badge">
+        <span>&#128274;</span>
+        <span>Authenticated as Administrator: <strong><?= activeEmail ?></strong></span>
+      </div>
+
+      <div class="action-banner <?= action ?>">
+        <div>
+          <h2>Proposed Decision: <?= (action === 'approve') ? 'Approve Applicant' : 'Decline Applicant' ?></h2>
+          <p>
+            <? if (action === 'approve') { ?>
+              Confirming will transition this scholar's profile to <strong>APPROVED</strong>, immediately granting access to CSE Research Hub discovery and collaboration features.
+            <? } else { ?>
+              Confirming will transition this applicant's profile to <strong>REJECTED</strong>. The applicant will be blocked from accessing the system.
+            <? } ?>
+          </p>
+        </div>
+      </div>
+
+      <table class="details-table">
+        <tr>
+          <td class="label">Full Name</td>
+          <td class="value"><strong><?= applicant.displayName ?></strong></td>
+        </tr>
+        <tr>
+          <td class="label">Verified Email</td>
+          <td class="value"><?= applicant.email ?></td>
+        </tr>
+        <tr>
+          <td class="label">Department</td>
+          <td class="value"><?= applicant.department ?></td>
+        </tr>
+        <tr>
+          <td class="label">Designation</td>
+          <td class="value"><?= applicant.designation ?></td>
+        </tr>
+        <tr>
+          <td class="label">Program</td>
+          <td class="value"><?= applicant.program || 'Not specified' ?></td>
+        </tr>
+        <tr>
+          <td class="label">Batch</td>
+          <td class="value"><?= applicant.batch || 'Not specified' ?></td>
+        </tr>
+        <tr>
+          <td class="label">Research Interests</td>
+          <td class="value">
+            <? if (applicant.researchInterests && applicant.researchInterests.length > 0) { ?>
+              <div class="pills-container">
+                <? for (var i = 0; i < applicant.researchInterests.length; i++) { ?>
+                  <span class="pill"><?= applicant.researchInterests[i] ?></span>
+                <? } ?>
+              </div>
+            <? } else { ?>
+              <em>None listed</em>
+            <? } ?>
+          </td>
+        </tr>
+      </table>
+
+      <form method="POST" action="<?= webAppUrl ?>">
+        <input type="hidden" name="action" value="<?= action ?>">
+        <input type="hidden" name="uid" value="<?= uid ?>">
+        <input type="hidden" name="token" value="<?= token ?>">
+
+        <? if (action === 'reject') { ?>
+          <div class="form-group">
+            <label for="rejectionReason">Rejection Reason / Internal Notes (Optional, max 500 chars):</label>
+            <textarea
+              id="rejectionReason"
+              name="rejectionReason"
+              maxlength="500"
+              placeholder="e.g. Invalid institutional enrollment verification. Please contact the CSE department office."
+            ></textarea>
+            <div class="hint">Reason will be stored in the applicant's record and viewable upon review.</div>
+          </div>
+        <? } ?>
+
+        <button type="submit" class="btn-submit <?= action ?>">
+          <?= (action === 'approve') ? '&#10004; Confirm Approval' : '&#10008; Confirm Rejection' ?>
+        </button>
+      </form>
+    </div>
+
+    <div class="footer">
+      <span>CSE Research Hub Security Gateway</span>
+      <span>HMAC-SHA256 Signed &bull; 48h Window</span>
+    </div>
+  </div>
+</body>
+</html>
+

@@ -4076,3 +4076,181 @@ Both backups are preserved and available for instant rollback if required.
 
 ---
 *Signed off by: Senior Mobile Architect & Firebase Solutions Engineer*
+
+---
+
+## Stage 3.5.3 — Google Apps Script Gmail Notifications and Approval Actions
+
+### 1. Scope & Architectural Purpose
+Stage 3.5.3 implements the complete, serverless administrator email notification and approval action system for CSE Research Hub using Google Apps Script and Gmail. Operating entirely within the **Firebase Spark (free) plan**, this architecture removes any dependency on Firebase Cloud Functions, Google Cloud Tasks, or paid third-party email providers (e.g., SendGrid, Mailgun).
+
+All source code has been authored into a dedicated, standalone directory: [`google-apps-script/`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/google-apps-script/), ready for manual copying and deployment into the Google Apps Script project hosted under the project owner's Google account (`anik.khondokar09@gmail.com`).
+
+---
+
+### 2. Standalone Apps Script Project Structure
+
+The [`google-apps-script/`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/google-apps-script/) directory contains 9 production-grade files:
+
+1. **[`appsscript.json`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/google-apps-script/appsscript.json)**:
+   - Apps Script V8 runtime manifest.
+   - Least-privilege OAuth scopes:
+     - `https://www.googleapis.com/auth/userinfo.email`
+     - `https://www.googleapis.com/auth/script.external_request`
+     - `https://www.googleapis.com/auth/script.send_mail`
+     - `https://www.googleapis.com/auth/script.scriptapp`
+     - `https://www.googleapis.com/auth/datastore`
+   - Web App execution configuration: `executeAs: "USER_ACCESSING"`, `access: "ANYONE"`.
+
+2. **[`FirebaseAuth.gs`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/google-apps-script/FirebaseAuth.gs)**:
+   - Dedicated notification bot identity management.
+   - One-time bootstrap (`bootstrapBotAuthentication`): Signs in using bot credentials via Firebase Authentication REST API, verifies that the authenticated `localId` matches `BOT_UID`, secures `BOT_REFRESH_TOKEN` in Script Properties, and removes temporary password credentials.
+   - Automatic ID token exchange via Google Secure Token API with ScriptCache caching for up to 55 minutes.
+   - Zero credential leaks: Never logs or exposes passwords, tokens, or keys.
+
+3. **[`FirestoreClient.gs`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/google-apps-script/FirestoreClient.gs)**:
+   - Pure HTTP client using `UrlFetchApp` against `https://firestore.googleapis.com/v1/`.
+   - Native JavaScript $\leftrightarrow$ Firestore REST Value encoding and decoding (`stringValue`, `integerValue`, `timestampValue`, `booleanValue`, `arrayValue`, `mapValue`, `nullValue`).
+   - Outbox querying (`queryQueuedOutbox`): Runs structured queries for `deliveryStatus == 'queued'` under bot authorization (`isNotificationService()`).
+   - Delivery metadata mutations (`updateOutboxDelivery`): Applies atomic `updateMask` restricted strictly to `['deliveryStatus', 'sentAt', 'attemptCount', 'lastAttemptAt', 'lastError']`.
+   - Profile management (`getUserProfile`, `getAdminRecord`, `updateUserApproval`).
+
+4. **[`OutboxWorker.gs`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/google-apps-script/OutboxWorker.gs)**:
+   - Recurring 5-minute cron worker (`processOutbox`).
+   - Concurrency protection via `LockService.getScriptLock()` with a 20-second acquisition timeout.
+   - Bounded batch processing (at most 10 queued items per run).
+   - Delivery lifecycle: `queued` $\rightarrow$ `sending` (with incremented `attemptCount`) $\rightarrow$ `sent` (with `sentAt`) or `failed` (with sanitized `lastError`).
+   - Hardcoded recipient verification: Outgoing notifications are sent strictly to `ADMIN_EMAIL` from Script Properties; recipient addresses from applicant documents are never accepted.
+   - Idempotent trigger management (`setupOutboxTrigger`, `removeOutboxTrigger`).
+   - Explicit at-least-once delivery semantics documentation.
+
+5. **[`EmailTemplate.gs`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/google-apps-script/EmailTemplate.gs)**:
+   - Scholarly Crisp HTML email template.
+   - Comprehensive applicant details: Full Name, Verified Email, Department, Designation, Program, Batch, Research Fields (rendered as badges), and Submission Date.
+   - Two distinct action CTAs: "Approve Application" (solid green) and "Decline Application" (crimson outline).
+   - Plain-text fallback for terminal and non-HTML mail clients.
+   - Defensive HTML escaping across all applicant fields.
+
+6. **[`ApprovalWebApp.gs`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/google-apps-script/ApprovalWebApp.gs)**:
+   - HMAC-SHA256 token generation and constant-time verification (`generateActionToken`, `verifyActionToken`).
+   - Enforces 48-hour expiration on all action links.
+   - `doGet(e)`: Scanner-safe, read-only confirmation screen. Zero database mutations.
+   - `doPost(e)`: Confirmed mutation requiring all 10 security invariants:
+     1. Valid signed action token.
+     2. Valid token lifetime ($\le$ 48h).
+     3. Authenticated Google session (`Session.getActiveUser().getEmail()`).
+     4. Exact match with `ADMIN_EMAIL` (`anik.khondokar09@gmail.com`).
+     5. Configured `ADMIN_UID`.
+     6. Existing `admins/{ADMIN_UID}` document.
+     7. Matching administrator email in the Firestore administrator record.
+     8. Existing applicant profile in `users/{uid}`.
+     9. Applicant status still strictly `pending`.
+     10. Explicit POST confirmation submit.
+   - State mutations: Sets `approvalStatus` to `approved` or `rejected`, sets `approvedBy: ADMIN_UID`, sets `approvedAt` / `rejectionReason` (max 500 chars), and updates `updatedAt`.
+
+7. **[`Approval.html`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/google-apps-script/Approval.html)**:
+   - Responsive HTML confirmation page styled with CSE Research Hub aesthetic.
+   - Visual indicators for administrator identity, proposed action, and applicant summary.
+   - Optional rejection notes input for administrative feedback.
+   - Hidden token parameters submitted securely on form submission.
+
+8. **[`Code.gs`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/google-apps-script/Code.gs)**:
+   - Top-level Apps Script entry point delegating to modular services.
+   - Exposes `doGet`, `doPost`, `processOutbox`, `setupOutboxTrigger`, `removeOutboxTrigger`, `bootstrapBotAuthentication`, and diagnostic utilities (`testBotConnection`, `checkDailyEmailQuota`).
+
+9. **[`SETUP.md`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/google-apps-script/SETUP.md)**:
+   - Complete 10-step manual deployment and configuration walkthrough.
+   - Script Properties reference table.
+   - HMAC secret generation command.
+   - Quota guidelines and troubleshooting manual.
+
+---
+
+### 3. Verification & Validation
+
+| Verification Check | Target / Test Method | Result | Status |
+|---|---|---|:---:|
+| **1. Apps Script Syntax Verification** | Node.js V8 vm script compiler across all `.gs` and `.json` files | Clean (0 syntax errors across 6 scripts and manifest) | **PASS** |
+| **2. Secret Leak Inspection** | Regex audit for hardcoded API keys, passwords, or refresh tokens | 0 secrets found (all credentials read from Script Properties) | **PASS** |
+| **3. Firestore REST Payload Compliance** | Code audit against `firestore.rules` allowlist | Verified: `updateMask` restricted strictly to allowed keys | **PASS** |
+| **4. Cryptographic Action Token Review** | HMAC-SHA256 with 48h expiry and constant-time comparison | Verified: Replay and tampering defenses enforced | **PASS** |
+| **5. Scanner-Safe GET Review** | Code audit of `handleGet(e)` | Verified: Zero Firestore write or patch calls during GET | **PASS** |
+| **6. Multi-tenant Admin Identity Check** | Code audit of `handlePost(e)` | Verified: Strict comparison with `ADMIN_EMAIL` and `admins/{ADMIN_UID}` | **PASS** |
+| **7. Git Working Tree Status** | `git status --short` | Scoped untracked directory: `?? google-apps-script/` | **PASS** |
+
+---
+
+### 4. Architectural Boundaries Preserved
+* **Zero Firebase Cloud Functions**: Operates on the 100% free Spark plan.
+* **Zero Third-Party Paid Email Services**: Dispatches via native Google Workspace / Gmail API.
+* **Zero Production Data Mutations**: No applicant profiles or outbox records were altered.
+* **Zero Live Emails Sent**: No emails dispatched during code authoring.
+* **Zero UI Mutations**: React Native / Expo application codebase untouched.
+
+---
+*Signed off by: Senior Mobile Architect & Firebase Solutions Engineer*
+
+---
+
+## Stage 3.5.3.1 — Apps Script Runtime and Security Audit
+
+### 1. Audit Overview & Objectives
+Stage 3.5.3.1 conducts a comprehensive runtime compatibility and security audit across the 9 Google Apps Script files in [`google-apps-script/`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/google-apps-script/). The audit validates:
+- V8 runtime execution compatibility.
+- Firestore REST API payload compliance with deployed `firestore.rules`.
+- Automated recovery of stale `sending` records from aborted/timed-out worker executions.
+- Pre-flight Gmail daily quota exhaustion guards.
+- Cryptographic token generation, verification, and expiration.
+- Multi-tenant administrator identity isolation on the Web App endpoint.
+- Clear separation of administrator and bot accounts in manual provisioning documentation.
+
+---
+
+### 2. Issues Discovered & Corrections Applied
+
+| File | Issue / Vulnerability Identified | Impact | Correction Applied |
+|---|---|---|---|
+| [`FirestoreClient.gs`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/google-apps-script/FirestoreClient.gs) | `toFirestoreValue` encoded ISO date strings as `{ stringValue: ... }` instead of `{ timestampValue: ... }`. | Firestore Security Rules (`data.field is timestamp`) would reject updates for `sentAt`, `lastAttemptAt`, `approvedAt`, and `updatedAt`. | Added regex parser for ISO-8601 UTC strings (`^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$`) and `Date` instance check to return `{ timestampValue: ... }`. |
+| [`FirestoreClient.gs`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/google-apps-script/FirestoreClient.gs) | Missing query function for in-progress `sending` records. | Cannot discover items orphaned in `sending` status after a worker timeout. | Implemented `querySendingOutbox(botIdToken, limit)` using Firestore `runQuery`. |
+| [`OutboxWorker.gs`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/google-apps-script/OutboxWorker.gs) | Missing stale-worker recovery policy. | If a worker crashed or timed out after marking `sending`, records remained locked indefinitely. | Implemented `recoverStaleSendingRecords(botIdToken)` with a 15-minute timeout window. Automatically re-queues to `'queued'` if attempts < 5; marks `'failed'` if attempts $\ge$ 5. |
+| [`OutboxWorker.gs`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/google-apps-script/OutboxWorker.gs) | Missing pre-flight Gmail quota check. | If consumer Gmail daily quota (100 emails) was exhausted, items were marked `sending` and then failed with quota exceptions. | Added `MailApp.getRemainingDailyQuota()` pre-flight check to halt outbox processing gracefully when quota is 0. |
+| [`Approval.html`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/google-apps-script/Approval.html) & [`ApprovalWebApp.gs`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/google-apps-script/ApprovalWebApp.gs) | Confirmation form used `action=""` instead of explicit deployment endpoint. | Depending on iframe/browser context, POST submissions could target an ambiguous URL with residual query parameters. | Passed `webAppUrl` to `Approval.html` and configured `<form method="POST" action="<?= webAppUrl ?>">`. |
+| [`SETUP.md`](file:///Users/anikkhondokar/Documents/6th%20SEMESTER/App%20Dev/ResearchHub/google-apps-script/SETUP.md) | Blended administrator and notification bot documentation. | Risk of operator conflating bot UID with admin UID or accidentally assigning admin roles to the bot. | Separated into **Part A (Administrator Account & /admins/ schema)** and **Part B (Notification Bot & /notification_services/ schema)** with strict least-privilege warnings. |
+
+---
+
+### 3. Security Invariants Verification Summary
+
+1. **GET Request Safety**: Verified that `handleGet(e)` exclusively invokes `FirestoreClient.getUserProfile(ScriptApp.getOAuthToken(), uid)`. Zero write, patch, or delete operations exist on the GET path.
+2. **HMAC-SHA256 Token Protection**: Verified that action tokens are signed with `HMAC_SECRET` (min 32 chars, recommended 64-char hex), evaluated using `constantTimeCompare`, and rejected if `Date.now() > expiry` (48 hours).
+3. **Session User Fail-Closed**: `handleGet` and `handlePost` both verify `Session.getActiveUser().getEmail()`. If empty (anonymous visitor), the request is immediately rejected without evaluating parameters or reading private data.
+4. **Exact Administrator Matching**: Enforces `activeEmail.toLowerCase() === ADMIN_EMAIL.toLowerCase()` and confirms the user's record exists in `admins/{ADMIN_UID}` with matching email before any mutation occurs.
+5. **Atomic State Re-check**: `handlePost` re-fetches `users/{uid}` immediately before mutation, verifying `approvalStatus === 'pending'` to prevent duplicate approvals or conflicting concurrent operations.
+6. **Token/Secret Masking**: Regex audit confirmed zero passwords, refresh tokens, API keys, or OAuth access tokens are logged or rendered into client HTML.
+7. **Production Rules Compliance**: The bot worker updates only the allowlisted keys (`deliveryStatus`, `sentAt`, `attemptCount`, `lastAttemptAt`, `lastError`), conforming to `firestore.rules`.
+
+---
+
+### 4. Remaining Runtime Uncertainties & Host Prerequisites
+
+Because Google Apps Script code runs on Google's cloud infrastructure and cannot be executed locally against mock GCP services, the following items require live validation during manual setup:
+1. **Google Apps Script Web App Deployment URL Format**: The Web App URL is generated upon deployment (`https://script.google.com/macros/s/{DEPLOYMENT_ID}/exec`). The administrator must copy this URL into the `WEB_APP_URL` Script Property.
+2. **Google OAuth First-Run Consent**: The administrator must manually grant OAuth consent on first run for scopes (`userinfo.email`, `send_mail`, `external_request`, `scriptapp`, `datastore`).
+3. **Bot Account Manual Creation**: The operator must create the Firebase Auth bot account and register it in `notification_services/{BOT_UID}` in Firebase Console prior to executing `bootstrapBotAuthentication()`.
+
+---
+
+### 5. Verification Matrix & Git Status
+
+| Verification Check | Target / Test Method | Result | Status |
+|---|---|---|:---:|
+| **1. V8 Syntax Compiler** | Node.js `vm.Script` syntax analysis across all 6 `.gs` scripts | 0 syntax errors | **PASS** |
+| **2. Manifest JSON Validity** | `JSON.parse` check on `appsscript.json` | Valid JSON | **PASS** |
+| **3. Hardcoded Secret Audit** | Full directory regex scan for credentials | 0 secrets found | **PASS** |
+| **4. Timestamp REST Format** | Code audit in `FirestoreClient.gs` | Converted to `{ timestampValue: ... }` | **PASS** |
+| **5. Stale Recovery Policy** | Code audit in `OutboxWorker.gs` | 15-min window, 5-retry bound | **PASS** |
+| **6. Quota Exhaustion Guard** | Code audit in `OutboxWorker.gs` | `MailApp.getRemainingDailyQuota()` pre-flight check | **PASS** |
+| **7. Git Working Tree Status** | `git status --short` | Scoped modifications in `google-apps-script/` and `Activity/Day-11.md` | **PASS** |
+
+---
+*Signed off by: Senior Mobile Architect & Firebase Solutions Engineer*
