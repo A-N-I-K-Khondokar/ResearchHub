@@ -34,15 +34,6 @@ import { Platform } from 'react-native';
 // 1. Configuration — read from Expo public environment variables
 // ---------------------------------------------------------------------------
 
-const REQUIRED_KEYS = [
-  'EXPO_PUBLIC_FIREBASE_API_KEY',
-  'EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN',
-  'EXPO_PUBLIC_FIREBASE_PROJECT_ID',
-  'EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET',
-  'EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID',
-  'EXPO_PUBLIC_FIREBASE_APP_ID',
-] as const;
-
 const firebaseConfig = {
   apiKey:            process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
   authDomain:        process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -57,8 +48,13 @@ const firebaseConfig = {
 // ---------------------------------------------------------------------------
 
 /** `true` only when every required env var is present and non-empty. */
-export const isFirebaseConfigured: boolean = REQUIRED_KEYS.every(
-  (key) => typeof process.env[key] === 'string' && process.env[key]!.trim() !== '',
+// IMPORTANT: check the statically-read `firebaseConfig` values, never
+// `process.env[key]`. Expo only inlines EXPO_PUBLIC_* variables written as
+// literal `process.env.EXPO_PUBLIC_X`; dynamic `process.env[key]` is empty in
+// release builds (APK), which previously made every build report
+// "Firebase is not configured" even though the values were bundled.
+export const isFirebaseConfigured: boolean = Object.values(firebaseConfig).every(
+  (value) => typeof value === 'string' && value.trim() !== '',
 );
 
 if (!isFirebaseConfigured) {
