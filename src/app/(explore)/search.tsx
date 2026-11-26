@@ -18,8 +18,11 @@ import { ResearcherDiscoveryCard } from '@/components/cards/ResearcherDiscoveryC
 import { CurrentWorkCard } from '@/components/cards/CurrentWorkCard';
 import { PublicationCard } from '@/components/cards/PublicationCard';
 import { EmptyState } from '@/components/feedback/EmptyState';
-import { searchHub, SearchCategory } from '@/utils/search';
-import { getResearcherById, getCurrentWorkById, mockTopics } from '@/data';
+import { searchHub, SearchCategory, TOPIC_TAXONOMY, topicCounts } from '@/utils/search';
+import { useResearchDirectory } from '@/hooks/useResearchDirectory';
+import { useConnections } from '@/hooks/useConnections';
+import { useAuth } from '@/context/AuthContext';
+import { ActivityIndicator } from 'react-native';
 
 export default function GlobalSearchScreen() {
   const router = useRouter();
@@ -31,7 +34,9 @@ export default function GlobalSearchScreen() {
     (params.category as SearchCategory) || 'all'
   );
 
-  const [connectionStates, setConnectionStates] = useState<Record<string, 'none' | 'pending' | 'connected'>>({});
+  const { firebaseUser } = useAuth();
+  const directory = useResearchDirectory();
+  const { cardStatus, handleConnectPress } = useConnections();
 
   useEffect(() => {
     if (params.q) {
@@ -42,23 +47,24 @@ export default function GlobalSearchScreen() {
     }
   }, [params.q, params.category]);
 
+  const dataset = useMemo(
+    () => ({ researchers: directory.researchers, works: directory.currentWorks }),
+    [directory.researchers, directory.currentWorks],
+  );
+
   const searchResults = useMemo(() => {
-    return searchHub(query, selectedCategory);
-  }, [query, selectedCategory]);
+    return searchHub(query, selectedCategory, dataset);
+  }, [query, selectedCategory, dataset]);
 
-  const handleToggleConnect = (researcherId: string) => {
-    setConnectionStates((prev) => {
-      const current = prev[researcherId] || 'none';
-      let nextState: 'none' | 'pending' | 'connected' = 'pending';
-      if (current === 'none') nextState = 'pending';
-      else if (current === 'pending') nextState = 'connected';
-      else nextState = 'none';
+  const liveTopics = useMemo(() => TOPIC_TAXONOMY.map((t) => topicCounts(t, dataset)), [dataset]);
 
-      return {
-        ...prev,
-        [researcherId]: nextState,
-      };
-    });
+  const onConnect = (uid: string) => {
+    const profile = directory.profileByUid.get(uid);
+    if (profile) handleConnectPress(profile);
+  };
+
+  const openAuthor = (uid: string) => {
+    router.push((uid === firebaseUser?.uid ? '/(tabs)/profile' : `/(profile)/${uid}`) as any);
   };
 
   const handleTopicPress = (topicName: string) => {
@@ -72,7 +78,6 @@ export default function GlobalSearchScreen() {
     { key: 'all', label: 'All' },
     { key: 'people', label: 'People' },
     { key: 'currentWork', label: 'Current Work' },
-    { key: 'publications', label: 'Research' },
     { key: 'topics', label: 'Topics' },
   ];
 
@@ -159,7 +164,9 @@ export default function GlobalSearchScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {query.trim().length === 0 ? (
+        {directory.loading ? (
+          <ActivityIndicator color={colors.primary} style={{ marginTop: 32 }} />
+        ) : query.trim().length === 0 ? (
           /* Initial State / Suggested Topics */
           <View
             style={[
@@ -176,7 +183,7 @@ export default function GlobalSearchScreen() {
             </Text>
 
             <View style={styles.topicGrid}>
-              {mockTopics.map((t) => (
+              {liveTopics.map((t) => (
                 <TopicChip
                   key={t.id}
                   label={t.name}
@@ -219,7 +226,7 @@ export default function GlobalSearchScreen() {
                       key={t.id}
                       label={t.name}
                       variant="primary"
-                      count={t.researchersCount}
+                      count={topicCounts(t, dataset).researchersCount}
                       onPress={() => handleTopicPress(t.name)}
                       style={styles.topicChip}
                     />
@@ -237,16 +244,18 @@ export default function GlobalSearchScreen() {
                 />
                 {searchResults.people.map((person) => {
                   const primaryWorkId = person.currentWorkIds?.[0];
-                  const primaryWork = primaryWorkId ? getCurrentWorkById(primaryWorkId) : null;
+                  const primaryWork = primaryWorkId
+                    ? dataset.works.find((w) => w.id === primaryWorkId) ?? null
+                    : null;
 
                   return (
                     <ResearcherDiscoveryCard
                       key={person.id}
                       researcher={person}
                       currentWork={primaryWork}
-                      connectionStatus={connectionStates[person.id] || person.connectionStatus || 'none'}
+                      connectionStatus={cardStatus(person.id)}
                       onPress={() => router.push(`/(profile)/${person.id}` as any)}
-                      onConnectPress={() => handleToggleConnect(person.id)}
+                      onConnectPress={() => onConnect(person.id)}
                       onTopicPress={(topic) => handleTopicPress(topic)}
                     />
                   );
@@ -262,16 +271,16 @@ export default function GlobalSearchScreen() {
                   subtitle={`${searchResults.currentWork.length} active projects`}
                 />
                 {searchResults.currentWork.map((work) => {
-                  const author = getResearcherById(work.userId || work.researcherId || '');
                   return (
                     <CurrentWorkCard
                       key={work.id}
                       work={work}
-                      authorName={author ? author.name : work.authorName}
-                      authorBatch={author ? author.batch || author.designation : work.authorBatch}
-                      authorAvatar={author?.photoURL || author?.avatar}
+                      authorName={work.authorName}
+                      authorBatch="CSE"
+                      authorRole={work.authorDesignation}
+                      authorAvatar={work.authorPhotoURL}
                       onPress={() => router.push(`/(research)/${work.id}` as any)}
-                      onAuthorPress={() => router.push(`/(profile)/${work.userId || work.researcherId}` as any)}
+                      onAuthorPress={() => openAuthor(work.userId)}
                       onTopicPress={(topic) => handleTopicPress(topic)}
                     />
                   );

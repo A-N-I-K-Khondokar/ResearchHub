@@ -1,14 +1,27 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Tabs } from 'expo-router';
 import { Home, Compass, PlusCircle, Bell, User } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/ThemeContext';
 import { fontFamilies } from '@/constants';
+import { useAuth } from '@/context/AuthContext';
+import { subscribeUnreadCount } from '@/services/network.service';
 
 export default function TabLayout() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const { userProfile } = useAuth();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // Live unread in-app notification count for the tab badge
+  useEffect(() => {
+    if (!userProfile?.uid || userProfile.approvalStatus !== 'approved') {
+      setUnreadCount(0);
+      return;
+    }
+    return subscribeUnreadCount(userProfile.uid, setUnreadCount);
+  }, [userProfile?.uid, userProfile?.approvalStatus]);
 
   const bottomInset = insets.bottom > 0 ? insets.bottom : 6;
   const barHeight = 60 + bottomInset;
@@ -92,12 +105,15 @@ export default function TabLayout() {
             <View style={styles.tabIconWrapper}>
               <View style={styles.iconWithBadge}>
                 <Bell size={22} color={color} strokeWidth={focused ? 2.3 : 1.8} />
-                <View
-                  style={[
-                    styles.notificationDot,
-                    { backgroundColor: colors.accent },
-                  ]}
-                />
+                {unreadCount > 0 ? (
+                  <View
+                    style={[
+                      styles.notificationDot,
+                      { backgroundColor: colors.accent },
+                    ]}
+                    accessibilityLabel={`${unreadCount} unread notifications`}
+                  />
+                ) : null}
               </View>
             </View>
           ),

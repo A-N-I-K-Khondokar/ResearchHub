@@ -66,14 +66,11 @@ export default function VerifyEmailScreen() {
     setCheckError('');
     setCheckingVerification(true);
     try {
-      await reloadCurrentUser();
-      // After reload, emailVerified state is updated via AuthContext.
-      // AuthGuard in _layout.tsx will redirect automatically if verified.
-      // We also check immediately for a faster UX:
-      if (firebaseUser?.emailVerified) {
-        // Verified — AuthGuard will route to account-setup
-        router.replace('/(auth)/account-setup' as any);
-      } else {
+      const verified = await reloadCurrentUser();
+      // When verified, AuthContext updates `emailVerified` (and the ID token is
+      // refreshed), so AuthGuard in _layout.tsx routes to account-setup.
+      // No manual navigation here — avoids racing the guard.
+      if (!verified) {
         Alert.alert(
           'Not Yet Verified',
           "We couldn't confirm your email verification. Please open the link in your email and try again.",

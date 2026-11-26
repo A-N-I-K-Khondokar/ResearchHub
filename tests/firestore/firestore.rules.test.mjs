@@ -24,7 +24,24 @@ import {
   writeBatch,
   serverTimestamp,
   Timestamp,
+  collection,
+  query,
+  where,
+  orderBy,
+  limit,
+  getDocs,
 } from 'firebase/firestore';
+// Real payload builder used by src/services/user.service.ts (requires
+// `node --experimental-strip-types`, available in Node >= 22.6).
+import { buildPendingProfileDocuments } from '../../src/utils/pendingProfile.ts';
+import { buildResearchWorkDocument } from '../../src/utils/researchWork.ts';
+import {
+  connectionIdFor,
+  buildConnectionRequest,
+  buildConnectionResponse,
+  buildNotification,
+  buildSavedItem,
+} from '../../src/utils/network.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -1094,5 +1111,648 @@ describe('Firestore Security Rules Suite — CSE Research Hub', () => {
       await assertFails(batch.commit());
     });
   });
-});
 
+  // -------------------------------------------------------------------------
+  // 9. Stage 1 — Onboarding Journey via Real Service Payloads (TEST-73 to TEST-81)
+  // -------------------------------------------------------------------------
+  describe('9. Stage 1 Onboarding Journey (service payloads)', () => {
+    const verifiedCtx = (uid, email) =>
+      testEnv.authenticatedContext(uid, { email, email_verified: true }).firestore();
+    const adminCtx = () =>
+      testEnv.authenticatedContext(ADMIN_UID, { email: ADMIN_EMAIL, email_verified: true }).firestore();
+
+    const MINIMAL_INPUT = {
+      displayName: '  Frank Applicant  ',
+      photoURL: null,
+      department: 'Computer Science and Engineering',
+      program: null,
+      batch: null,
+      studentId: null,
+      designation: 'Undergraduate Student',
+      bio: null,
+      researchInterests: [],
+      socialLinks: undefined,
+    };
+
+    const FULL_INPUT = {
+      displayName: 'Grace Applicant',
+      photoURL: 'https://example.com/grace.jpg',
+      department: 'Computer Science and Engineering',
+      program: 'B.Sc. in CSE',
+      batch: 'Batch 14',
+      studentId: '190104099',
+      designation: 'Undergraduate Researcher',
+      bio: 'Working on Bangla NLP.',
+      researchInterests: ['NLP', 'Machine Learning'],
+      socialLinks: { github: 'https://github.com/grace', googleScholar: 'https://scholar.google.com/x' },
+    };
+
+    // Mirrors createPendingUserProfile(): atomic batch built by the real builder.
+    async function submitViaService(db, uid, email, input) {
+      const { profile, outbox } = buildPendingProfileDocuments(
+        { uid, email, displayName: null, photoURL: null },
+        input,
+        serverTimestamp(),
+      );
+      const batch = writeBatch(db);
+      batch.set(doc(db, 'users', uid), profile);
+      batch.set(doc(db, 'admin_email_outbox', uid), outbox);
+      return batch.commit();
+    }
+
+    it('TEST-73: Applicant pre-check read of own non-existent profile → ALLOW', async () => {
+      const db = verifiedCtx('user_frank', 'frank@gmail.com');
+      await assertSucceeds(getDoc(doc(db, 'users', 'user_frank')));
+    });
+
+    it('TEST-74: Applicant pre-check read of own outbox (removed C1 pre-read) → DENY', async () => {
+      const db = verifiedCtx('user_frank', 'frank@gmail.com');
+      await assertFails(getDoc(doc(db, 'admin_email_outbox', 'user_frank')));
+    });
+
+    it('TEST-75: Service-built submission with minimal optional fields → ALLOW', async () => {
+      const db = verifiedCtx('user_frank', 'frank@gmail.com');
+      await assertSucceeds(getDoc(doc(db, 'users', 'user_frank')));
+      await assertSucceeds(submitViaService(db, 'user_frank', 'frank@gmail.com', MINIMAL_INPUT));
+    });
+
+    it('TEST-76: Service-built submission with all optional fields and social links → ALLOW', async () => {
+      const db = verifiedCtx('user_grace', 'grace@gmail.com');
+      await assertSucceeds(submitViaService(db, 'user_grace', 'grace@gmail.com', FULL_INPUT));
+    });
+
+    it('TEST-77: Service-built duplicate submission after success → DENY', async () => {
+      const db = verifiedCtx('user_grace', 'grace@gmail.com');
+      await assertSucceeds(submitViaService(db, 'user_grace', 'grace@gmail.com', FULL_INPUT));
+      await assertFails(submitViaService(db, 'user_grace', 'grace@gmail.com', FULL_INPUT));
+    });
+
+    it('TEST-78: Orphaned outbox without profile still blocks service-built submission → DENY', async () => {
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        const { outbox } = buildPendingProfileDocuments(
+          { uid: 'user_heidi', email: 'heidi@gmail.com' }, FULL_INPUT, Timestamp.now(),
+        );
+        await setDoc(doc(context.firestore(), 'admin_email_outbox', 'user_heidi'), outbox);
+      });
+      const db = verifiedCtx('user_heidi', 'heidi@gmail.com');
+      await assertFails(submitViaService(db, 'user_heidi', 'heidi@gmail.com', FULL_INPUT));
+    });
+
+    it('TEST-79: Stale ID token (email_verified claim false) blocks submission → DENY', async () => {
+      const db = testEnv
+        .authenticatedContext('user_ivan', { email: 'ivan@gmail.com', email_verified: false })
+        .firestore();
+      await assertFails(submitViaService(db, 'user_ivan', 'ivan@gmail.com', FULL_INPUT));
+    });
+
+    it('TEST-80: Full journey: submit → pending → admin portal approve → approved access → ALLOW', async () => {
+      const uid = 'user_judy';
+      const email = 'judy@gmail.com';
+      const db = verifiedCtx(uid, email);
+
+      await assertSucceeds(submitViaService(db, uid, email, FULL_INPUT));
+
+      const pendingSnap = await assertSucceeds(getDoc(doc(db, 'users', uid)));
+      assert.equal(pendingSnap.data().approvalStatus, 'pending');
+
+      // Pending applicant cannot yet read other approved researchers
+      await assertFails(getDoc(doc(db, 'users', CHARLIE_UID)));
+
+      // Exact payload of admin-portal/src/services/admin.service.ts approveUser()
+      await assertSucceeds(
+        updateDoc(doc(adminCtx(), 'users', uid), {
+          approvalStatus: 'approved',
+          approvedBy: ADMIN_UID,
+          approvedAt: serverTimestamp(),
+          rejectionReason: null,
+          updatedAt: serverTimestamp(),
+        })
+      );
+
+      const approvedSnap = await assertSucceeds(getDoc(doc(db, 'users', uid)));
+      assert.equal(approvedSnap.data().approvalStatus, 'approved');
+      assert.equal(approvedSnap.data().approvedBy, ADMIN_UID);
+
+      // Approved user now reads other approved researchers
+      await assertSucceeds(getDoc(doc(db, 'users', CHARLIE_UID)));
+    });
+
+    it('TEST-81: Admin portal reject → reinstate → suspend → reinstate payloads follow state machine → ALLOW', async () => {
+      const uid = 'user_ken';
+      const email = 'ken@gmail.com';
+      await assertSucceeds(submitViaService(verifiedCtx(uid, email), uid, email, FULL_INPUT));
+      const ref = doc(adminCtx(), 'users', uid);
+
+      // rejectUser() with no reason → null
+      await assertSucceeds(updateDoc(ref, {
+        approvalStatus: 'rejected', approvedBy: ADMIN_UID, approvedAt: null,
+        rejectionReason: null, updatedAt: serverTimestamp(),
+      }));
+      // reinstateUser(): rejected → approved
+      await assertSucceeds(updateDoc(ref, {
+        approvalStatus: 'approved', approvedBy: ADMIN_UID, approvedAt: serverTimestamp(),
+        rejectionReason: null, updatedAt: serverTimestamp(),
+      }));
+      // suspendUser(): approved → suspended
+      await assertSucceeds(updateDoc(ref, {
+        approvalStatus: 'suspended', updatedAt: serverTimestamp(),
+      }));
+      // reinstateUser(): suspended → approved
+      await assertSucceeds(updateDoc(ref, {
+        approvalStatus: 'approved', approvedBy: ADMIN_UID, approvedAt: serverTimestamp(),
+        rejectionReason: null, updatedAt: serverTimestamp(),
+      }));
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // 10. Stage 2 — Research Works (TEST-82 to TEST-102)
+  // -------------------------------------------------------------------------
+  describe('10. Research Works', () => {
+    const LENA_UID = 'user_lena_approved';
+    const LENA_EMAIL = 'lena@gmail.com';
+
+    const ctx = (uid, email) =>
+      testEnv.authenticatedContext(uid, { email, email_verified: true }).firestore();
+    const charlieDb = () => ctx(CHARLIE_UID, CHARLIE_EMAIL);
+    const lenaDb = () => ctx(LENA_UID, LENA_EMAIL);
+
+    // Author snapshot exactly as seeded in the outer beforeEach for Charlie.
+    const CHARLIE_AUTHOR = {
+      uid: CHARLIE_UID,
+      displayName: 'Charlie Approved',
+      photoURL: null,
+      department: 'Computer Science and Engineering',
+      designation: 'Graduate Researcher',
+    };
+
+    const WORK_INPUT = {
+      title: 'Low-resource Bangla NLP benchmarks',
+      description: 'Building a benchmark suite for low-resource Bangla language tasks.',
+      tags: ['#BanglaNLP', 'Machine Learning', '#banglanlp'],
+      stage: 'Experiment',
+      externalUrl: 'https://github.com/charlie/bangla-bench',
+    };
+
+    const buildWork = (overrides = {}, author = CHARLIE_AUTHOR, input = WORK_INPUT, ts = serverTimestamp()) => ({
+      ...buildResearchWorkDocument(author, input, ts),
+      ...overrides,
+    });
+
+    // Seed work directly (rules bypassed) for read/update/delete scenarios.
+    async function seedWork(id, overrides = {}) {
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        await setDoc(
+          doc(context.firestore(), 'research_works', id),
+          buildWork(overrides, CHARLIE_AUTHOR, WORK_INPUT, Timestamp.now()),
+        );
+      });
+    }
+
+    beforeEach(async () => {
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        await setDoc(doc(context.firestore(), 'users', LENA_UID), {
+          uid: LENA_UID,
+          email: LENA_EMAIL,
+          displayName: 'Lena Approved',
+          photoURL: 'https://example.com/lena.jpg',
+          department: 'Computer Science and Engineering',
+          program: null,
+          batch: 'Batch 14',
+          studentId: null,
+          designation: 'Undergraduate Researcher',
+          bio: null,
+          researchInterests: ['HCI'],
+          socialLinks: {},
+          approvalStatus: 'approved',
+          requestedAt: Timestamp.now(),
+          approvedAt: Timestamp.now(),
+          approvedBy: ADMIN_UID,
+          rejectionReason: null,
+          createdAt: Timestamp.now(),
+          updatedAt: Timestamp.now(),
+        });
+      });
+    });
+
+    it('TEST-82: Approved researcher publishes work via service payload → ALLOW', async () => {
+      const db = charlieDb();
+      await assertSucceeds(setDoc(doc(collection(db, 'research_works')), buildWork()));
+    });
+
+    it('TEST-83: Builder normalises and de-duplicates tags', async () => {
+      const work = buildWork();
+      assert.deepEqual(work.tags, ['#BanglaNLP', '#MachineLearning']);
+      assert.equal(work.status, 'published');
+    });
+
+    it('TEST-84: Approved researcher with photo publishes matching author snapshot → ALLOW', async () => {
+      const db = lenaDb();
+      const lena = { uid: LENA_UID, displayName: 'Lena Approved', photoURL: 'https://example.com/lena.jpg',
+        department: 'Computer Science and Engineering', designation: 'Undergraduate Researcher' };
+      await assertSucceeds(setDoc(doc(collection(db, 'research_works')), buildWork({}, lena)));
+    });
+
+    it('TEST-85: Pending (unapproved) user publishes work → DENY', async () => {
+      const uid = 'user_pending_author';
+      const email = 'pending_author@gmail.com';
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        await setDoc(doc(context.firestore(), 'users', uid), getValidProfile(uid, email, {
+          requestedAt: Timestamp.now(), createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
+        }));
+      });
+      const db = ctx(uid, email);
+      const author = { uid, displayName: 'Scholar Name', photoURL: 'https://example.com/avatar.jpg',
+        department: 'Computer Science and Engineering', designation: 'Undergraduate Researcher' };
+      await assertFails(setDoc(doc(collection(db, 'research_works')), buildWork({}, author)));
+    });
+
+    it('TEST-86: Suspended user publishes work → DENY', async () => {
+      const db = ctx(DAVID_UID, DAVID_EMAIL);
+      const author = { uid: DAVID_UID, displayName: 'David Suspended', photoURL: null,
+        department: 'Computer Science and Engineering', designation: 'Former Researcher' };
+      await assertFails(setDoc(doc(collection(db, 'research_works')), buildWork({}, author)));
+    });
+
+    it('TEST-87: Approved user publishes work under another author UID → DENY', async () => {
+      await assertFails(setDoc(doc(collection(lenaDb(), 'research_works')), buildWork()));
+    });
+
+    it('TEST-88: Forged author name (impersonation) → DENY', async () => {
+      await assertFails(setDoc(doc(collection(charlieDb(), 'research_works')),
+        buildWork({ authorName: 'Prof. Someone Else' })));
+    });
+
+    it('TEST-89: Client-generated createdAt timestamp → DENY', async () => {
+      await assertFails(setDoc(doc(collection(charlieDb(), 'research_works')),
+        buildWork({ createdAt: Timestamp.now() })));
+    });
+
+    it('TEST-90: Invalid stage, extra field or non-http URL → DENY', async () => {
+      const db = charlieDb();
+      await assertFails(setDoc(doc(collection(db, 'research_works')), buildWork({ stage: 'Done' })));
+      await assertFails(setDoc(doc(collection(db, 'research_works')), buildWork({ likesCount: 999 })));
+      await assertFails(setDoc(doc(collection(db, 'research_works')), buildWork({ externalUrl: 'javascript:alert(1)' })));
+    });
+
+    it('TEST-91: Approved researcher reads another author\'s published work → ALLOW', async () => {
+      await seedWork('work_pub');
+      await assertSucceeds(getDoc(doc(lenaDb(), 'research_works', 'work_pub')));
+    });
+
+    it('TEST-92: Pending user or unauthenticated user reads published work → DENY', async () => {
+      await seedWork('work_pub');
+      const pendingDb = ctx(ALICE_UID, ALICE_EMAIL);
+      await assertFails(getDoc(doc(pendingDb, 'research_works', 'work_pub')));
+      await assertFails(getDoc(doc(testEnv.unauthenticatedContext().firestore(), 'research_works', 'work_pub')));
+    });
+
+    it('TEST-93: Another approved researcher reads a draft → DENY', async () => {
+      await seedWork('work_draft', { status: 'draft' });
+      await assertFails(getDoc(doc(lenaDb(), 'research_works', 'work_draft')));
+    });
+
+    it('TEST-94: Author reads own draft → ALLOW', async () => {
+      await seedWork('work_draft', { status: 'draft' });
+      await assertSucceeds(getDoc(doc(charlieDb(), 'research_works', 'work_draft')));
+    });
+
+    it('TEST-95: Feed query (published, newest first, limit 20) by approved user → ALLOW', async () => {
+      await seedWork('work_pub');
+      await seedWork('work_draft', { status: 'draft' });
+      const db = lenaDb();
+      const snap = await assertSucceeds(getDocs(query(
+        collection(db, 'research_works'),
+        where('status', '==', 'published'),
+        orderBy('createdAt', 'desc'),
+        limit(20),
+      )));
+      assert.deepEqual(snap.docs.map((d) => d.id), ['work_pub']);
+    });
+
+    it('TEST-96: Unfiltered list query by approved user → DENY', async () => {
+      await assertFails(getDocs(query(collection(lenaDb(), 'research_works'), limit(20))));
+    });
+
+    it('TEST-97: Author lists own work (drafts included) by authorUid → ALLOW', async () => {
+      await seedWork('work_pub');
+      await seedWork('work_draft', { status: 'draft' });
+      const db = charlieDb();
+      const snap = await assertSucceeds(getDocs(query(
+        collection(db, 'research_works'), where('authorUid', '==', CHARLIE_UID),
+      )));
+      assert.equal(snap.size, 2);
+    });
+
+    it('TEST-98: Author edits title and unpublishes to draft → ALLOW', async () => {
+      await seedWork('work_pub');
+      await assertSucceeds(updateDoc(doc(charlieDb(), 'research_works', 'work_pub'), {
+        title: 'Updated benchmark title',
+        status: 'draft',
+        updatedAt: serverTimestamp(),
+      }));
+    });
+
+    it('TEST-99: Non-author approved researcher edits work → DENY', async () => {
+      await seedWork('work_pub');
+      await assertFails(updateDoc(doc(lenaDb(), 'research_works', 'work_pub'), {
+        title: 'Hijacked title',
+        updatedAt: serverTimestamp(),
+      }));
+    });
+
+    it('TEST-100: Author changes authorUid or author snapshot → DENY', async () => {
+      await seedWork('work_pub');
+      const ref = doc(charlieDb(), 'research_works', 'work_pub');
+      await assertFails(updateDoc(ref, { authorUid: LENA_UID, updatedAt: serverTimestamp() }));
+      await assertFails(updateDoc(ref, { authorName: 'Someone Famous', updatedAt: serverTimestamp() }));
+    });
+
+    it('TEST-101: Non-author deletes work → DENY; author deletes → ALLOW', async () => {
+      await seedWork('work_pub');
+      await assertFails(deleteDoc(doc(lenaDb(), 'research_works', 'work_pub')));
+      await assertSucceeds(deleteDoc(doc(charlieDb(), 'research_works', 'work_pub')));
+    });
+
+    it('TEST-102: Administrator reads draft and deletes work → ALLOW', async () => {
+      await seedWork('work_draft', { status: 'draft' });
+      const adminDb = ctx(ADMIN_UID, ADMIN_EMAIL);
+      await assertSucceeds(getDoc(doc(adminDb, 'research_works', 'work_draft')));
+      await assertSucceeds(deleteDoc(doc(adminDb, 'research_works', 'work_draft')));
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // 11/12. Stage 3 — Networking: Connections, Notifications, Saved Items (TEST-103 to TEST-129)
+  // -------------------------------------------------------------------------
+  describe('11. Connections and In-App Notifications', () => {
+    const LENA_UID = 'user_lena_approved';
+    const LENA_EMAIL = 'lena@gmail.com';
+    const ctx = (uid, email) =>
+      testEnv.authenticatedContext(uid, { email, email_verified: true }).firestore();
+    const charlieDb = () => ctx(CHARLIE_UID, CHARLIE_EMAIL);
+    const lenaDb = () => ctx(LENA_UID, LENA_EMAIL);
+
+    const CHARLIE = { uid: CHARLIE_UID, displayName: 'Charlie Approved', photoURL: null, designation: 'Graduate Researcher' };
+    const LENA = { uid: LENA_UID, displayName: 'Lena Approved', photoURL: 'https://example.com/lena.jpg', designation: 'Undergraduate Researcher' };
+    const DAVID = { uid: DAVID_UID, displayName: 'David Suspended', photoURL: null, designation: 'Former Researcher' };
+
+    // Mirrors network.service sendConnectionRequest(): connection + notification batch.
+    function requestBatch(db, from, to, connOverrides = {}, notifOverrides = {}) {
+      const { id, data } = buildConnectionRequest(from, to, serverTimestamp());
+      const batch = writeBatch(db);
+      batch.set(doc(db, 'connections', id), { ...data, ...connOverrides });
+      batch.set(doc(collection(db, 'notifications')), {
+        ...buildNotification('connection_request', from, to.uid, id, serverTimestamp()),
+        ...notifOverrides,
+      });
+      return batch;
+    }
+
+    // Mirrors network.service respondToConnection(accept=true): update + notification batch.
+    function acceptBatch(db, responder, requesterUid, connectionId) {
+      const batch = writeBatch(db);
+      batch.update(doc(db, 'connections', connectionId), buildConnectionResponse(true, serverTimestamp()));
+      batch.set(doc(collection(db, 'notifications')),
+        buildNotification('connection_accepted', responder, requesterUid, connectionId, serverTimestamp()));
+      return batch;
+    }
+
+    const connId = connectionIdFor(CHARLIE_UID, LENA_UID);
+
+    beforeEach(async () => {
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        await setDoc(doc(context.firestore(), 'users', LENA_UID), {
+          uid: LENA_UID, email: LENA_EMAIL, displayName: 'Lena Approved',
+          photoURL: 'https://example.com/lena.jpg', department: 'Computer Science and Engineering',
+          program: null, batch: 'Batch 14', studentId: null, designation: 'Undergraduate Researcher',
+          bio: null, researchInterests: ['HCI'], socialLinks: {}, approvalStatus: 'approved',
+          requestedAt: Timestamp.now(), approvedAt: Timestamp.now(), approvedBy: ADMIN_UID,
+          rejectionReason: null, createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
+        });
+      });
+    });
+
+    async function sendCharlieToLena() {
+      await assertSucceeds(requestBatch(charlieDb(), CHARLIE, LENA).commit());
+    }
+
+    it('TEST-103: Approved researcher sends request with notification (atomic batch) → ALLOW', async () => {
+      await sendCharlieToLena();
+    });
+
+    it('TEST-104: Duplicate request in the same direction → DENY', async () => {
+      await sendCharlieToLena();
+      await assertFails(requestBatch(charlieDb(), CHARLIE, LENA).commit());
+    });
+
+    it('TEST-105: Reverse-direction duplicate request → DENY', async () => {
+      await sendCharlieToLena();
+      await assertFails(requestBatch(lenaDb(), LENA, CHARLIE).commit());
+    });
+
+    it('TEST-106: Connection request to self → DENY', async () => {
+      const db = charlieDb();
+      const batch = writeBatch(db);
+      batch.set(doc(db, 'connections', `${CHARLIE_UID}_${CHARLIE_UID}`), {
+        users: [CHARLIE_UID, CHARLIE_UID], requesterUid: CHARLIE_UID, recipientUid: CHARLIE_UID,
+        requester: CHARLIE, recipient: CHARLIE, status: 'pending',
+        createdAt: serverTimestamp(), updatedAt: serverTimestamp(), respondedAt: null,
+      });
+      await assertFails(batch.commit());
+    });
+
+    it('TEST-107: Request to a suspended (unapproved) researcher → DENY', async () => {
+      await assertFails(requestBatch(charlieDb(), CHARLIE, DAVID).commit());
+    });
+
+    it('TEST-108: Suspended researcher sends a request → DENY', async () => {
+      await assertFails(requestBatch(ctx(DAVID_UID, DAVID_EMAIL), DAVID, CHARLIE).commit());
+    });
+
+    it('TEST-109: Forged participant snapshot → DENY', async () => {
+      const { id, data } = buildConnectionRequest(CHARLIE, { ...LENA, displayName: 'Fake Name' }, serverTimestamp());
+      await assertFails(setDoc(doc(charlieDb(), 'connections', id), data));
+    });
+
+    it('TEST-110: Non-canonical connection document ID → DENY', async () => {
+      const { data } = buildConnectionRequest(CHARLIE, LENA, serverTimestamp());
+      await assertFails(setDoc(doc(charlieDb(), 'connections', 'random_connection_id'), data));
+    });
+
+    it('TEST-111: Recipient accepts with acceptance notification → ALLOW', async () => {
+      await sendCharlieToLena();
+      await assertSucceeds(acceptBatch(lenaDb(), LENA, CHARLIE_UID, connId).commit());
+      const snap = await assertSucceeds(getDoc(doc(charlieDb(), 'connections', connId)));
+      assert.equal(snap.data().status, 'accepted');
+    });
+
+    it('TEST-112: Requester accepts their own request → DENY', async () => {
+      await sendCharlieToLena();
+      await assertFails(updateDoc(doc(charlieDb(), 'connections', connId),
+        buildConnectionResponse(true, serverTimestamp())));
+    });
+
+    it('TEST-113: Recipient rejects; requester cannot clear rejection; recipient can → ALLOW/DENY', async () => {
+      await sendCharlieToLena();
+      await assertSucceeds(updateDoc(doc(lenaDb(), 'connections', connId),
+        buildConnectionResponse(false, serverTimestamp())));
+      await assertFails(deleteDoc(doc(charlieDb(), 'connections', connId)));
+      await assertSucceeds(deleteDoc(doc(lenaDb(), 'connections', connId)));
+    });
+
+    it('TEST-114: Third party reads a connection → DENY; participant queries own connections → ALLOW', async () => {
+      await sendCharlieToLena();
+      await assertFails(getDoc(doc(ctx(ADMIN_UID, ADMIN_EMAIL), 'connections', connId)));
+      const snap = await assertSucceeds(getDocs(query(
+        collection(lenaDb(), 'connections'), where('users', 'array-contains', LENA_UID),
+      )));
+      assert.equal(snap.size, 1);
+    });
+
+    it('TEST-115: Participant cancels a pending request / removes a connection → ALLOW', async () => {
+      await sendCharlieToLena();
+      await assertSucceeds(deleteDoc(doc(charlieDb(), 'connections', connId)));
+      await sendCharlieToLena();
+      await assertSucceeds(acceptBatch(lenaDb(), LENA, CHARLIE_UID, connId).commit());
+      await assertSucceeds(deleteDoc(doc(charlieDb(), 'connections', connId)));
+    });
+
+    it('TEST-116: Standalone forged request notification (no connection change) → DENY', async () => {
+      await assertFails(setDoc(doc(collection(charlieDb(), 'notifications')),
+        buildNotification('connection_request', CHARLIE, LENA_UID, connId, serverTimestamp())));
+    });
+
+    it('TEST-117: Repeated request notification while request already pending → DENY', async () => {
+      await sendCharlieToLena();
+      await assertFails(setDoc(doc(collection(charlieDb(), 'notifications')),
+        buildNotification('connection_request', CHARLIE, LENA_UID, connId, serverTimestamp())));
+    });
+
+    it('TEST-118: Acceptance notification without an actual acceptance → DENY', async () => {
+      await sendCharlieToLena();
+      await assertFails(setDoc(doc(collection(lenaDb(), 'notifications')),
+        buildNotification('connection_accepted', LENA, CHARLIE_UID, connId, serverTimestamp())));
+    });
+
+    it('TEST-119: Notification with forged actor name → DENY', async () => {
+      await assertFails(requestBatch(charlieDb(), CHARLIE, LENA, {}, { actorName: 'Department Head' }).commit());
+    });
+
+    it('TEST-120: Recipient lists own notifications (newest first) → ALLOW; other user → DENY', async () => {
+      await sendCharlieToLena();
+      const snap = await assertSucceeds(getDocs(query(
+        collection(lenaDb(), 'notifications'),
+        where('recipientUid', '==', LENA_UID),
+        orderBy('createdAt', 'desc'),
+        limit(50),
+      )));
+      assert.equal(snap.size, 1);
+      assert.equal(snap.docs[0].data().type, 'connection_request');
+      await assertFails(getDocs(query(
+        collection(charlieDb(), 'notifications'), where('recipientUid', '==', LENA_UID),
+      )));
+    });
+
+    it('TEST-121: Recipient marks read → ALLOW; edits other fields or actor marks read → DENY; recipient deletes → ALLOW', async () => {
+      await sendCharlieToLena();
+      const snap = await getDocs(query(collection(lenaDb(), 'notifications'), where('recipientUid', '==', LENA_UID)));
+      const id = snap.docs[0].id;
+      await assertFails(updateDoc(doc(charlieDb(), 'notifications', id), { read: true }));
+      await assertFails(updateDoc(doc(lenaDb(), 'notifications', id), { read: true, type: 'connection_accepted' }));
+      await assertSucceeds(updateDoc(doc(lenaDb(), 'notifications', id), { read: true }));
+      await assertSucceeds(deleteDoc(doc(lenaDb(), 'notifications', id)));
+    });
+  });
+
+  describe('12. Saved Items', () => {
+    const LENA_UID = 'user_lena_approved';
+    const LENA_EMAIL = 'lena@gmail.com';
+    const ctx = (uid, email) =>
+      testEnv.authenticatedContext(uid, { email, email_verified: true }).firestore();
+    const charlieDb = () => ctx(CHARLIE_UID, CHARLIE_EMAIL);
+
+    const LENA_AUTHOR = { uid: LENA_UID, displayName: 'Lena Approved', photoURL: 'https://example.com/lena.jpg',
+      department: 'Computer Science and Engineering', designation: 'Undergraduate Researcher' };
+    const WORK = { title: 'Accessible HCI patterns', description: 'Studying accessible interaction patterns for students.',
+      tags: ['#HCI'], stage: 'Idea', externalUrl: null };
+
+    const savedSource = (id, overrides = {}) => ({
+      id, title: WORK.title, authorUid: LENA_UID, authorName: 'Lena Approved', stage: 'Idea', ...overrides,
+    });
+
+    beforeEach(async () => {
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        const db = context.firestore();
+        await setDoc(doc(db, 'research_works', 'lena_pub'),
+          buildResearchWorkDocument(LENA_AUTHOR, WORK, Timestamp.now()));
+        await setDoc(doc(db, 'research_works', 'lena_draft'),
+          buildResearchWorkDocument(LENA_AUTHOR, { ...WORK, status: 'draft' }, Timestamp.now()));
+      });
+    });
+
+    it('TEST-122: Approved owner saves a published work → ALLOW', async () => {
+      const db = charlieDb();
+      await assertSucceeds(setDoc(doc(db, 'users', CHARLIE_UID, 'saved_items', 'lena_pub'),
+        buildSavedItem(savedSource('lena_pub'), serverTimestamp())));
+    });
+
+    it('TEST-123: Saving into another user\'s saved items → DENY', async () => {
+      const db = charlieDb();
+      await assertFails(setDoc(doc(db, 'users', LENA_UID, 'saved_items', 'lena_pub'),
+        buildSavedItem(savedSource('lena_pub'), serverTimestamp())));
+    });
+
+    it('TEST-124: Forged title snapshot or mismatched document ID → DENY', async () => {
+      const db = charlieDb();
+      await assertFails(setDoc(doc(db, 'users', CHARLIE_UID, 'saved_items', 'lena_pub'),
+        buildSavedItem(savedSource('lena_pub', { title: 'Something else' }), serverTimestamp())));
+      await assertFails(setDoc(doc(db, 'users', CHARLIE_UID, 'saved_items', 'other_id'),
+        buildSavedItem(savedSource('lena_pub'), serverTimestamp())));
+    });
+
+    it('TEST-125: Saving another author\'s draft or a non-existent work → DENY', async () => {
+      const db = charlieDb();
+      await assertFails(setDoc(doc(db, 'users', CHARLIE_UID, 'saved_items', 'lena_draft'),
+        buildSavedItem(savedSource('lena_draft'), serverTimestamp())));
+      await assertFails(setDoc(doc(db, 'users', CHARLIE_UID, 'saved_items', 'missing_work'),
+        buildSavedItem(savedSource('missing_work'), serverTimestamp())));
+    });
+
+    it('TEST-126: Suspended user saves a work → DENY', async () => {
+      const db = ctx(DAVID_UID, DAVID_EMAIL);
+      await assertFails(setDoc(doc(db, 'users', DAVID_UID, 'saved_items', 'lena_pub'),
+        buildSavedItem(savedSource('lena_pub'), serverTimestamp())));
+    });
+
+    it('TEST-127: Owner lists saved items → ALLOW; another user lists them → DENY', async () => {
+      await assertSucceeds(setDoc(doc(charlieDb(), 'users', CHARLIE_UID, 'saved_items', 'lena_pub'),
+        buildSavedItem(savedSource('lena_pub'), serverTimestamp())));
+      const snap = await assertSucceeds(getDocs(collection(charlieDb(), 'users', CHARLIE_UID, 'saved_items')));
+      assert.equal(snap.size, 1);
+      await assertFails(getDocs(collection(ctx(LENA_UID, LENA_EMAIL), 'users', CHARLIE_UID, 'saved_items')));
+    });
+
+    it('TEST-128: Owner updates a saved item → DENY; owner removes it → ALLOW', async () => {
+      const ref = doc(charlieDb(), 'users', CHARLIE_UID, 'saved_items', 'lena_pub');
+      await assertSucceeds(setDoc(ref, buildSavedItem(savedSource('lena_pub'), serverTimestamp())));
+      await assertFails(updateDoc(ref, { workTitle: 'Renamed' }));
+      await assertSucceeds(deleteDoc(ref));
+    });
+
+    it('TEST-129: Author saves their own draft → ALLOW', async () => {
+      const db = ctx(LENA_UID, LENA_EMAIL);
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        await setDoc(doc(context.firestore(), 'users', LENA_UID), {
+          uid: LENA_UID, email: LENA_EMAIL, displayName: 'Lena Approved', photoURL: 'https://example.com/lena.jpg',
+          department: 'Computer Science and Engineering', program: null, batch: null, studentId: null,
+          designation: 'Undergraduate Researcher', bio: null, researchInterests: [], socialLinks: {},
+          approvalStatus: 'approved', requestedAt: Timestamp.now(), approvedAt: Timestamp.now(),
+          approvedBy: ADMIN_UID, rejectionReason: null, createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
+        });
+      });
+      await assertSucceeds(setDoc(doc(db, 'users', LENA_UID, 'saved_items', 'lena_draft'),
+        buildSavedItem(savedSource('lena_draft'), serverTimestamp())));
+    });
+  });
+});

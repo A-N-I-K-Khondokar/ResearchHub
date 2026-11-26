@@ -134,6 +134,7 @@ function RootNavigation() {
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="(research)/[id]" />
       <Stack.Screen name="(profile)/[id]" />
+      <Stack.Screen name="(profile)/saved" />
       <Stack.Screen name="(explore)/search" />
       <Stack.Screen name="(explore)/topic-researchers" />
       <Stack.Screen name="+not-found" />

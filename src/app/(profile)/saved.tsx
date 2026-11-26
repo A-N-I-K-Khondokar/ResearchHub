@@ -1,0 +1,147 @@
+import React from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  FlatList,
+  ActivityIndicator,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
+import { ArrowLeft, Bookmark, Layers, Trash2 } from 'lucide-react-native';
+import { spacing, radius, typography, fontFamilies } from '../../constants';
+import { useTheme } from '@/hooks/useTheme';
+import { useSavedItems } from '@/hooks/useSavedItems';
+import { formatWorkDate } from '@/services/research.service';
+
+/** Saved Items — the signed-in researcher's private bookmarks (users/{uid}/saved_items). */
+export default function SavedItemsScreen() {
+  const router = useRouter();
+  const { colors } = useTheme();
+  const { items, loading, error, remove } = useSavedItems();
+
+  return (
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton} accessibilityLabel="Go back">
+          <ArrowLeft size={22} color={colors.textPrimary} />
+        </TouchableOpacity>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Saved Items</Text>
+        <View style={{ width: 40 }} />
+      </View>
+
+      {loading ? (
+        <View style={styles.centered}>
+          <ActivityIndicator color={colors.primary} />
+        </View>
+      ) : error ? (
+        <View style={styles.centered}>
+          <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>Could not load saved items</Text>
+          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+            Check your connection and try again.
+          </Text>
+        </View>
+      ) : items.length === 0 ? (
+        <View style={styles.centered}>
+          <View style={[styles.iconContainer, { backgroundColor: colors.primaryMuted }]}>
+            <Bookmark size={32} color={colors.primary} />
+          </View>
+          <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>No saved research yet</Text>
+          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+            Tap the bookmark on any research update to keep it here for later.
+          </Text>
+          <TouchableOpacity
+            onPress={() => router.push('/(tabs)/explore' as any)}
+            style={[styles.cta, { backgroundColor: colors.primaryMuted }]}
+          >
+            <Text style={[styles.ctaText, { color: colors.primary }]}>Explore research</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <FlatList
+          data={items}
+          keyExtractor={(item) => item.workId}
+          contentContainerStyle={styles.list}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={() => router.push(`/(research)/${item.workId}` as any)}
+              style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}
+              accessibilityRole="button"
+              accessibilityLabel={`Open ${item.workTitle}`}
+            >
+              <View style={styles.cardBody}>
+                <Text style={[styles.cardTitle, { color: colors.textPrimary }]} numberOfLines={2}>
+                  {item.workTitle}
+                </Text>
+                <Text style={[styles.cardMeta, { color: colors.textSecondary }]} numberOfLines={1}>
+                  {item.workAuthorName} • Saved {formatWorkDate(item.savedAt)}
+                </Text>
+                <View style={styles.stageRow}>
+                  <Layers size={13} color={colors.textSecondary} />
+                  <Text style={[styles.cardMeta, { color: colors.textSecondary }]}>{item.workStage}</Text>
+                </View>
+              </View>
+              <TouchableOpacity
+                onPress={() => remove(item.workId)}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                style={styles.removeButton}
+                accessibilityRole="button"
+                accessibilityLabel={`Remove ${item.workTitle} from saved items`}
+              >
+                <Trash2 size={18} color={colors.error} />
+              </TouchableOpacity>
+            </TouchableOpacity>
+          )}
+        />
+      )}
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  safeArea: { flex: 1 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: { ...typography.titleSmall },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.xl },
+  iconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: radius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
+  },
+  emptyTitle: { ...typography.titleSmall, textAlign: 'center', marginBottom: 4 },
+  emptyText: { ...typography.bodySmall, textAlign: 'center' },
+  cta: { marginTop: spacing.md, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, borderRadius: radius.full },
+  ctaText: { fontFamily: fontFamilies.sansSemiBold, fontSize: 14 },
+  list: { padding: spacing.md, gap: spacing.sm },
+  card: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: radius.md,
+    padding: spacing.md,
+  },
+  cardBody: { flex: 1, minWidth: 0 },
+  cardTitle: { ...typography.titleSmall, marginBottom: 4 },
+  cardMeta: { ...typography.caption },
+  stageRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
+  removeButton: { paddingLeft: spacing.md },
+});

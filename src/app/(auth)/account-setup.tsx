@@ -350,7 +350,12 @@ export default function AccountSetupScreen() {
       let errorMsg =
         err?.message ||
         'Failed to submit profile. Please verify your connection and try again.';
-      if (errorMsg.includes('permission-denied') || errorMsg.includes('PERMISSION_DENIED')) {
+      if (
+        err?.code === 'permission-denied' ||
+        errorMsg.includes('permission-denied') ||
+        errorMsg.includes('PERMISSION_DENIED') ||
+        errorMsg.includes('insufficient permissions')
+      ) {
         errorMsg =
           'Permission denied. Please ensure your email is verified and required fields match institutional guidelines.';
       } else if (errorMsg.includes('already exists')) {

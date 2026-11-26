@@ -11,33 +11,28 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
   ArrowRight,
-  Eye,
+  Layers,
   Bookmark,
-  FileText,
-  Quote,
 } from 'lucide-react-native';
 import { spacing, radius, typography, fontFamilies, shadows, floatingButtonTokens } from '@/constants';
 import { useTheme } from '@/context/ThemeContext';
-import {
-  mockTopics,
-  mockResearchers,
-  getActiveCurrentWork,
-  getPublications,
-  getResearcherById,
-  getCurrentWorkById,
-} from '@/data';
-import { Topic, UserProfile } from '@/types';
+import { Topic } from '@/types';
+import { TOPIC_TAXONOMY } from '@/utils/search';
+import { useResearchDirectory } from '@/hooks/useResearchDirectory';
+import { useConnections } from '@/hooks/useConnections';
+import { useSavedItems } from '@/hooks/useSavedItems';
+import { formatWorkDate } from '@/services/research.service';
+import { ActivityIndicator } from 'react-native';
 import { SearchBar } from '@/components/common/SearchBar';
 import { ResearcherDiscoveryCard } from '@/components/cards/ResearcherDiscoveryCard';
 
-type ExploreFilterType = 'all' | 'people' | 'work' | 'topics' | 'papers';
+type ExploreFilterType = 'all' | 'people' | 'work' | 'topics';
 
 const filterCategories: { key: ExploreFilterType; label: string }[] = [
   { key: 'all', label: 'All' },
   { key: 'people', label: 'People' },
   { key: 'work', label: 'Current Work' },
   { key: 'topics', label: 'Topics' },
-  { key: 'papers', label: 'Previous Research' },
 ];
 
 export default function ExploreScreen() {
@@ -47,39 +42,23 @@ export default function ExploreScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [selectedTypeFilter, setSelectedTypeFilter] = useState<ExploreFilterType>('all');
 
-  const [connectionStates, setConnectionStates] = useState<Record<string, 'none' | 'pending' | 'connected'>>(() => {
-    const initial: Record<string, 'none' | 'pending' | 'connected'> = {};
-    mockResearchers.forEach((r) => {
-      initial[r.id] = r.connectionStatus || 'none';
-    });
-    return initial;
-  });
+  const directory = useResearchDirectory();
+  const { cardStatus, handleConnectPress } = useConnections();
+  const { isSaved, toggleSave } = useSavedItems();
 
-  const featuredResearchers = useMemo(() => mockResearchers.slice(0, 3), []);
-  const allCurrentWork = useMemo(() => getActiveCurrentWork(), []);
-  const allPublications = useMemo(() => getPublications(), []);
+  // Researchers with recently shared work first, then the rest of the directory
+  const featuredResearchers = useMemo(() => {
+    const active = directory.researchers.filter((r) => (r.currentWorkIds?.length ?? 0) > 0);
+    const others = directory.researchers.filter((r) => (r.currentWorkIds?.length ?? 0) === 0);
+    return [...active, ...others].slice(0, 3);
+  }, [directory.researchers]);
+  const allCurrentWork = directory.works;
 
   const handleRefresh = React.useCallback(() => {
     setRefreshing(true);
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 600);
-  }, []);
-
-  const handleToggleConnect = (researcherId: string) => {
-    setConnectionStates((prev) => {
-      const current = prev[researcherId] || 'none';
-      let nextState: 'none' | 'pending' | 'connected' = 'pending';
-      if (current === 'none') nextState = 'pending';
-      else if (current === 'pending') nextState = 'connected';
-      else nextState = 'none';
-
-      return {
-        ...prev,
-        [researcherId]: nextState,
-      };
-    });
-  };
+    directory.refresh();
+    setTimeout(() => setRefreshing(false), 800);
+  }, [directory]);
 
   const handleTopicPress = (topic: Topic | string) => {
     const topicName = typeof topic === 'string' ? topic : topic.name;
@@ -243,7 +222,7 @@ export default function ExploreScreen() {
               ]}
             >
               <View style={styles.topicsGrid}>
-                {mockTopics.map((t) => {
+                {TOPIC_TAXONOMY.map((t) => {
                   const scheme = getTopicChipStyle(t.name);
                   return (
                     <TouchableOpacity
@@ -319,10 +298,17 @@ export default function ExploreScreen() {
 
               {/* Cards List */}
               <View style={styles.featuredResearchersList}>
+                {directory.loading ? (
+                  <ActivityIndicator color={colors.primary} style={{ marginVertical: spacing.md }} />
+                ) : featuredResearchers.length === 0 ? (
+                  <Text style={[styles.currentWorkMeta, { color: colors.textSecondary }]}>
+                    No other approved researchers yet.
+                  </Text>
+                ) : null}
                 {featuredResearchers.map((researcher) => {
                   const primaryWorkId = researcher.currentWorkIds?.[0];
                   const primaryWork = primaryWorkId
-                    ? getCurrentWorkById(primaryWorkId)
+                    ? directory.currentWorks.find((w) => w.id === primaryWorkId) ?? null
                     : null;
 
                   return (
@@ -330,11 +316,14 @@ export default function ExploreScreen() {
                       key={researcher.id}
                       researcher={researcher}
                       currentWork={primaryWork}
-                      connectionStatus={connectionStates[researcher.id] || 'none'}
+                      connectionStatus={cardStatus(researcher.id)}
                       onPress={() =>
                         router.push(`/(profile)/${researcher.id}` as any)
                       }
-                      onConnectPress={() => handleToggleConnect(researcher.id)}
+                      onConnectPress={() => {
+                        const profile = directory.profileByUid.get(researcher.id);
+                        if (profile) handleConnectPress(profile);
+                      }}
                       onTopicPress={(topic) => handleTopicPress(topic)}
                     />
                   );
@@ -365,11 +354,13 @@ export default function ExploreScreen() {
             </View>
 
             <View style={styles.currentWorkList}>
-              {allCurrentWork.slice(0, 3).map((work, idx) => {
-                const author = getResearcherById(work.userId || work.researcherId || '');
-                const views = work.likesCount ? work.likesCount * 35 : idx === 0 ? 1200 : 890;
-                const viewsText = views > 999 ? `${(views / 1000).toFixed(1)}k` : `${views}`;
-                const bookmarks = work.commentsCount ? work.commentsCount * 5 : idx === 0 ? 45 : 32;
+              {!directory.loading && allCurrentWork.length === 0 ? (
+                <Text style={[styles.currentWorkMeta, { color: colors.textSecondary }]}>
+                  No research has been shared yet.
+                </Text>
+              ) : null}
+              {allCurrentWork.slice(0, 3).map((work) => {
+                const saved = isSaved(work.id);
 
                 return (
                   <TouchableOpacity
@@ -401,31 +392,41 @@ export default function ExploreScreen() {
                       numberOfLines={1}
                       ellipsizeMode="tail"
                     >
-                      Updated {work.updatedAt || 'recently'} by {author ? author.name : work.authorName || 'Research Team'}
+                      Shared {formatWorkDate(work.createdAt)} by {work.authorName}
                     </Text>
                     <View style={styles.currentWorkStatsRow}>
                       <View style={styles.currentWorkStatItem}>
-                        <Eye size={14} color={colors.textSecondary} />
+                        <Layers size={14} color={colors.textSecondary} />
                         <Text
                           style={[
                             styles.currentWorkStatText,
                             { color: colors.textSecondary },
                           ]}
                         >
-                          {viewsText}
+                          {work.stage}
                         </Text>
                       </View>
-                      <View style={styles.currentWorkStatItem}>
-                        <Bookmark size={14} color={colors.textSecondary} />
+                      <TouchableOpacity
+                        style={styles.currentWorkStatItem}
+                        onPress={() => toggleSave(work)}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                        accessibilityRole="button"
+                        accessibilityLabel={saved ? 'Remove from saved items' : 'Save research'}
+                      >
+                        <Bookmark
+                          size={14}
+                          color={saved ? colors.primary : colors.textSecondary}
+                          fill={saved ? colors.primary : 'transparent'}
+                        />
                         <Text
                           style={[
                             styles.currentWorkStatText,
-                            { color: colors.textSecondary },
+                            { color: saved ? colors.primary : colors.textSecondary },
                           ]}
                         >
-                          {bookmarks}
+                          {saved ? 'Saved' : 'Save'}
                         </Text>
-                      </View>
+                      </TouchableOpacity>
                     </View>
                   </TouchableOpacity>
                 );
@@ -456,104 +457,6 @@ export default function ExploreScreen() {
                 View Activity Feed
               </Text>
             </TouchableOpacity>
-          </View>
-        )}
-
-        {/* 4. EXPLORE PREVIOUS RESEARCH */}
-        {(selectedTypeFilter === 'all' || selectedTypeFilter === 'papers') && (
-          <View style={styles.sectionContainer}>
-            <View style={styles.bentoHeaderRow}>
-              <View style={styles.bentoHeaderLeft}>
-                <Text
-                  style={[styles.bentoTitle, { color: colors.textPrimary }]}
-                  numberOfLines={1}
-                >
-                  Explore Previous Research
-                </Text>
-                <Text
-                  style={[styles.bentoSubtitle, { color: colors.textSecondary }]}
-                  numberOfLines={1}
-                >
-                  Peer-reviewed publications and conference proceedings
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.papersGrid}>
-              {allPublications.map((pub, idx) => {
-                const citations =
-                  (pub as any).citationsCount ||
-                  (idx === 0 ? 42 : idx === 1 ? 128 : idx === 2 ? 85 : 56);
-                const authorsText = pub.authors?.length
-                  ? pub.authors.join(', ')
-                  : pub.authorName;
-
-                return (
-                  <TouchableOpacity
-                    key={pub.id}
-                    activeOpacity={0.8}
-                    onPress={() => router.push(`/(research)/${pub.id}` as any)}
-                    style={[
-                      styles.paperCard,
-                      {
-                        backgroundColor: colors.surface,
-                        borderColor: colors.borderSubtle,
-                        shadowOpacity: isDark ? 0 : 0.03,
-                        elevation: isDark ? 0 : 1,
-                      },
-                    ]}
-                    accessibilityRole="button"
-                    accessibilityLabel={pub.title}
-                  >
-                    <View style={styles.paperHeaderRow}>
-                      <FileText size={16} color={colors.textSecondary} />
-                      <Text
-                        style={[
-                          styles.paperYear,
-                          { color: colors.textSecondary },
-                        ]}
-                      >
-                        {pub.year}
-                      </Text>
-                    </View>
-                    <Text
-                      style={[styles.paperTitle, { color: colors.textPrimary }]}
-                      numberOfLines={2}
-                      ellipsizeMode="tail"
-                    >
-                      {pub.title}
-                    </Text>
-                    {authorsText ? (
-                      <Text
-                        style={[styles.paperAuthors, { color: colors.textSecondary }]}
-                        numberOfLines={1}
-                        ellipsizeMode="tail"
-                      >
-                        {authorsText}
-                      </Text>
-                    ) : null}
-                    <Text
-                      style={[styles.paperVenue, { color: colors.textSecondary }]}
-                      numberOfLines={1}
-                      ellipsizeMode="tail"
-                    >
-                      {pub.venue}
-                    </Text>
-                    <View style={styles.paperCitationsRow}>
-                      <Quote size={13} color={colors.textSecondary} />
-                      <Text
-                        style={[
-                          styles.paperCitationsText,
-                          { color: colors.textSecondary },
-                        ]}
-                      >
-                        {citations} Citations
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
           </View>
         )}
 

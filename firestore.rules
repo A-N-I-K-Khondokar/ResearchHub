@@ -674,6 +674,288 @@ service cloud.firestore {
     }
 
     // ===============================================================
+    // Domain Validators: Research Works Collection
+    // ===============================================================
+    //
+    // /research_works/{workId} — shared current research (auto-generated ID).
+    //   - authorUid: string (immutable) - Author's Firebase Auth UID.
+    //   - authorName / authorPhotoURL / authorDepartment / authorDesignation:
+    //       author snapshot (immutable), must equal users/{authorUid} at creation.
+    //   - title: string (3-200), description: string (20-5000).
+    //   - tags: list (max 10), stage: 'Idea' | 'Literature Review' | 'Experiment' | 'Writing'.
+    //   - externalUrl: http(s) string (max 500) | null.
+    //   - status: 'published' (approved researchers can read) | 'draft' (author only).
+    //   - createdAt (immutable) / updatedAt: request.time.
+
+    function researchWorkHasValidKeys(data) {
+      return data.keys().hasOnly([
+        'authorUid',
+        'authorName',
+        'authorPhotoURL',
+        'authorDepartment',
+        'authorDesignation',
+        'title',
+        'description',
+        'tags',
+        'stage',
+        'externalUrl',
+        'status',
+        'createdAt',
+        'updatedAt'
+      ]) && data.keys().hasAll([
+        'authorUid',
+        'authorName',
+        'authorPhotoURL',
+        'authorDepartment',
+        'authorDesignation',
+        'title',
+        'description',
+        'tags',
+        'stage',
+        'externalUrl',
+        'status',
+        'createdAt',
+        'updatedAt'
+      ]);
+    }
+
+    function isValidResearchWork(data) {
+      return researchWorkHasValidKeys(data) &&
+        isValidString(data.authorUid, 1, 128) &&
+        isValidString(data.authorName, 1, 100) &&
+        (data.authorPhotoURL == null || isValidString(data.authorPhotoURL, 1, 500)) &&
+        isValidString(data.authorDepartment, 1, 100) &&
+        isValidString(data.authorDesignation, 1, 100) &&
+        isValidString(data.title, 3, 200) &&
+        isValidString(data.description, 20, 5000) &&
+        isValidList(data.tags, 10) &&
+        data.stage in ['Idea', 'Literature Review', 'Experiment', 'Writing'] &&
+        (data.externalUrl == null ||
+          (isValidString(data.externalUrl, 8, 500) && data.externalUrl.matches('^https?://.+'))) &&
+        data.status in ['published', 'draft'] &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    // ===============================================================
+    // Rules: Research Works Collection (/research_works/{workId})
+    // ===============================================================
+    match /research_works/{workId} {
+      // Read: author always; administrators; approved researchers for published work only.
+      // Queries must be constrained (status == 'published' or authorUid == uid).
+      allow read: if isAdmin() ||
+        (isAuthenticated() && resource.data.authorUid == request.auth.uid) ||
+        (resource.data.status == 'published' && isApprovedUser());
+
+      // Create: approved researchers only, for themselves, with an author snapshot
+      // that matches their own profile, and server timestamps.
+      allow create: if isApprovedUser() &&
+        isValidResearchWork(request.resource.data) &&
+        request.resource.data.authorUid == request.auth.uid &&
+        request.resource.data.authorName ==
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.displayName &&
+        request.resource.data.authorDepartment ==
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.department &&
+        request.resource.data.authorDesignation ==
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.designation &&
+        request.resource.data.authorPhotoURL ==
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('photoURL', null) &&
+        request.resource.data.createdAt == request.time &&
+        request.resource.data.updatedAt == request.time;
+
+      // Update: the (still approved) author may edit content fields and status only.
+      allow update: if isApprovedUser() &&
+        resource.data.authorUid == request.auth.uid &&
+        isValidResearchWork(request.resource.data) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'title',
+          'description',
+          'tags',
+          'stage',
+          'externalUrl',
+          'status',
+          'updatedAt'
+        ]) &&
+        request.resource.data.updatedAt == request.time;
+
+      // Delete: the author or an administrator.
+      allow delete: if isAdmin() ||
+        (isAuthenticated() && resource.data.authorUid == request.auth.uid);
+    }
+
+    // ===============================================================
+    // Networking Helpers (Stage 3)
+    // ===============================================================
+
+    // True when the given UID has an approved profile.
+    function isApprovedUid(uid) {
+      return exists(/databases/$(database)/documents/users/$(uid)) &&
+        get(/databases/$(database)/documents/users/$(uid)).data.approvalStatus == 'approved';
+    }
+
+    // Participant snapshot must exactly mirror users/{uid}.
+    function participantMatchesProfile(p, uid) {
+      let profile = get(/databases/$(database)/documents/users/$(uid)).data;
+      return p is map &&
+        p.keys().hasOnly(['uid', 'displayName', 'photoURL', 'designation']) &&
+        p.keys().hasAll(['uid', 'displayName', 'photoURL', 'designation']) &&
+        p.uid == uid &&
+        p.displayName == profile.displayName &&
+        p.designation == profile.designation &&
+        p.photoURL == profile.get('photoURL', null);
+    }
+
+    // ===============================================================
+    // Rules: Connections (/connections/{connectionId})
+    // ===============================================================
+    //
+    // One document per researcher pair. ID = `${smallerUid}_${largerUid}`, so a
+    // duplicate request in either direction is an update (denied), never a create.
+    //   - users: [smallerUid, largerUid]; requesterUid / recipientUid.
+    //   - requester / recipient: participant snapshots (validated).
+    //   - status: 'pending' -> 'accepted' | 'rejected' (recipient only).
+    //   - createdAt / updatedAt / respondedAt: request.time.
+    function isValidConnectionCreate(connectionId, d) {
+      return d.keys().hasOnly([
+          'users', 'requesterUid', 'recipientUid', 'requester', 'recipient',
+          'status', 'createdAt', 'updatedAt', 'respondedAt'
+        ]) &&
+        d.keys().hasAll([
+          'users', 'requesterUid', 'recipientUid', 'requester', 'recipient',
+          'status', 'createdAt', 'updatedAt', 'respondedAt'
+        ]) &&
+        d.requesterUid == request.auth.uid &&
+        d.recipientUid is string &&
+        d.recipientUid != request.auth.uid &&
+        isApprovedUid(d.recipientUid) &&
+        connectionId == (d.requesterUid < d.recipientUid
+          ? d.requesterUid + '_' + d.recipientUid
+          : d.recipientUid + '_' + d.requesterUid) &&
+        d.users == (d.requesterUid < d.recipientUid
+          ? [d.requesterUid, d.recipientUid]
+          : [d.recipientUid, d.requesterUid]) &&
+        d.status == 'pending' &&
+        d.respondedAt == null &&
+        d.createdAt == request.time &&
+        d.updatedAt == request.time &&
+        participantMatchesProfile(d.requester, d.requesterUid) &&
+        participantMatchesProfile(d.recipient, d.recipientUid);
+    }
+
+    match /connections/{connectionId} {
+      // Only the two participants can read (queries: users array-contains uid).
+      allow read: if isAuthenticated() && request.auth.uid in resource.data.users;
+
+      // Approved researcher sends a request to another approved researcher.
+      allow create: if isApprovedUser() &&
+        isValidConnectionCreate(connectionId, request.resource.data);
+
+      // Only the recipient answers a pending request.
+      allow update: if isApprovedUser() &&
+        resource.data.recipientUid == request.auth.uid &&
+        resource.data.status == 'pending' &&
+        request.resource.data.status in ['accepted', 'rejected'] &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['status', 'respondedAt', 'updatedAt']) &&
+        request.resource.data.respondedAt == request.time &&
+        request.resource.data.updatedAt == request.time;
+
+      // Participants may cancel a pending request or remove a connection.
+      // A rejected request can only be cleared by its recipient (prevents re-request spam).
+      allow delete: if isAuthenticated() &&
+        request.auth.uid in resource.data.users &&
+        (resource.data.status != 'rejected' || resource.data.recipientUid == request.auth.uid);
+    }
+
+    // ===============================================================
+    // Rules: In-App Notifications (/notifications/{notificationId})
+    // ===============================================================
+    //
+    // Created by the acting researcher in the SAME batch as the connection change
+    // they describe (verified with get/getAfter), so they cannot be forged or spammed.
+    //   - recipientUid, actorUid, actorName, actorPhotoURL (validated snapshot).
+    //   - type: 'connection_request' | 'connection_accepted'; connectionId.
+    //   - read: false on create; recipient may only flip it to true.
+    function isValidNotificationCreate(d) {
+      let connPath = /databases/$(database)/documents/connections/$(d.connectionId);
+      let actor = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      return d.keys().hasOnly([
+          'recipientUid', 'actorUid', 'actorName', 'actorPhotoURL',
+          'type', 'connectionId', 'read', 'createdAt'
+        ]) &&
+        d.keys().hasAll([
+          'recipientUid', 'actorUid', 'actorName', 'actorPhotoURL',
+          'type', 'connectionId', 'read', 'createdAt'
+        ]) &&
+        d.actorUid == request.auth.uid &&
+        d.recipientUid is string &&
+        d.recipientUid != request.auth.uid &&
+        d.connectionId is string &&
+        d.actorName == actor.displayName &&
+        d.actorPhotoURL == actor.get('photoURL', null) &&
+        d.read == false &&
+        d.createdAt == request.time &&
+        (
+          // New request: the connection is created in this same batch.
+          (d.type == 'connection_request' &&
+            !exists(connPath) &&
+            getAfter(connPath).data.status == 'pending' &&
+            getAfter(connPath).data.requesterUid == request.auth.uid &&
+            getAfter(connPath).data.recipientUid == d.recipientUid) ||
+          // Acceptance: the connection moves pending -> accepted in this same batch.
+          (d.type == 'connection_accepted' &&
+            get(connPath).data.status == 'pending' &&
+            getAfter(connPath).data.status == 'accepted' &&
+            getAfter(connPath).data.recipientUid == request.auth.uid &&
+            getAfter(connPath).data.requesterUid == d.recipientUid)
+        );
+    }
+
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated() && resource.data.recipientUid == request.auth.uid;
+
+      allow create: if isApprovedUser() && isValidNotificationCreate(request.resource.data);
+
+      // Recipient may only mark as read.
+      allow update: if isAuthenticated() &&
+        resource.data.recipientUid == request.auth.uid &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']) &&
+        request.resource.data.read == true;
+
+      allow delete: if isAuthenticated() && resource.data.recipientUid == request.auth.uid;
+    }
+
+    // ===============================================================
+    // Rules: Saved Items (/users/{userId}/saved_items/{workId})
+    // ===============================================================
+    //
+    // Private bookmarks. Document ID = workId (one bookmark per work).
+    // The snapshot must mirror a research work the owner is allowed to read.
+    function isValidSavedItemCreate(workId, d) {
+      let workPath = /databases/$(database)/documents/research_works/$(workId);
+      let work = get(workPath).data;
+      return d.keys().hasOnly(['workId', 'workTitle', 'workAuthorUid', 'workAuthorName', 'workStage', 'savedAt']) &&
+        d.keys().hasAll(['workId', 'workTitle', 'workAuthorUid', 'workAuthorName', 'workStage', 'savedAt']) &&
+        d.workId == workId &&
+        d.savedAt == request.time &&
+        exists(workPath) &&
+        (work.status == 'published' || work.authorUid == request.auth.uid) &&
+        d.workTitle == work.title &&
+        d.workAuthorUid == work.authorUid &&
+        d.workAuthorName == work.authorName &&
+        d.workStage == work.stage;
+    }
+
+    match /users/{userId}/saved_items/{workId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) &&
+        isApprovedUser() &&
+        isValidSavedItemCreate(workId, request.resource.data);
+      allow update: if false;
+      allow delete: if isOwner(userId);
+    }
+
+    // ===============================================================
     // Default Deny Rule
     // ===============================================================
     // Deny read and write access to all other paths by default.

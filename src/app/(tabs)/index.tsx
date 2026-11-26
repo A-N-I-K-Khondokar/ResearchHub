@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,85 +7,138 @@ import {
   RefreshControl,
   FlatList,
   TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { spacing, radius, typography, fontFamilies, shadows } from '../../constants';
 import { useTheme } from '@/context/ThemeContext';
-import {
-  currentUser,
-  mockTopics,
-  mockResearchers,
-  mockCurrentWorks,
-  getActiveCurrentWork,
-  getFeaturedResearchers,
-  getRecentPublications,
-  getResearcherById,
-  getUnreadNotificationsCount,
-} from '../../data';
 import { Topic } from '../../types';
+import { TOPIC_TAXONOMY, topicCounts } from '@/utils/search';
+import { useResearchDirectory } from '@/hooks/useResearchDirectory';
+import { useConnections } from '@/hooks/useConnections';
+import { useSavedItems } from '@/hooks/useSavedItems';
+import { useAuth } from '@/context/AuthContext';
+import { subscribePublishedFeed, toCurrentWork } from '@/services/research.service';
+import { tagMatchKey } from '@/utils/researchWork';
+import type { ResearchWork } from '@/types/research.types';
 import { HomeHeader } from '../../components/home/HomeHeader';
 import { TopicShortcutRow } from '../../components/home/TopicShortcutRow';
 import { CurrentWorkCard } from '../../components/cards/CurrentWorkCard';
 import { ResearcherCard } from '../../components/cards/ResearcherCard';
-import { PublicationCard } from '../../components/cards/PublicationCard';
 import { SectionHeader } from '../../components/common/SectionHeader';
 
 export default function HomeFeedScreen() {
   const router = useRouter();
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
+  const { firebaseUser } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
   const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
 
-  // Initialize local states accurately from mock data
-  const [likedWorkIds, setLikedWorkIds] = useState<Set<string>>(() => {
-    const set = new Set<string>();
-    mockCurrentWorks.forEach((w) => {
-      if (w.isLiked) set.add(w.id);
-    });
-    return set;
-  });
+  // Live feed of published research work (Firestore `research_works`)
+  const [feedWorks, setFeedWorks] = useState<ResearchWork[]>([]);
+  const [feedLoading, setFeedLoading] = useState(true);
+  const [feedError, setFeedError] = useState<string | null>(null);
+  const [feedKey, setFeedKey] = useState(0);
 
-  const [bookmarkedWorkIds, setBookmarkedWorkIds] = useState<Set<string>>(() => {
-    const set = new Set<string>();
-    mockCurrentWorks.forEach((w) => {
-      if (w.isBookmarked) set.add(w.id);
-    });
-    return set;
-  });
-
-  const [connectionStates, setConnectionStates] = useState<Record<string, 'none' | 'pending' | 'connected'>>(() => {
-    const initial: Record<string, 'none' | 'pending' | 'connected'> = {};
-    mockResearchers.forEach((r) => {
-      initial[r.id] = r.connectionStatus || 'none';
-    });
-    return initial;
-  });
-
-  const allCurrentWork = useMemo(() => getActiveCurrentWork(), []);
-  const featuredResearchers = useMemo(() => getFeaturedResearchers(), []);
-  const recentPublications = useMemo(() => getRecentPublications(), []);
-  const unreadNotificationsCount = useMemo(() => getUnreadNotificationsCount(), []);
-
-  // Filtered current work based on selected topic
-  const filteredWork = useMemo(() => {
-    if (!selectedTopic) return allCurrentWork;
-    return allCurrentWork.filter(
-      (work) =>
-        work.topics &&
-        work.topics.some(
-          (t) => t.toLowerCase() === selectedTopic.name.toLowerCase()
-        )
+  useEffect(() => {
+    setFeedLoading(true);
+    setFeedError(null);
+    const unsubscribe = subscribePublishedFeed(
+      (works) => {
+        setFeedWorks(works);
+        setFeedLoading(false);
+        setFeedError(null);
+        setRefreshing(false);
+      },
+      (err: any) => {
+        setFeedLoading(false);
+        setRefreshing(false);
+        setFeedError(
+          err?.code === 'failed-precondition'
+            ? 'The feed index is still being prepared. Please try again shortly.'
+            : 'Could not load the research feed. Pull down to retry.',
+        );
+      },
     );
-  }, [allCurrentWork, selectedTopic]);
+    return unsubscribe;
+  }, [feedKey]);
 
-  const handleRefresh = React.useCallback(() => {
+  // Likes are local-only (no likes model in scope); bookmarks persist as Saved Items
+  const [likedWorkIds, setLikedWorkIds] = useState<Set<string>>(() => new Set());
+  const { isSaved, toggleSave } = useSavedItems();
+  const directory = useResearchDirectory();
+  const { cardStatus, handleConnectPress } = useConnections();
+
+  // Researchers to follow: approved researchers you are not yet connected with
+  const featuredResearchers = useMemo(
+    () => directory.researchers.filter((r) => cardStatus(r.id) !== 'connected').slice(0, 10),
+    [directory.researchers, cardStatus],
+  );
+
+  // Topic shortcuts with live counts from the loaded directory
+  const liveTopics = useMemo(
+    () =>
+      TOPIC_TAXONOMY.map((t) =>
+        topicCounts(t, { researchers: directory.researchers, works: directory.currentWorks }),
+      ),
+    [directory.researchers, directory.currentWorks],
+  );
+
+  // Filtered current work based on selected topic (tags like `#BanglaNLP` match "Bangla NLP")
+  const filteredWork = useMemo(() => {
+    if (!selectedTopic) return feedWorks;
+    const topicKey = tagMatchKey(selectedTopic.name);
+    return feedWorks.filter((work) => work.tags.some((t) => tagMatchKey(t) === topicKey));
+  }, [feedWorks, selectedTopic]);
+
+  // Re-subscribe to fetch a fresh snapshot
+  const handleRefresh = useCallback(() => {
     setRefreshing(true);
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 600);
+    setFeedKey((k) => k + 1);
   }, []);
+
+  const handleAuthorPress = (authorUid: string) => {
+    if (authorUid && authorUid === firebaseUser?.uid) {
+      router.push('/(tabs)/profile' as any);
+    } else {
+      router.push(`/(profile)/${authorUid}` as any);
+    }
+  };
+
+  const findTopicByTag = (tag: string) => {
+    const key = tagMatchKey(tag);
+    return liveTopics.find((t) => tagMatchKey(t.name) === key);
+  };
+
+  const renderWorkCard = (work: ResearchWork) => {
+    const isLiked = likedWorkIds.has(work.id);
+    const isBookmarked = isSaved(work.id);
+    const dept = /computer science/i.test(work.authorDepartment) ? 'CSE' : work.authorDepartment || 'CSE';
+    const card = toCurrentWork(work);
+    return (
+      <CurrentWorkCard
+        key={work.id}
+        work={{ ...card, likesCount: isLiked ? 1 : 0 }}
+        authorName={work.authorName}
+        authorBatch={dept}
+        authorAvatar={work.authorPhotoURL}
+        authorRole={work.authorDesignation || undefined}
+        isLiked={isLiked}
+        isBookmarked={isBookmarked}
+        onPress={() => router.push(`/(research)/${work.id}` as any)}
+        onAuthorPress={() => handleAuthorPress(work.authorUid)}
+        onTopicPress={(tag) => {
+          const foundTopic = findTopicByTag(tag);
+          if (foundTopic) setSelectedTopic(foundTopic);
+        }}
+        onLikePress={() => handleToggleLike(work.id)}
+        onBookmarkPress={() => toggleSave(work)}
+        onCommentPress={() => router.push(`/(research)/${work.id}` as any)}
+      />
+    );
+  };
 
   const handleToggleLike = (workId: string) => {
     setLikedWorkIds((prev) => {
@@ -96,33 +149,6 @@ export default function HomeFeedScreen() {
         next.add(workId);
       }
       return next;
-    });
-  };
-
-  const handleToggleBookmark = (workId: string) => {
-    setBookmarkedWorkIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(workId)) {
-        next.delete(workId);
-      } else {
-        next.add(workId);
-      }
-      return next;
-    });
-  };
-
-  const handleToggleConnect = (researcherId: string) => {
-    setConnectionStates((prev) => {
-      const current = prev[researcherId] || 'none';
-      let nextState: 'none' | 'pending' | 'connected' = 'pending';
-      if (current === 'none') nextState = 'pending';
-      else if (current === 'pending') nextState = 'connected';
-      else nextState = 'none';
-
-      return {
-        ...prev,
-        [researcherId]: nextState,
-      };
     });
   };
 
@@ -165,7 +191,7 @@ export default function HomeFeedScreen() {
           ]}
         >
           <TopicShortcutRow
-            topics={mockTopics}
+            topics={liveTopics}
             selectedTopicId={selectedTopic?.id}
             onSelectTopic={handleTopicSelect}
           />
@@ -182,7 +208,25 @@ export default function HomeFeedScreen() {
             />
           </View>
 
-          {filteredWork.length === 0 ? (
+          {feedLoading ? (
+            <View style={[styles.emptyContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <ActivityIndicator color={colors.primary} />
+              <Text style={[styles.emptySubtitle, { color: colors.textSecondary, marginTop: spacing.sm, marginBottom: 0 }]}>
+                Loading the research feed...
+              </Text>
+            </View>
+          ) : feedError ? (
+            <View style={[styles.emptyContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>Feed unavailable</Text>
+              <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>{feedError}</Text>
+              <TouchableOpacity
+                onPress={handleRefresh}
+                style={[styles.clearFilterButton, { backgroundColor: colors.primaryMuted }]}
+              >
+                <Text style={[styles.clearFilterText, { color: colors.primary }]}>Retry</Text>
+              </TouchableOpacity>
+            </View>
+          ) : filteredWork.length === 0 ? (
             <View
               style={[
                 styles.emptyContainer,
@@ -192,63 +236,27 @@ export default function HomeFeedScreen() {
                 },
               ]}
             >
-              <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>No research found</Text>
+              <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>
+                {selectedTopic ? 'No research found' : 'No research shared yet'}
+              </Text>
               <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
-                No current work matches "{selectedTopic?.name}".
+                {selectedTopic
+                  ? `No current work matches "${selectedTopic.name}".`
+                  : 'Be the first to share what you are working on.'}
               </Text>
               <TouchableOpacity
-                onPress={() => setSelectedTopic(null)}
+                onPress={() =>
+                  selectedTopic ? setSelectedTopic(null) : router.push('/(tabs)/share' as any)
+                }
                 style={[styles.clearFilterButton, { backgroundColor: colors.primaryMuted }]}
               >
-                <Text style={[styles.clearFilterText, { color: colors.primary }]}>Show all research</Text>
+                <Text style={[styles.clearFilterText, { color: colors.primary }]}>
+                  {selectedTopic ? 'Show all research' : 'Share your work'}
+                </Text>
               </TouchableOpacity>
             </View>
           ) : (
-            filteredWork.slice(0, 3).map((work) => {
-              const researcherId = work.userId || work.researcherId || '';
-              const author = getResearcherById(researcherId);
-              const authorName = author ? author.name : work.authorName || 'CSE Researcher';
-              const authorBatch = author?.id === 'res-rafiq-003' 
-                ? 'CSE • Batch 12' 
-                : author ? `CSE • ${author.batch || 'Batch 14'}` : work.authorBatch || 'CSE';
-              const authorRole = author?.id === 'res-mou-002'
-                ? 'NLP Lab'
-                : author?.batch === 'Faculty' || author?.id === 'res-rafiq-003'
-                ? 'Faculty'
-                : undefined;
-              const isLiked = likedWorkIds.has(work.id);
-              const isBookmarked = bookmarkedWorkIds.has(work.id);
-              const likeDelta = isLiked && !work.isLiked ? 1 : !isLiked && work.isLiked ? -1 : 0;
-
-              return (
-                <CurrentWorkCard
-                  key={work.id}
-                  work={{
-                    ...work,
-                    likesCount: Math.max(0, (work.likesCount || 0) + likeDelta),
-                  }}
-                  authorName={authorName}
-                  authorBatch={authorBatch}
-                  authorAvatar={author?.photoURL || author?.avatar}
-                  authorRole={authorRole}
-                  isLiked={isLiked}
-                  isBookmarked={isBookmarked}
-                  onPress={() => router.push(`/(research)/${work.id}` as any)}
-                  onAuthorPress={() =>
-                    router.push(`/(profile)/${researcherId}` as any)
-                  }
-                  onTopicPress={(topicName) => {
-                    const foundTopic = mockTopics.find(
-                      (t) => t.name.toLowerCase() === topicName.toLowerCase()
-                    );
-                    if (foundTopic) setSelectedTopic(foundTopic);
-                  }}
-                  onLikePress={() => handleToggleLike(work.id)}
-                  onBookmarkPress={() => handleToggleBookmark(work.id)}
-                  onCommentPress={() => router.push(`/(research)/${work.id}` as any)}
-                />
-              );
-            })
+            filteredWork.slice(0, 3).map(renderWorkCard)
           )}
         </View>
 
@@ -263,95 +271,46 @@ export default function HomeFeedScreen() {
             />
           </View>
 
-          <FlatList
-            horizontal
-            data={featuredResearchers}
-            keyExtractor={(item) => item.id}
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.researchersScrollList}
-            renderItem={({ item }) => (
-              <ResearcherCard
-                researcher={item}
-                connectionStatus={connectionStates[item.id] || item.connectionStatus || 'none'}
-                onPress={() => router.push(`/(profile)/${item.id}` as any)}
-                onConnectPress={() => handleToggleConnect(item.id)}
-              />
-            )}
-          />
+          {directory.loading ? (
+            <ActivityIndicator color={colors.primary} style={{ marginVertical: spacing.md }} />
+          ) : featuredResearchers.length === 0 ? (
+            <Text style={[styles.emptySubtitle, { color: colors.textSecondary, paddingHorizontal: spacing.md }]}>
+              {directory.researchers.length === 0
+                ? 'No other approved researchers yet.'
+                : "You're connected with everyone in the directory."}
+            </Text>
+          ) : (
+            <FlatList
+              horizontal
+              data={featuredResearchers}
+              keyExtractor={(item) => item.id}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.researchersScrollList}
+              renderItem={({ item }) => (
+                <ResearcherCard
+                  researcher={item}
+                  connectionStatus={cardStatus(item.id)}
+                  onPress={() => router.push(`/(profile)/${item.id}` as any)}
+                  onConnectPress={() => {
+                    const profile = directory.profileByUid.get(item.id);
+                    if (profile) handleConnectPress(profile);
+                  }}
+                />
+              )}
+            />
+          )}
         </View>
 
         {/* Section 3: More Research Updates */}
-        {filteredWork.length > 3 ? (
+        {!feedLoading && !feedError && filteredWork.length > 3 ? (
           <View style={styles.sectionContainer}>
             <View style={styles.sectionHeaderWrapper}>
               <SectionHeader title="More Active Work" />
             </View>
 
-            {filteredWork.slice(3).map((work) => {
-              const researcherId = work.userId || work.researcherId || '';
-              const author = getResearcherById(researcherId);
-              const authorName = author ? author.name : work.authorName || 'CSE Researcher';
-              const authorBatch = author ? author.batch || author.designation : work.authorBatch || 'CSE';
-              const isLiked = likedWorkIds.has(work.id);
-              const isBookmarked = bookmarkedWorkIds.has(work.id);
-              const likeDelta = isLiked && !work.isLiked ? 1 : !isLiked && work.isLiked ? -1 : 0;
-
-              return (
-                <CurrentWorkCard
-                  key={work.id}
-                  work={{
-                    ...work,
-                    likesCount: Math.max(0, (work.likesCount || 0) + likeDelta),
-                  }}
-                  authorName={authorName}
-                  authorBatch={authorBatch}
-                  authorAvatar={author?.photoURL || author?.avatar}
-                  isLiked={isLiked}
-                  isBookmarked={isBookmarked}
-                  onPress={() => router.push(`/(research)/${work.id}` as any)}
-                  onAuthorPress={() =>
-                    router.push(`/(profile)/${researcherId}` as any)
-                  }
-                  onTopicPress={(topicName) => {
-                    const foundTopic = mockTopics.find(
-                      (t) => t.name.toLowerCase() === topicName.toLowerCase()
-                    );
-                    if (foundTopic) setSelectedTopic(foundTopic);
-                  }}
-                  onLikePress={() => handleToggleLike(work.id)}
-                  onBookmarkPress={() => handleToggleBookmark(work.id)}
-                  onCommentPress={() => router.push(`/(research)/${work.id}` as any)}
-                />
-              );
-            })}
+            {filteredWork.slice(3).map(renderWorkCard)}
           </View>
         ) : null}
-
-        {/* Section 4: Recent Publications */}
-        <View style={styles.sectionContainer}>
-          <View style={styles.sectionHeaderWrapper}>
-            <SectionHeader
-              title="Recent Publications"
-              actionLabel="Browse archive"
-              onActionPress={() => router.push('/(tabs)/explore' as any)}
-            />
-          </View>
-
-          {recentPublications.map((pub) => (
-            <PublicationCard
-              key={pub.id}
-              publication={pub}
-              onPress={() => router.push(`/(research)/${pub.id}` as any)}
-              onExternalPress={() => {}}
-              onTopicPress={(topicName) => {
-                const foundTopic = mockTopics.find(
-                  (t) => t.name.toLowerCase() === topicName.toLowerCase()
-                );
-                if (foundTopic) setSelectedTopic(foundTopic);
-              }}
-            />
-          ))}
-        </View>
 
         {/* Bottom padding */}
         <View style={styles.bottomSpacer} />

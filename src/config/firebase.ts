@@ -8,7 +8,7 @@
  *  - Singleton guard (`getApps()`) ensures a single FirebaseApp across Metro
  *    fast-refresh cycles.
  *  - Auth persistence:
- *      web  → `browserLocalPersistence` (IndexedDB / localStorage)
+ *      web  → `getAuth()` defaults (IndexedDB / localStorage + popup resolver)
  *      iOS/Android → `getReactNativePersistence(AsyncStorage)`
  *  - Configuration validation at module load time:
  *      • `isFirebaseConfigured` is `true` only when every required env var is
@@ -23,7 +23,6 @@ import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
 import {
   initializeAuth,
   getAuth,
-  browserLocalPersistence,
   getReactNativePersistence,
   type Auth,
 } from 'firebase/auth';
@@ -105,12 +104,11 @@ let auth: Auth;
 
 if (isFirebaseConfigured && app) {
   if (Platform.OS === 'web') {
-    try {
-      auth = initializeAuth(app, { persistence: browserLocalPersistence });
-    } catch {
-      // `initializeAuth` throws if auth was already initialised (e.g. fast-refresh).
-      auth = getAuth(app);
-    }
+    // `getAuth()` on web registers browser persistence (IndexedDB → localStorage)
+    // AND the default `browserPopupRedirectResolver`. A bare
+    // `initializeAuth(app, { persistence })` omits the resolver, which makes
+    // `signInWithPopup` throw `auth/argument-error`.
+    auth = getAuth(app);
   } else {
     try {
       auth = initializeAuth(app, {

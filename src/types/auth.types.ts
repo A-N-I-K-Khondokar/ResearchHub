@@ -115,8 +115,9 @@ export interface AuthActions {
   /**
    * Reload the current Firebase user from the server.
    * Use after the user taps "I've verified my email" to refresh `emailVerified`.
+   * Resolves to the refreshed `emailVerified` value.
    */
-  reloadCurrentUser: () => Promise<void>;
+  reloadCurrentUser: () => Promise<boolean>;
 
   /** Send a password-reset email. Never reveals whether the address is registered. */
   sendPasswordReset: (email: string) => Promise<void>;

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,8 +7,10 @@ import {
   TouchableOpacity,
   ScrollView,
   RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import {
   Bell,
   BellOff,
@@ -21,11 +23,18 @@ import {
 } from 'lucide-react-native';
 import { spacing, radius, typography, fontFamilies, floatingButtonTokens } from '@/constants';
 import { useTheme } from '@/context/ThemeContext';
+import { useAuth } from '@/context/AuthContext';
 import { Avatar } from '@/components/common/Avatar';
-import { mockNotifications } from '@/data';
-import { AppNotification } from '@/types';
+import { useConnections } from '@/hooks/useConnections';
+import {
+  subscribeNotifications,
+  markNotificationRead,
+  markAllNotificationsRead,
+} from '@/services/network.service';
+import { formatWorkDate } from '@/services/research.service';
+import type { InAppNotification } from '@/types/network.types';
 
-type AlertFilter = 'all' | 'unread' | 'connections' | 'comments' | 'likes';
+type AlertFilter = 'all' | 'unread' | 'connections';
 
 interface FilterOption {
   key: AlertFilter;
@@ -36,80 +45,97 @@ const FILTER_OPTIONS: FilterOption[] = [
   { key: 'all', label: 'All' },
   { key: 'unread', label: 'Unread' },
   { key: 'connections', label: 'Connections' },
-  { key: 'comments', label: 'Comments' },
-  { key: 'likes', label: 'Likes' },
 ];
+
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 export default function NotificationsTab() {
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
-  const [alerts, setAlerts] = useState<AppNotification[]>(mockNotifications);
+  const router = useRouter();
+  const { userProfile } = useAuth();
+  const { relationship, accept, decline, busyUid } = useConnections();
+
+  const uid = userProfile?.approvalStatus === 'approved' ? userProfile.uid : '';
+  const [alerts, setAlerts] = useState<InAppNotification[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [activeFilter, setActiveFilter] = useState<AlertFilter>('all');
   const [refreshing, setRefreshing] = useState(false);
+  const [listenerKey, setListenerKey] = useState(0);
+
+  // Real-time in-app notifications (Firestore `notifications`, recipient only)
+  useEffect(() => {
+    if (!uid) return;
+    setLoading(true);
+    return subscribeNotifications(
+      uid,
+      (list) => {
+        setAlerts(list);
+        setLoading(false);
+        setRefreshing(false);
+        setLoadError(false);
+      },
+      () => {
+        setLoading(false);
+        setRefreshing(false);
+        setLoadError(true);
+      },
+    );
+  }, [uid, listenerKey]);
 
   // Unread count
   const unreadCount = useMemo(() => {
     return alerts.filter((a) => !a.read).length;
   }, [alerts]);
 
-  // Pull-to-refresh
+  // Pull-to-refresh re-opens the listener
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 600);
+    setListenerKey((k) => k + 1);
   }, []);
 
-  // Mark single alert as read
-  const handleToggleRead = useCallback((id: string) => {
-    setAlerts((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, read: true } : item))
-    );
-  }, []);
+  // Mark single alert as read and open the actor's profile
+  const handleOpenAlert = useCallback(
+    (item: InAppNotification) => {
+      if (!item.read) markNotificationRead(item.id).catch(() => {});
+      router.push(`/(profile)/${item.actorUid}` as any);
+    },
+    [router],
+  );
 
   // Mark all alerts as read
   const handleMarkAllAsRead = useCallback(() => {
-    setAlerts((prev) => prev.map((item) => ({ ...item, read: true })));
-  }, []);
+    markAllNotificationsRead(alerts.filter((a) => !a.read).map((a) => a.id)).catch(() => {});
+  }, [alerts]);
 
-  // Handle connection response
-  const handleAcceptConnection = useCallback((id: string) => {
-    setAlerts((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, status: 'accepted', read: true } : item
-      )
-    );
-  }, []);
-
-  const handleDeclineConnection = useCallback((id: string) => {
-    setAlerts((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, status: 'declined', read: true } : item
-      )
-    );
-  }, []);
+  // Respond to a connection request directly from the alert
+  const handleRespond = useCallback(
+    (item: InAppNotification, doAccept: boolean) => {
+      const { connection } = relationship(item.actorUid);
+      if (!connection) return;
+      if (!item.read) markNotificationRead(item.id).catch(() => {});
+      if (doAccept) accept(connection);
+      else decline(connection);
+    },
+    [accept, decline, relationship],
+  );
 
   // Filter alerts by selected tab
   const filteredAlerts = useMemo(() => {
     return alerts.filter((alert) => {
       if (activeFilter === 'unread') return !alert.read;
-      if (activeFilter === 'connections') {
-        return (
-          alert.type === 'connection_request' ||
-          alert.type === 'connection_accepted'
-        );
-      }
-      if (activeFilter === 'comments') return alert.type === 'comment';
-      if (activeFilter === 'likes') return alert.type === 'like';
-      return true;
+      return true; // every current notification type is connection-related
     });
   }, [alerts, activeFilter]);
 
-  // Group alerts into "New" (recent minutes/hours) vs "Earlier" (days)
+  // Group alerts into "New" (last 24 hours) vs "Earlier"
   const sections = useMemo(() => {
-    const isNew = (time: string) => time.includes('m') || time.includes('h');
-    const newItems = filteredAlerts.filter((item) => isNew(item.createdAt));
-    const earlierItems = filteredAlerts.filter((item) => !isNew(item.createdAt));
+    const now = Date.now();
+    const isNew = (item: InAppNotification) =>
+      now - (item.createdAt?.toMillis?.() ?? now) < DAY_MS;
+    const newItems = filteredAlerts.filter(isNew);
+    const earlierItems = filteredAlerts.filter((item) => !isNew(item));
 
     const result = [];
     if (newItems.length > 0) {
@@ -154,13 +180,19 @@ export default function NotificationsTab() {
   };
 
   // Render individual notification row
-  const renderItem = ({ item }: { item: AppNotification }) => {
+  const renderItem = ({ item }: { item: InAppNotification }) => {
     const isUnread = !item.read;
+    const rel = item.type === 'connection_request' ? relationship(item.actorUid).state : null;
+    const busy = busyUid === item.actorUid;
+    const message =
+      item.type === 'connection_request'
+        ? 'sent you a connection request.'
+        : 'accepted your connection request.';
 
     return (
       <TouchableOpacity
         activeOpacity={0.75}
-        onPress={() => handleToggleRead(item.id)}
+        onPress={() => handleOpenAlert(item)}
         style={[
           styles.itemRow,
           {
@@ -173,7 +205,7 @@ export default function NotificationsTab() {
           },
         ]}
         accessibilityRole="button"
-        accessibilityLabel={`${item.title}: ${item.message}`}
+        accessibilityLabel={`${item.actorName} ${message}`}
       >
         {/* Unread Indicator Dot */}
         <View style={styles.dotContainer}>
@@ -192,8 +224,8 @@ export default function NotificationsTab() {
         {/* User Avatar with Type Badge */}
         <View style={styles.avatarContainer}>
           <Avatar
-            name={item.sender?.name || 'Researcher'}
-            uri={item.sender?.photoURL || item.sender?.avatar}
+            name={item.actorName || 'Researcher'}
+            uri={item.actorPhotoURL}
             size="md"
           />
           {renderBadgeIcon(item.type)}
@@ -206,12 +238,12 @@ export default function NotificationsTab() {
               <Text
                 style={[styles.senderName, { color: colors.textPrimary }]}
               >
-                {item.sender?.name || 'Academic'}{' '}
+                {item.actorName || 'Researcher'}{' '}
               </Text>
               <Text
                 style={[styles.actionText, { color: colors.textSecondary }]}
               >
-                {item.actionText || item.message}
+                {message}
               </Text>
             </Text>
           </View>
@@ -219,7 +251,7 @@ export default function NotificationsTab() {
           {/* Actionable Connection Request Buttons */}
           {item.type === 'connection_request' && (
             <View style={styles.actionContainer}>
-              {item.status === 'accepted' ? (
+              {rel === 'connected' ? (
                 <View style={styles.statusConfirmedRow}>
                   <Check size={14} color={colors.secondary} strokeWidth={2.4} />
                   <Text
@@ -231,17 +263,19 @@ export default function NotificationsTab() {
                     Connected
                   </Text>
                 </View>
-              ) : item.status === 'declined' ? (
+              ) : rel !== 'incoming' ? (
                 <Text
                   style={[styles.statusDeclinedText, { color: colors.textMuted }]}
                 >
-                  Request dismissed
+                  {rel === 'rejected' ? 'Request declined' : 'Request no longer active'}
                 </Text>
+              ) : busy ? (
+                <ActivityIndicator size="small" color={colors.primary} />
               ) : (
                 <View style={styles.buttonRow}>
                   <TouchableOpacity
                     activeOpacity={0.8}
-                    onPress={() => handleAcceptConnection(item.id)}
+                    onPress={() => handleRespond(item, true)}
                     hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                     style={[
                       styles.acceptButton,
@@ -255,7 +289,7 @@ export default function NotificationsTab() {
 
                   <TouchableOpacity
                     activeOpacity={0.8}
-                    onPress={() => handleDeclineConnection(item.id)}
+                    onPress={() => handleRespond(item, false)}
                     hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                     style={[
                       styles.declineButton,
@@ -285,7 +319,7 @@ export default function NotificationsTab() {
 
         {/* Timestamp on Far Right */}
         <Text style={[styles.timestamp, { color: colors.textMuted }]}>
-          {item.createdAt}
+          {formatWorkDate(item.createdAt)}
         </Text>
       </TouchableOpacity>
     );
@@ -434,6 +468,11 @@ export default function NotificationsTab() {
           />
         }
         ListEmptyComponent={
+          loading ? (
+            <View style={styles.emptyContainer}>
+              <ActivityIndicator color={colors.primary} />
+            </View>
+          ) : (
           <View style={styles.emptyContainer}>
             <View
               style={[
@@ -453,14 +492,16 @@ export default function NotificationsTab() {
             <Text
               style={[styles.emptyTitle, { color: colors.textPrimary }]}
             >
-              No alerts found
+              {loadError ? 'Could not load alerts' : 'No alerts found'}
             </Text>
             <Text
               style={[styles.emptySubtitle, { color: colors.textSecondary }]}
             >
-              {activeFilter === 'unread'
+              {loadError
+                ? 'Pull down to try again.'
+                : activeFilter === 'unread'
                 ? "You're all caught up! There are no unread notifications."
-                : 'Activity and interactions on your research will appear here.'}
+                : 'Connection requests and responses will appear here.'}
             </Text>
             {activeFilter !== 'all' && (
               <TouchableOpacity
@@ -485,6 +526,7 @@ export default function NotificationsTab() {
               </TouchableOpacity>
             )}
           </View>
+          )
         }
       />
     </View>

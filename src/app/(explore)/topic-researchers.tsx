@@ -17,8 +17,11 @@ import { CurrentWorkCard } from '@/components/cards/CurrentWorkCard';
 import { PublicationCard } from '@/components/cards/PublicationCard';
 import { EmptyState } from '@/components/feedback/EmptyState';
 import { getTopicDiscovery } from '@/utils/search';
-import { getCurrentWorkById, getResearcherById, mockResearchers } from '@/data';
-import { UserProfile } from '@/types';
+import { useResearchDirectory } from '@/hooks/useResearchDirectory';
+import { useConnections } from '@/hooks/useConnections';
+import { useAuth } from '@/context/AuthContext';
+import { ActivityIndicator } from 'react-native';
+import { tagMatchKey } from '@/utils/researchWork';
 
 type RoleFilter = 'all' | 'faculty' | 'students';
 type SortOption = 'relevance' | 'name' | 'activity';
@@ -31,17 +34,29 @@ export default function TopicResearchersScreen() {
 
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('all');
   const [sortBy, setSortBy] = useState<SortOption>('relevance');
-  const [connectionStates, setConnectionStates] = useState<Record<string, 'none' | 'pending' | 'connected'>>(() => {
-    const initial: Record<string, 'none' | 'pending' | 'connected'> = {};
-    mockResearchers.forEach((r) => {
-      initial[r.id] = r.connectionStatus || 'none';
-    });
-    return initial;
-  });
+  const { firebaseUser } = useAuth();
+  const directory = useResearchDirectory();
+  const { cardStatus, handleConnectPress } = useConnections();
 
   const discoveryData = useMemo(() => {
-    return getTopicDiscovery(topicName);
-  }, [topicName]);
+    return getTopicDiscovery(topicName, {
+      researchers: directory.researchers,
+      works: directory.currentWorks,
+    });
+  }, [topicName, directory.researchers, directory.currentWorks]);
+
+  const openTopic = (t: string) => {
+    if (tagMatchKey(t) !== tagMatchKey(discoveryData.topic.name)) {
+      router.push({
+        pathname: '/(explore)/topic-researchers' as any,
+        params: { topic: t },
+      });
+    }
+  };
+
+  const openAuthor = (uid: string) => {
+    router.push((uid === firebaseUser?.uid ? '/(tabs)/profile' : `/(profile)/${uid}`) as any);
+  };
 
   // Filter researchers by role (Faculty vs Students)
   const filteredResearchers = useMemo(() => {
@@ -63,21 +78,6 @@ export default function TopicResearchersScreen() {
 
     return list;
   }, [discoveryData.researchers, roleFilter, sortBy]);
-
-  const handleToggleConnect = (researcherId: string) => {
-    setConnectionStates((prev) => {
-      const current = prev[researcherId] || 'none';
-      let nextState: 'none' | 'pending' | 'connected' = 'pending';
-      if (current === 'none') nextState = 'pending';
-      else if (current === 'pending') nextState = 'connected';
-      else nextState = 'none';
-
-      return {
-        ...prev,
-        [researcherId]: nextState,
-      };
-    });
-  };
 
   return (
     <SafeAreaView
@@ -221,7 +221,9 @@ export default function TopicResearchersScreen() {
             subtitle={`${filteredResearchers.length} researchers exploring this area`}
           />
 
-          {filteredResearchers.length === 0 ? (
+          {directory.loading ? (
+            <ActivityIndicator color={colors.primary} style={{ marginVertical: 24 }} />
+          ) : filteredResearchers.length === 0 ? (
             <EmptyState
               title="No researchers found"
               description={`No ${roleFilter} currently listed under ${discoveryData.topic.name}.`}
@@ -230,26 +232,23 @@ export default function TopicResearchersScreen() {
             />
           ) : (
             filteredResearchers.map((researcher) => {
-              const matchingWork = discoveryData.currentWorks.find(
-                (w) => (w.userId || w.researcherId) === researcher.id
-              ) || (researcher.currentWorkIds?.[0] ? getCurrentWorkById(researcher.currentWorkIds[0]) : null);
+              const matchingWork =
+                discoveryData.currentWorks.find((w) => w.userId === researcher.id) ||
+                directory.currentWorks.find((w) => w.id === researcher.currentWorkIds?.[0]) ||
+                null;
 
               return (
                 <ResearcherDiscoveryCard
                   key={researcher.id}
                   researcher={researcher}
                   currentWork={matchingWork}
-                  connectionStatus={connectionStates[researcher.id] || researcher.connectionStatus || 'none'}
+                  connectionStatus={cardStatus(researcher.id)}
                   onPress={() => router.push(`/(profile)/${researcher.id}` as any)}
-                  onConnectPress={() => handleToggleConnect(researcher.id)}
-                  onTopicPress={(t) => {
-                    if (t.toLowerCase() !== topicName.toLowerCase()) {
-                      router.push({
-                        pathname: '/(explore)/topic-researchers' as any,
-                        params: { topic: t },
-                      });
-                    }
+                  onConnectPress={() => {
+                    const profile = directory.profileByUid.get(researcher.id);
+                    if (profile) handleConnectPress(profile);
                   }}
+                  onTopicPress={openTopic}
                 />
               );
             })
@@ -264,28 +263,19 @@ export default function TopicResearchersScreen() {
               subtitle={`${discoveryData.currentWorks.length} ongoing studies & thesis projects`}
             />
 
-            {discoveryData.currentWorks.map((work) => {
-              const author = getResearcherById(work.userId || work.researcherId || '');
-              return (
-                <CurrentWorkCard
-                  key={work.id}
-                  work={work}
-                  authorName={author ? author.name : work.authorName}
-                  authorBatch={author ? author.batch || author.designation : work.authorBatch}
-                  authorAvatar={author?.photoURL || author?.avatar}
-                  onPress={() => router.push(`/(research)/${work.id}` as any)}
-                  onAuthorPress={() => router.push(`/(profile)/${work.userId || work.researcherId}` as any)}
-                  onTopicPress={(t) => {
-                    if (t.toLowerCase() !== topicName.toLowerCase()) {
-                      router.push({
-                        pathname: '/(explore)/topic-researchers' as any,
-                        params: { topic: t },
-                      });
-                    }
-                  }}
-                />
-              );
-            })}
+            {discoveryData.currentWorks.map((work) => (
+              <CurrentWorkCard
+                key={work.id}
+                work={work}
+                authorName={work.authorName}
+                authorBatch="CSE"
+                authorRole={work.authorDesignation}
+                authorAvatar={work.authorPhotoURL}
+                onPress={() => router.push(`/(research)/${work.id}` as any)}
+                onAuthorPress={() => openAuthor(work.userId)}
+                onTopicPress={openTopic}
+              />
+            ))}
           </View>
         )}
 

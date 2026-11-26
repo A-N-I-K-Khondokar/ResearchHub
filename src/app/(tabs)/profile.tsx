@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,9 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import {
@@ -21,9 +23,6 @@ import {
   Check,
   Users,
   Layers,
-  BookOpen,
-  FileText,
-  ArrowUpRight,
   ExternalLink,
   Globe,
   Code2,
@@ -33,11 +32,21 @@ import {
   X,
   Camera,
   Lock,
+  LogOut,
+  Linkedin,
+  Bookmark,
+  ChevronRight,
 } from 'lucide-react-native';
 import { spacing, radius, typography, fontFamilies, floatingButtonTokens } from '@/constants';
 import { useTheme, ThemeMode } from '@/context/ThemeContext';
 import { Avatar } from '@/components/common/Avatar';
-import { ANIK_PHOTO_URI } from '@/data/avatars';
+import { useAuth } from '@/context/AuthContext';
+import { updateUserProfile } from '@/services/user.service';
+import { subscribeMyResearchWorks, formatWorkDate } from '@/services/research.service';
+import type { ResearchWork } from '@/types/research.types';
+import type { UserSocialLinks } from '@/types/user.types';
+import { useConnections } from '@/hooks/useConnections';
+import { useSavedItems } from '@/hooks/useSavedItems';
 
 export default function ProfileTab() {
   const { colors, themeMode, isDark, setThemeMode } = useTheme();
@@ -46,19 +55,48 @@ export default function ProfileTab() {
   const [isSettingsModalVisible, setIsSettingsModalVisible] = useState(false);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
 
-  // Profile Data State
-  const [profileName, setProfileName] = useState('Anik Khondokar');
-  const [profileDepartment, setProfileDepartment] = useState('CSE');
-  const [profileBatch] = useState('Batch 14');
-  const [profileBio, setProfileBio] = useState(
-    'Focusing on applied machine learning and computer vision with an emphasis on low-resource Bangla NLP.'
-  );
-  const [profilePhotoUri, setProfilePhotoUri] = useState(ANIK_PHOTO_URI);
+  const router = useRouter();
+  const { userProfile, signOut } = useAuth();
+
+  // Profile Data — authoritative Firestore profile (users/{uid}) via AuthContext
+  const profileName = userProfile?.displayName || 'CSE Researcher';
+  const profileDepartment = userProfile?.department || '';
+  const profileBatch = userProfile?.batch || userProfile?.designation || '';
+  const profileBio = userProfile?.bio || '';
+  const profilePhotoUri = userProfile?.photoURL || null;
+  const researchInterests = userProfile?.researchInterests ?? [];
+  const { connected, incomingRequests } = useConnections();
+  const { items: savedItems } = useSavedItems();
+
+  // My shared research work (research_works where authorUid == uid)
+  const [myWorks, setMyWorks] = useState<ResearchWork[]>([]);
+  const [myWorksLoading, setMyWorksLoading] = useState(true);
+  const [myWorksError, setMyWorksError] = useState(false);
+
+  useEffect(() => {
+    if (!userProfile?.uid) return;
+    setMyWorksLoading(true);
+    const unsubscribe = subscribeMyResearchWorks(
+      userProfile.uid,
+      (works) => {
+        setMyWorks(works);
+        setMyWorksLoading(false);
+        setMyWorksError(false);
+      },
+      () => {
+        setMyWorksLoading(false);
+        setMyWorksError(true);
+      },
+    );
+    return unsubscribe;
+  }, [userProfile?.uid]);
 
   // Edit Modal Form State
   const [editName, setEditName] = useState(profileName);
   const [editDepartment, setEditDepartment] = useState(profileDepartment);
   const [editBio, setEditBio] = useState(profileBio);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   const handleOpenEditModal = () => {
     setEditName(profileName);
@@ -67,16 +105,61 @@ export default function ProfileTab() {
     setIsEditModalVisible(true);
   };
 
-  const handleSaveProfile = () => {
-    setProfileName(editName.trim() || 'Anik Khondokar');
-    setProfileDepartment(editDepartment.trim() || 'CSE');
-    setProfileBio(editBio.trim());
-    setIsEditModalVisible(false);
-    console.log('Profile saved locally:', {
-      name: editName,
-      department: editDepartment,
-      bio: editBio,
-    });
+  const handleSaveProfile = async () => {
+    if (!userProfile || isSaving) return;
+    const name = editName.trim();
+    const department = editDepartment.trim();
+    const bio = editBio.trim();
+
+    if (!name || name.length > 100) {
+      Alert.alert('Check your name', 'Full name is required (max 100 characters).');
+      return;
+    }
+    if (!department || department.length > 100) {
+      Alert.alert('Check your department', 'Department is required (max 100 characters).');
+      return;
+    }
+    if (bio.length > 2000) {
+      Alert.alert('Bio too long', 'Bio must be 2000 characters or less.');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      // Only allowlisted, user-editable fields; the profile listener refreshes the UI.
+      await updateUserProfile(userProfile.uid, {
+        displayName: name,
+        department,
+        bio: bio || null,
+      });
+      setIsEditModalVisible(false);
+    } catch (err) {
+      console.error('[Profile] Save failed:', err);
+      Alert.alert('Save failed', 'Could not update your profile. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSignOut = () => {
+    Alert.alert('Sign out?', 'You will need to sign in again to access CSE Research Hub.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Sign Out',
+        style: 'destructive',
+        onPress: async () => {
+          setIsSigningOut(true);
+          try {
+            setIsSettingsModalVisible(false);
+            await signOut();
+            // AuthGuard redirects to login once the session clears.
+          } catch {
+            setIsSigningOut(false);
+            Alert.alert('Sign out failed', 'Please try again.');
+          }
+        },
+      },
+    ]);
   };
 
   const handleCancelEdit = () => {
@@ -120,32 +203,24 @@ export default function ProfileTab() {
     });
   };
 
-  const academicLinks = [
-    {
-      id: 'scholar',
-      name: 'Google Scholar',
-      url: 'https://scholar.google.com',
-      icon: <GraduationCap size={18} color={colors.primary} strokeWidth={2} />,
-    },
-    {
-      id: 'researchgate',
-      name: 'ResearchGate',
-      url: 'https://www.researchgate.net',
-      icon: <Globe size={18} color={colors.primary} strokeWidth={2} />,
-    },
-    {
-      id: 'github',
-      name: 'GitHub',
-      url: 'https://github.com',
-      icon: <Code2 size={18} color={colors.primary} strokeWidth={2} />,
-    },
-    {
-      id: 'orcid',
-      name: 'ORCID',
-      url: 'https://orcid.org',
-      icon: <ExternalLink size={18} color={colors.primary} strokeWidth={2} />,
-    },
+  const LINK_META: { key: keyof UserSocialLinks; name: string; icon: React.ReactNode }[] = [
+    { key: 'googleScholar', name: 'Google Scholar', icon: <GraduationCap size={18} color={colors.primary} strokeWidth={2} /> },
+    { key: 'researchGate', name: 'ResearchGate', icon: <Globe size={18} color={colors.primary} strokeWidth={2} /> },
+    { key: 'github', name: 'GitHub', icon: <Code2 size={18} color={colors.primary} strokeWidth={2} /> },
+    { key: 'linkedin', name: 'LinkedIn', icon: <Linkedin size={18} color={colors.primary} strokeWidth={2} /> },
+    { key: 'website', name: 'Website', icon: <ExternalLink size={18} color={colors.primary} strokeWidth={2} /> },
   ];
+
+  const socialLinks: UserSocialLinks = userProfile?.socialLinks ?? {};
+  const academicLinks = LINK_META.filter((meta) => Boolean(socialLinks[meta.key])).map((meta) => {
+    const raw = String(socialLinks[meta.key]);
+    return {
+      id: meta.key as string,
+      name: meta.name,
+      url: /^https?:\/\//i.test(raw) ? raw : `https://${raw}`,
+      icon: meta.icon,
+    };
+  });
 
   return (
     <View
@@ -275,7 +350,7 @@ export default function ProfileTab() {
           >
             <View style={styles.statColumn}>
               <Text style={[styles.statValue, { color: colors.textPrimary }]}>
-                148
+                {connected.length}
               </Text>
               <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
                 Connections
@@ -291,10 +366,10 @@ export default function ProfileTab() {
 
             <View style={styles.statColumn}>
               <Text style={[styles.statValue, { color: colors.textPrimary }]}>
-                6
+                {myWorks.filter((w) => w.status === 'published').length}
               </Text>
               <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
-                Publications
+                Shared Work
               </Text>
             </View>
 
@@ -307,10 +382,10 @@ export default function ProfileTab() {
 
             <View style={styles.statColumn}>
               <Text style={[styles.statValue, { color: colors.textPrimary }]}>
-                4
+                {researchInterests.length}
               </Text>
               <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
-                Open Projects
+                Interests
               </Text>
             </View>
           </View>
@@ -324,7 +399,12 @@ export default function ProfileTab() {
             Research Interests
           </Text>
           <View style={styles.topicPillsRow}>
-            {['#MachineLearning', '#ComputerVision', '#BengaliNLP', '#DeepLearning', '#EdgeAI'].map(
+            {researchInterests.length === 0 ? (
+              <Text style={[styles.projectMetaText, { color: colors.textMuted }]}>
+                No research interests added yet.
+              </Text>
+            ) : null}
+            {researchInterests.map((interest) => `#${interest.replace(/^#/, '').replace(/\s+/g, '')}`).map(
               (topic) => (
                 <View
                   key={topic}
@@ -350,186 +430,141 @@ export default function ProfileTab() {
         </View>
 
         {/* ======================================================== */}
-        {/* SECTION 3: CURRENTLY WORKING ON                          */}
+        {/* SECTION 3: CURRENTLY WORKING ON (LIVE research_works)    */}
         {/* ======================================================== */}
         <View style={styles.sectionContainer}>
           <Text style={[styles.sectionHeading, { color: colors.textPrimary }]}>
             Currently Working On
           </Text>
 
-          <View
-            style={[
-              styles.projectCard,
-              {
-                backgroundColor: colors.surface,
-                borderColor: colors.borderSubtle,
-              },
-            ]}
-          >
-            {/* Card Header: Title + Active Status Pill */}
-            <View style={styles.projectHeaderRow}>
-              <Text
-                style={[styles.projectTitle, { color: colors.textPrimary }]}
-                numberOfLines={2}
-              >
-                Bengali Handwritten Character Recognition
+          {myWorksLoading ? (
+            <ActivityIndicator color={colors.primary} style={{ marginVertical: spacing.md }} />
+          ) : myWorksError ? (
+            <Text style={[styles.projectDescription, { color: colors.textSecondary }]}>
+              Could not load your shared work. Please try again later.
+            </Text>
+          ) : myWorks.length === 0 ? (
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => router.push('/(tabs)/share' as any)}
+              style={[
+                styles.projectCard,
+                { backgroundColor: colors.surface, borderColor: colors.borderSubtle },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel="Share your current work"
+            >
+              <Text style={[styles.projectTitle, { color: colors.textPrimary }]}>
+                Nothing shared yet
               </Text>
-              <View
+              <Text style={[styles.projectDescription, { color: colors.textSecondary }]}>
+                Tap to share what you are currently researching with the CSE community.
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            myWorks.slice(0, 5).map((work) => (
+              <TouchableOpacity
+                key={work.id}
+                activeOpacity={0.85}
+                onPress={() => router.push(`/(research)/${work.id}` as any)}
                 style={[
-                  styles.statusBadge,
+                  styles.projectCard,
                   {
-                    backgroundColor: colors.primaryMuted,
+                    backgroundColor: colors.surface,
+                    borderColor: colors.borderSubtle,
+                    marginBottom: spacing.sm,
                   },
                 ]}
               >
-                <View
-                  style={[
-                    styles.statusIndicatorDot,
-                    { backgroundColor: colors.primary },
-                  ]}
-                />
-                <Text
-                  style={[styles.statusBadgeText, { color: colors.primary }]}
-                  numberOfLines={1}
-                  ellipsizeMode="tail"
-                >
-                  Active Project
-                </Text>
-              </View>
-            </View>
+                {/* Card Header: Title + Status Pill */}
+                <View style={styles.projectHeaderRow}>
+                  <Text
+                    style={[styles.projectTitle, { color: colors.textPrimary }]}
+                    numberOfLines={2}
+                  >
+                    {work.title}
+                  </Text>
+                  <View style={[styles.statusBadge, { backgroundColor: colors.primaryMuted }]}>
+                    <View style={[styles.statusIndicatorDot, { backgroundColor: colors.primary }]} />
+                    <Text
+                      style={[styles.statusBadgeText, { color: colors.primary }]}
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                    >
+                      {work.status === 'draft' ? 'Draft' : 'Published'}
+                    </Text>
+                  </View>
+                </View>
 
-            {/* Project Overview */}
-            <Text
-              style={[styles.projectDescription, { color: colors.textSecondary }]}
-            >
-              Developing a specialized vision transformer with patch-level feature extraction for degraded historical manuscript OCR and multilingual character classification.
-            </Text>
-
-            {/* Bottom Row: Collaborators & Stage Metadata */}
-            <View
-              style={[
-                styles.projectFooterRow,
-                { borderTopColor: colors.borderSubtle },
-              ]}
-            >
-              <View style={styles.projectMetaItem}>
-                <Users size={14} color={colors.textSecondary} strokeWidth={2} />
                 <Text
-                  style={[styles.projectMetaText, { color: colors.textSecondary }]}
+                  style={[styles.projectDescription, { color: colors.textSecondary }]}
+                  numberOfLines={3}
                 >
-                  3 Collaborators
+                  {work.description}
                 </Text>
-              </View>
 
-              <View style={styles.projectMetaItem}>
-                <Layers size={14} color={colors.textSecondary} strokeWidth={2} />
-                <Text
-                  style={[styles.projectMetaText, { color: colors.textSecondary }]}
-                >
-                  Dataset Prep
-                </Text>
-              </View>
-            </View>
-          </View>
+                {/* Bottom Row: Date & Stage Metadata */}
+                <View style={[styles.projectFooterRow, { borderTopColor: colors.borderSubtle }]}>
+                  <View style={styles.projectMetaItem}>
+                    <Users size={14} color={colors.textSecondary} strokeWidth={2} />
+                    <Text style={[styles.projectMetaText, { color: colors.textSecondary }]}>
+                      {formatWorkDate(work.createdAt)}
+                    </Text>
+                  </View>
+                  <View style={styles.projectMetaItem}>
+                    <Layers size={14} color={colors.textSecondary} strokeWidth={2} />
+                    <Text style={[styles.projectMetaText, { color: colors.textSecondary }]}>
+                      {work.stage}
+                    </Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            ))
+          )}
         </View>
 
         {/* ======================================================== */}
-        {/* SECTION 4: RESEARCH & PUBLICATIONS                      */}
+        {/* LIBRARY: SAVED ITEMS & PENDING REQUESTS                  */}
         {/* ======================================================== */}
         <View style={styles.sectionContainer}>
           <Text style={[styles.sectionHeading, { color: colors.textPrimary }]}>
-            Research & Publications
+            Library
           </Text>
-
-          <View style={styles.publicationsList}>
-            {/* Publication Item 1 */}
+          <View
+            style={[
+              styles.academicLinksCard,
+              { backgroundColor: colors.surface, borderColor: colors.borderSubtle },
+            ]}
+          >
             <TouchableOpacity
               activeOpacity={0.7}
-              onPress={() =>
-                handleOpenLink('https://ieeexplore.ieee.org/document/10234')
-              }
-              style={[
-                styles.publicationItemCard,
-                {
-                  backgroundColor: colors.surface,
-                  borderColor: colors.borderSubtle,
-                },
-              ]}
+              onPress={() => router.push('/(profile)/saved' as any)}
+              style={[styles.linkRow, { borderBottomWidth: 1, borderBottomColor: colors.borderSubtle }]}
+              accessibilityRole="button"
+              accessibilityLabel="Open saved items"
             >
-              <View
-                style={[
-                  styles.pubIconBox,
-                  { backgroundColor: colors.primaryMuted },
-                ]}
-              >
-                <BookOpen size={18} color={colors.primary} strokeWidth={2.2} />
+              <View style={styles.linkIconWrapper}>
+                <Bookmark size={18} color={colors.primary} strokeWidth={2} />
               </View>
-
-              <View style={styles.pubInfoColumn}>
-                <Text
-                  style={[styles.pubTitle, { color: colors.textPrimary }]}
-                  numberOfLines={2}
-                >
-                  Evaluating Transformer Architectures for Bengali Optical Character Recognition
-                </Text>
-                <Text
-                  style={[styles.pubSubtitle, { color: colors.textSecondary }]}
-                >
-                  Conference Paper • 2025 • IEEE ICDAR
-                </Text>
-              </View>
-
-              <ArrowUpRight
-                size={16}
-                color={colors.textMuted}
-                strokeWidth={2}
-                style={styles.pubLinkArrow}
-              />
+              <Text style={[styles.linkLabel, { color: colors.textPrimary }]}>
+                Saved Items ({savedItems.length})
+              </Text>
+              <ChevronRight size={16} color={colors.textMuted} strokeWidth={2} />
             </TouchableOpacity>
-
-            {/* Publication Item 2 */}
             <TouchableOpacity
               activeOpacity={0.7}
-              onPress={() =>
-                handleOpenLink('https://dl.acm.org/doi/10.1145/3678120')
-              }
-              style={[
-                styles.publicationItemCard,
-                {
-                  backgroundColor: colors.surface,
-                  borderColor: colors.borderSubtle,
-                },
-              ]}
+              onPress={() => router.push('/(tabs)/notifications' as any)}
+              style={styles.linkRow}
+              accessibilityRole="button"
+              accessibilityLabel="Open connection requests"
             >
-              <View
-                style={[
-                  styles.pubIconBox,
-                  { backgroundColor: colors.primaryMuted },
-                ]}
-              >
-                <FileText size={18} color={colors.primary} strokeWidth={2.2} />
+              <View style={styles.linkIconWrapper}>
+                <Users size={18} color={colors.primary} strokeWidth={2} />
               </View>
-
-              <View style={styles.pubInfoColumn}>
-                <Text
-                  style={[styles.pubTitle, { color: colors.textPrimary }]}
-                  numberOfLines={2}
-                >
-                  Quantization Strategies for Low-Power NLP Models in Regional Dialect Processing
-                </Text>
-                <Text
-                  style={[styles.pubSubtitle, { color: colors.textSecondary }]}
-                >
-                  Journal Article • 2025 • ACM TALIP
-                </Text>
-              </View>
-
-              <ArrowUpRight
-                size={16}
-                color={colors.textMuted}
-                strokeWidth={2}
-                style={styles.pubLinkArrow}
-              />
+              <Text style={[styles.linkLabel, { color: colors.textPrimary }]}>
+                Pending Connection Requests ({incomingRequests.length})
+              </Text>
+              <ChevronRight size={16} color={colors.textMuted} strokeWidth={2} />
             </TouchableOpacity>
           </View>
         </View>
@@ -551,6 +586,11 @@ export default function ProfileTab() {
               },
             ]}
           >
+            {academicLinks.length === 0 ? (
+              <Text style={[styles.projectMetaText, { color: colors.textMuted, padding: spacing.md }]}>
+                No academic links added yet.
+              </Text>
+            ) : null}
             {academicLinks.map((link, index) => {
               const isLast = index === academicLinks.length - 1;
               return (
@@ -667,6 +707,24 @@ export default function ProfileTab() {
               })}
             </View>
 
+            {/* Sign Out */}
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={handleSignOut}
+              disabled={isSigningOut}
+              style={[
+                styles.signOutBtn,
+                { borderColor: colors.error, backgroundColor: colors.errorLight },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel="Sign out"
+            >
+              <LogOut size={16} color={colors.error} strokeWidth={2.2} />
+              <Text style={[styles.signOutText, { color: colors.error }]}>
+                {isSigningOut ? 'Signing out...' : 'Sign Out'}
+              </Text>
+            </TouchableOpacity>
+
             {/* Done Button */}
             <TouchableOpacity
               activeOpacity={0.8}
@@ -731,6 +789,7 @@ export default function ProfileTab() {
 
               <TouchableOpacity
                 onPress={handleSaveProfile}
+                disabled={isSaving}
                 activeOpacity={0.8}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 style={[
@@ -740,7 +799,7 @@ export default function ProfileTab() {
                 accessibilityRole="button"
                 accessibilityLabel="Save profile changes"
               >
-                <Text style={styles.editModalSaveText}>Save</Text>
+                <Text style={styles.editModalSaveText}>{isSaving ? 'Saving...' : 'Save'}</Text>
               </TouchableOpacity>
             </View>
 
@@ -904,6 +963,20 @@ export default function ProfileTab() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  signOutBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    borderWidth: 1,
+    borderRadius: radius.md,
+    paddingVertical: spacing.sm,
+    marginTop: spacing.md,
+  },
+  signOutText: {
+    fontFamily: fontFamilies.sansSemiBold,
+    fontSize: 14,
   },
   scroll: {
     flex: 1,

@@ -1,11 +1,6 @@
-import {
-  mockResearchers,
-  mockCurrentWorks,
-  mockPublications,
-  mockTopics,
-  activeUser,
-} from '@/data';
+import { mockTopics } from '@/data';
 import { UserProfile, CurrentWork, ResearchPublication, Topic } from '@/types';
+import { tagMatchKey } from '@/utils/researchWork';
 
 export type SearchCategory = 'all' | 'people' | 'currentWork' | 'publications' | 'topics';
 
@@ -19,101 +14,118 @@ export interface SearchResults {
 }
 
 /**
+ * Live data the search operates on (loaded once by `useResearchDirectory`).
+ * Search runs locally on the device — no external search service.
+ */
+export interface SearchDataset {
+  researchers: UserProfile[];
+  works: CurrentWork[];
+  publications?: ResearchPublication[];
+}
+
+/** Static CSE topic taxonomy used for chips and topic pages. */
+export const TOPIC_TAXONOMY: Topic[] = mockTopics;
+
+const includes = (value: string | undefined | null, q: string) =>
+  Boolean(value && value.toLowerCase().includes(q));
+
+/** True when a tag / interest list mentions the topic (ignores '#', spaces, case). */
+export function matchesTopic(values: string[] | undefined, topicName: string): boolean {
+  const key = tagMatchKey(topicName);
+  return (values || []).some((v) => tagMatchKey(v) === key);
+}
+
+/**
  * Searches across researchers, current work, publications, and topics.
  * Deterministic, case-insensitive, local multi-field search.
  */
-export function searchHub(query: string, category: SearchCategory = 'all'): SearchResults {
+export function searchHub(
+  query: string,
+  category: SearchCategory = 'all',
+  data: SearchDataset = { researchers: [], works: [] },
+): SearchResults {
   const cleanQuery = query.trim().toLowerCase();
 
   if (!cleanQuery) {
-    return {
-      query: '',
-      people: [],
-      currentWork: [],
-      publications: [],
-      topics: [],
-      totalCount: 0,
-    };
+    return { query: '', people: [], currentWork: [], publications: [], topics: [], totalCount: 0 };
   }
 
-  const allResearchers = [activeUser, ...mockResearchers];
+  const tagQuery = tagMatchKey(cleanQuery);
 
-  // 1. Search People (Researchers)
-  const matchingPeople = category === 'all' || category === 'people'
-    ? allResearchers.filter((r) => {
-        const nameMatch = r.name.toLowerCase().includes(cleanQuery);
-        const bioMatch = r.bio ? r.bio.toLowerCase().includes(cleanQuery) : false;
-        const deptMatch = r.department.toLowerCase().includes(cleanQuery);
-        const batchMatch = r.batch ? r.batch.toLowerCase().includes(cleanQuery) : false;
-        const interestMatch = (r.interests || []).some((i) => i.toLowerCase().includes(cleanQuery));
-        return nameMatch || bioMatch || deptMatch || batchMatch || interestMatch;
-      })
+  const people = category === 'all' || category === 'people'
+    ? data.researchers.filter((r) =>
+        includes(r.name, cleanQuery) ||
+        includes(r.bio, cleanQuery) ||
+        includes(r.department, cleanQuery) ||
+        includes(r.designation, cleanQuery) ||
+        includes(r.batch, cleanQuery) ||
+        (r.interests || []).some((i) => includes(i, cleanQuery) || (tagQuery && tagMatchKey(i).includes(tagQuery))),
+      )
     : [];
 
-  // 2. Search Current Work
-  const matchingCurrentWork = category === 'all' || category === 'currentWork'
-    ? mockCurrentWorks.filter((w) => {
-        const titleMatch = w.title.toLowerCase().includes(cleanQuery);
-        const descMatch = w.description.toLowerCase().includes(cleanQuery);
-        const authorMatch = w.authorName.toLowerCase().includes(cleanQuery);
-        const topicMatch = (w.topics || []).some((t) => t.toLowerCase().includes(cleanQuery));
-        const stageMatch = w.stage ? w.stage.toLowerCase().includes(cleanQuery) : false;
-        return titleMatch || descMatch || authorMatch || topicMatch || stageMatch;
-      })
+  const currentWork = category === 'all' || category === 'currentWork'
+    ? data.works.filter((w) =>
+        includes(w.title, cleanQuery) ||
+        includes(w.description, cleanQuery) ||
+        includes(w.authorName, cleanQuery) ||
+        includes(w.stage, cleanQuery) ||
+        (w.topics || []).some((t) => includes(t, cleanQuery) || (tagQuery && tagMatchKey(t).includes(tagQuery))),
+      )
     : [];
 
-  // 3. Search Publications
-  const matchingPublications = category === 'all' || category === 'publications'
-    ? mockPublications.filter((p) => {
-        const titleMatch = p.title.toLowerCase().includes(cleanQuery);
-        const overviewMatch = (p.overview || p.abstract || '').toLowerCase().includes(cleanQuery);
-        const venueMatch = p.venue.toLowerCase().includes(cleanQuery);
-        const authorMatch = p.authorName.toLowerCase().includes(cleanQuery);
-        const coAuthorMatch = (p.coAuthors || []).some((a) => a.toLowerCase().includes(cleanQuery));
-        const topicMatch = (p.topics || []).some((t) => t.toLowerCase().includes(cleanQuery));
-        return titleMatch || overviewMatch || venueMatch || authorMatch || coAuthorMatch || topicMatch;
-      })
+  const publications = category === 'all' || category === 'publications'
+    ? (data.publications || []).filter((p) =>
+        includes(p.title, cleanQuery) ||
+        includes(p.overview || p.abstract, cleanQuery) ||
+        includes(p.venue, cleanQuery) ||
+        includes(p.authorName, cleanQuery) ||
+        (p.topics || []).some((t) => includes(t, cleanQuery)),
+      )
     : [];
 
-  // 4. Search Topics
-  const matchingTopics = category === 'all' || category === 'topics'
-    ? mockTopics.filter((t) => {
-        const nameMatch = t.name.toLowerCase().includes(cleanQuery);
-        const slugMatch = t.slug.toLowerCase().includes(cleanQuery);
-        const catMatch = t.category.toLowerCase().includes(cleanQuery);
-        const descMatch = t.description ? t.description.toLowerCase().includes(cleanQuery) : false;
-        return nameMatch || slugMatch || catMatch || descMatch;
-      })
+  const topics = category === 'all' || category === 'topics'
+    ? TOPIC_TAXONOMY.filter((t) =>
+        includes(t.name, cleanQuery) ||
+        includes(t.slug, cleanQuery) ||
+        includes(t.category, cleanQuery) ||
+        includes(t.description, cleanQuery),
+      )
     : [];
-
-  const totalCount =
-    matchingPeople.length +
-    matchingCurrentWork.length +
-    matchingPublications.length +
-    matchingTopics.length;
 
   return {
     query,
-    people: matchingPeople,
-    currentWork: matchingCurrentWork,
-    publications: matchingPublications,
-    topics: matchingTopics,
-    totalCount,
+    people,
+    currentWork,
+    publications,
+    topics,
+    totalCount: people.length + currentWork.length + publications.length + topics.length,
   };
+}
+
+/** Live researcher / work counts per topic, computed from the loaded dataset. */
+export function topicCounts(topic: Topic, data: SearchDataset): Topic {
+  const researchersCount = data.researchers.filter((r) => matchesTopic(r.interests, topic.name)).length;
+  const currentWorkCount = data.works.filter((w) => matchesTopic(w.topics, topic.name)).length;
+  return { ...topic, researchersCount, currentWorkCount, activeCount: currentWorkCount };
 }
 
 /**
  * Aggregates researchers and active work associated with a specific research topic.
  * Powers "Who's Working On This?"
  */
-export function getTopicDiscovery(topicSlugOrName: string) {
+export function getTopicDiscovery(topicSlugOrName: string, data: SearchDataset) {
   const cleanTarget = topicSlugOrName.trim().toLowerCase();
+  const targetKey = tagMatchKey(topicSlugOrName);
 
-  const matchedTopic = mockTopics.find(
-    (t) => t.name.toLowerCase() === cleanTarget || t.slug.toLowerCase() === cleanTarget || t.id.toLowerCase() === cleanTarget
+  const matchedTopic: Topic = TOPIC_TAXONOMY.find(
+    (t) =>
+      t.name.toLowerCase() === cleanTarget ||
+      t.slug.toLowerCase() === cleanTarget ||
+      t.id.toLowerCase() === cleanTarget ||
+      tagMatchKey(t.name) === targetKey,
   ) || {
     id: `topic-${cleanTarget.replace(/\s+/g, '-')}`,
-    name: topicSlugOrName,
+    name: topicSlugOrName.replace(/^#/, ''),
     slug: cleanTarget.replace(/\s+/g, '-'),
     category: 'Computer Science',
     researchersCount: 0,
@@ -121,22 +133,18 @@ export function getTopicDiscovery(topicSlugOrName: string) {
     description: `Researchers and projects in ${topicSlugOrName}.`,
   };
 
-  const allResearchers = [activeUser, ...mockResearchers];
+  const currentWorks = data.works.filter((w) => matchesTopic(w.topics, matchedTopic.name));
+  const workAuthorIds = new Set(currentWorks.map((w) => w.userId));
 
-  const researchers = allResearchers.filter((r) =>
-    (r.interests || []).some((i) => i.toLowerCase() === matchedTopic.name.toLowerCase())
+  // Researchers who list the topic as an interest OR have shared work tagged with it
+  const researchers = data.researchers.filter(
+    (r) => matchesTopic(r.interests, matchedTopic.name) || workAuthorIds.has(r.id),
   );
 
-  const currentWorks = mockCurrentWorks.filter((w) =>
-    (w.topics || []).some((t) => t.toLowerCase() === matchedTopic.name.toLowerCase())
-  );
-
-  const publications = mockPublications.filter((p) =>
-    (p.topics || []).some((t) => t.toLowerCase() === matchedTopic.name.toLowerCase())
-  );
+  const publications = (data.publications || []).filter((p) => matchesTopic(p.topics, matchedTopic.name));
 
   return {
-    topic: matchedTopic,
+    topic: topicCounts(matchedTopic, data),
     researchers,
     currentWorks,
     publications,

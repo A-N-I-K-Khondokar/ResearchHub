@@ -18,15 +18,21 @@ import {
   writeBatch,
   onSnapshot,
   serverTimestamp,
+  collection,
+  query,
+  where,
+  limit,
   type Firestore,
+  type DocumentData,
+  type DocumentSnapshot,
 } from 'firebase/firestore';
 import type { User } from 'firebase/auth';
 import { db } from '@/config/firebase';
+import { buildPendingProfileDocuments } from '@/utils/pendingProfile';
 import type {
   UserProfile,
   CreatePendingUserProfileInput,
   UpdateUserProfileInput,
-  AdminEmailOutboxDoc,
 } from '@/types/user.types';
 
 // ---------------------------------------------------------------------------
@@ -45,6 +51,33 @@ function getFirestoreDb(): Firestore {
     );
   }
   return db;
+}
+
+/** Maps a `users/{uid}` snapshot onto the `UserProfile` read model. */
+function mapUserProfile(docSnap: DocumentSnapshot<DocumentData>): UserProfile | null {
+  if (!docSnap.exists()) return null;
+  const data = docSnap.data({ serverTimestamps: 'estimate' });
+  return {
+    uid: data.uid ?? docSnap.id,
+    email: data.email ?? '',
+    displayName: data.displayName ?? '',
+    photoURL: data.photoURL ?? null,
+    department: data.department ?? '',
+    program: data.program ?? null,
+    batch: data.batch ?? null,
+    studentId: data.studentId ?? null,
+    designation: data.designation ?? '',
+    bio: data.bio ?? null,
+    researchInterests: Array.isArray(data.researchInterests) ? data.researchInterests : [],
+    socialLinks: data.socialLinks ?? {},
+    approvalStatus: data.approvalStatus ?? 'pending',
+    requestedAt: data.requestedAt,
+    approvedAt: data.approvedAt ?? null,
+    approvedBy: data.approvedBy ?? null,
+    rejectionReason: data.rejectionReason ?? null,
+    createdAt: data.createdAt,
+    updatedAt: data.updatedAt,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -87,60 +120,28 @@ export async function createPendingUserProfile(
   const userDocRef = doc(firestore, 'users', user.uid);
   const outboxDocRef = doc(firestore, 'admin_email_outbox', user.uid);
 
-  // Guard: Prevent overwriting an existing profile or outbox notification request
-  const [existingUserDoc, existingOutboxDoc] = await Promise.all([
-    getDoc(userDocRef),
-    getDoc(outboxDocRef),
-  ]);
+  // Ensure the ID token carries the verified-email claim. `reload()` updates
+  // `user.emailVerified` locally but does NOT refresh the token, and the
+  // security rules check `request.auth.token.email_verified`.
+  const tokenResult = await user.getIdTokenResult();
+  if (tokenResult.claims.email_verified !== true) {
+    await user.getIdToken(true);
+  }
 
+  // Guard: friendly early exit if the applicant's own profile already exists.
+  // (The applicant may read their own `users/{uid}`; they may NOT read the
+  // outbox, so duplicate outbox protection is enforced by the rules' `!exists`
+  // checks on both documents when the batch commits.)
+  const existingUserDoc = await getDoc(userDocRef);
   if (existingUserDoc.exists()) {
     throw new Error(`[user.service] A profile already exists for UID "${user.uid}". Cannot overwrite.`);
   }
 
-  if (existingOutboxDoc.exists()) {
-    throw new Error(`[user.service] A notification request already exists for UID "${user.uid}". Cannot overwrite.`);
-  }
-
-  const now = serverTimestamp();
-
-  const newProfileDoc = {
-    uid: user.uid,
-    email: user.email,
-    displayName: input.displayName?.trim() || user.displayName || '',
-    photoURL: input.photoURL ?? user.photoURL ?? null,
-    department: input.department.trim(),
-    program: input.program?.trim() ?? null,
-    batch: input.batch?.trim() ?? null,
-    studentId: input.studentId?.trim() ?? null,
-    designation: input.designation.trim(),
-    bio: input.bio?.trim() ?? null,
-    researchInterests: Array.isArray(input.researchInterests) ? input.researchInterests : [],
-    socialLinks: input.socialLinks ?? {},
-    approvalStatus: 'pending' as const,
-    requestedAt: now,
-    approvedAt: null,
-    approvedBy: null,
-    rejectionReason: null,
-    createdAt: now,
-    updatedAt: now,
-  };
-
-  const newOutboxDoc: AdminEmailOutboxDoc = {
-    uid: user.uid,
-    userEmail: user.email,
-    displayName: newProfileDoc.displayName,
-    department: newProfileDoc.department,
-    designation: newProfileDoc.designation,
-    program: newProfileDoc.program,
-    batch: newProfileDoc.batch,
-    researchInterests: newProfileDoc.researchInterests,
-    deliveryStatus: 'queued',
-    createdAt: now as any,
-    sentAt: null,
-    attemptCount: 0,
-    lastAttemptAt: null,
-    lastError: null,
-  };
+  const { profile: newProfileDoc, outbox: newOutboxDoc } = buildPendingProfileDocuments(
+    { uid: user.uid, email: user.email, displayName: user.displayName, photoURL: user.photoURL },
+    input,
+    serverTimestamp(),
+  );
 
   // Atomic creation of user profile and outbox notification request in a single batch
   const batch = writeBatch(firestore);
@@ -173,36 +174,8 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
     throw new Error('[user.service] Invalid UID provided to getUserProfile.');
   }
 
-  const userDocRef = doc(firestore, 'users', uid.trim());
-  const docSnap = await getDoc(userDocRef);
-
-  if (!docSnap.exists()) {
-    return null;
-  }
-
-  const data = docSnap.data({ serverTimestamps: 'estimate' });
-
-  return {
-    uid: data.uid ?? docSnap.id,
-    email: data.email ?? '',
-    displayName: data.displayName ?? '',
-    photoURL: data.photoURL ?? null,
-    department: data.department ?? '',
-    program: data.program ?? null,
-    batch: data.batch ?? null,
-    studentId: data.studentId ?? null,
-    designation: data.designation ?? '',
-    bio: data.bio ?? null,
-    researchInterests: Array.isArray(data.researchInterests) ? data.researchInterests : [],
-    socialLinks: data.socialLinks ?? {},
-    approvalStatus: data.approvalStatus ?? 'pending',
-    requestedAt: data.requestedAt,
-    approvedAt: data.approvedAt ?? null,
-    approvedBy: data.approvedBy ?? null,
-    rejectionReason: data.rejectionReason ?? null,
-    createdAt: data.createdAt,
-    updatedAt: data.updatedAt,
-  } as UserProfile;
+  const docSnap = await getDoc(doc(firestore, 'users', uid.trim()));
+  return mapUserProfile(docSnap);
 }
 
 // ---------------------------------------------------------------------------
@@ -247,41 +220,47 @@ export function subscribeUserProfile(
   return onSnapshot(
     userDocRef,
     (docSnap) => {
-      if (!docSnap.exists()) {
-        onUpdate(null);
-        return;
-      }
-
-      const data = docSnap.data({ serverTimestamps: 'estimate' });
-      const profile: UserProfile = {
-        uid: data.uid ?? docSnap.id,
-        email: data.email ?? '',
-        displayName: data.displayName ?? '',
-        photoURL: data.photoURL ?? null,
-        department: data.department ?? '',
-        program: data.program ?? null,
-        batch: data.batch ?? null,
-        studentId: data.studentId ?? null,
-        designation: data.designation ?? '',
-        bio: data.bio ?? null,
-        researchInterests: Array.isArray(data.researchInterests) ? data.researchInterests : [],
-        socialLinks: data.socialLinks ?? {},
-        approvalStatus: data.approvalStatus ?? 'pending',
-        requestedAt: data.requestedAt,
-        approvedAt: data.approvedAt ?? null,
-        approvedBy: data.approvedBy ?? null,
-        rejectionReason: data.rejectionReason ?? null,
-        createdAt: data.createdAt,
-        updatedAt: data.updatedAt,
-      };
-
-      onUpdate(profile);
+      onUpdate(mapUserProfile(docSnap));
     },
     (err) => {
       console.error(`[user.service] Snapshot listener error for UID "${uid}":`, err);
       if (onError) {
         onError(err);
       }
+    },
+  );
+}
+
+/**
+ * Real-time directory of approved researchers (used by Explore, search and
+ * Home). The `approvalStatus == 'approved'` filter is required by the rules.
+ */
+export function subscribeApprovedResearchers(
+  onUpdate: (profiles: UserProfile[]) => void,
+  onError?: (error: Error) => void,
+  maxItems = 100,
+): () => void {
+  if (!db) {
+    onError?.(new Error('[user.service] Cloud Firestore is not initialized or configured.'));
+    return () => {};
+  }
+  const q = query(
+    collection(db, 'users'),
+    where('approvalStatus', '==', 'approved'),
+    limit(maxItems),
+  );
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      onUpdate(
+        snapshot.docs
+          .map((d) => mapUserProfile(d))
+          .filter((p): p is UserProfile => p !== null),
+      );
+    },
+    (err) => {
+      console.error('[user.service] Researcher directory listener error:', err);
+      onError?.(err);
     },
   );
 }

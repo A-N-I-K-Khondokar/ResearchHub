@@ -29,7 +29,10 @@ import { useTheme } from '@/context/ThemeContext';
 import { Button } from '@/components/common/Button';
 import { Avatar } from '@/components/common/Avatar';
 import { SuccessModal } from '@/components/feedback/SuccessModal';
-import { activeUser } from '@/data/researchers';
+import { useAuth } from '@/context/AuthContext';
+import { createResearchWork } from '@/services/research.service';
+import { formatResearchTag } from '@/utils/researchWork';
+import { RESEARCH_LIMITS, type ResearchStage } from '@/types/research.types';
 
 // Common CSE Suggested Tags
 const SUGGESTED_TAGS = [
@@ -46,7 +49,7 @@ const SUGGESTED_TAGS = [
 ];
 
 // Project progression stages with minimalist line-art vector icons
-const RESEARCH_STAGES = [
+const RESEARCH_STAGES: { id: ResearchStage; label: string; icon: typeof Lightbulb }[] = [
   { id: 'Idea', label: 'Idea', icon: Lightbulb },
   { id: 'Literature Review', label: 'Literature Review', icon: BookOpen },
   { id: 'Experiment', label: 'Experiment', icon: FlaskConical },
@@ -56,16 +59,15 @@ const RESEARCH_STAGES = [
 export default function ShareTab() {
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
+  const { userProfile } = useAuth();
+  const authorName = userProfile?.displayName || 'CSE Researcher';
 
   // Form State
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [customTag, setCustomTag] = useState('');
-  const [selectedTags, setSelectedTags] = useState<string[]>([
-    '#MachineLearning',
-    '#BanglaNLP',
-  ]);
-  const [selectedStage, setSelectedStage] = useState('Experiment');
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [selectedStage, setSelectedStage] = useState<ResearchStage>('Experiment');
   const [externalUrl, setExternalUrl] = useState('');
 
   // UI / Submission State
@@ -73,6 +75,8 @@ export default function ShareTab() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [titleError, setTitleError] = useState('');
   const [descError, setDescError] = useState('');
+  const [urlError, setUrlError] = useState('');
+  const [submitError, setSubmitError] = useState('');
 
   // Add Tag Logic (handles Enter, Comma, or Add Button)
   const handleAddTag = (rawText?: string) => {
@@ -123,40 +127,98 @@ export default function ShareTab() {
     setSelectedTags((prev) => prev.filter((t) => t !== tagToRemove));
   };
 
-  // Form Validation & Mock Submission
-  const handleSubmit = () => {
+  // Form Validation & Firestore Submission
+  const handleSubmit = async () => {
+    if (isSubmitting) return;
+    setSubmitError('');
     let isValid = true;
 
-    // Auto-commit any unfinished tag currently typed in customTag input
-    if (customTag.trim()) {
-      handleAddTag();
+    // Include any unfinished tag still typed in the input (computed locally so
+    // the submission does not depend on a pending state update).
+    const pendingTags = customTag
+      .split(',')
+      .map((t) => formatResearchTag(t))
+      .filter(Boolean);
+    const tags = [...selectedTags];
+    pendingTags.forEach((tag) => {
+      if (!tags.some((t) => t.toLowerCase() === tag.toLowerCase())) tags.push(tag);
+    });
+    if (pendingTags.length > 0) {
+      setSelectedTags(tags);
+      setCustomTag('');
     }
 
-    if (!title.trim()) {
+    const trimmedTitle = title.trim();
+    if (!trimmedTitle) {
       setTitleError('Please enter a research or project title.');
+      isValid = false;
+    } else if (trimmedTitle.length < RESEARCH_LIMITS.titleMin) {
+      setTitleError(`Title must be at least ${RESEARCH_LIMITS.titleMin} characters.`);
+      isValid = false;
+    } else if (trimmedTitle.length > RESEARCH_LIMITS.titleMax) {
+      setTitleError(`Title must be ${RESEARCH_LIMITS.titleMax} characters or less.`);
       isValid = false;
     } else {
       setTitleError('');
     }
 
-    if (!description.trim()) {
+    const trimmedDesc = description.trim();
+    if (!trimmedDesc) {
       setDescError('Please provide a brief abstract or research update.');
       isValid = false;
-    } else if (description.trim().length < 20) {
-      setDescError('Please write at least 20 characters describing your work.');
+    } else if (trimmedDesc.length < RESEARCH_LIMITS.descriptionMin) {
+      setDescError(`Please write at least ${RESEARCH_LIMITS.descriptionMin} characters describing your work.`);
+      isValid = false;
+    } else if (trimmedDesc.length > RESEARCH_LIMITS.descriptionMax) {
+      setDescError(`Description must be ${RESEARCH_LIMITS.descriptionMax} characters or less.`);
       isValid = false;
     } else {
       setDescError('');
     }
 
+    const trimmedUrl = externalUrl.trim();
+    if (trimmedUrl && (!/^https?:\/\/.+/i.test(trimmedUrl) || trimmedUrl.length > RESEARCH_LIMITS.urlMax)) {
+      setUrlError('Link must start with http:// or https:// (max 500 characters).');
+      isValid = false;
+    } else {
+      setUrlError('');
+    }
+
+    if (tags.length > RESEARCH_LIMITS.tagsMax) {
+      setSubmitError(`Please use at most ${RESEARCH_LIMITS.tagsMax} tags.`);
+      isValid = false;
+    } else if (tags.some((t) => t.length > RESEARCH_LIMITS.tagMax)) {
+      setSubmitError(`Each tag must be ${RESEARCH_LIMITS.tagMax} characters or less.`);
+      isValid = false;
+    }
+
     if (!isValid) return;
 
-    // Simulate Network / Creation Request
+    if (!userProfile || userProfile.approvalStatus !== 'approved') {
+      setSubmitError('Only approved researchers can share work. Please sign in again.');
+      return;
+    }
+
     setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      await createResearchWork(userProfile, {
+        title: trimmedTitle,
+        description: trimmedDesc,
+        tags,
+        stage: selectedStage,
+        externalUrl: trimmedUrl || null,
+      });
       setShowSuccessModal(true);
-    }, 800);
+    } catch (err: any) {
+      console.error('[Share] Publish failed:', err);
+      setSubmitError(
+        err?.code === 'permission-denied'
+          ? 'Permission denied. Your account may no longer be approved, or your profile changed — please try again.'
+          : 'Could not publish your update. Check your connection and try again.',
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleModalClose = () => {
@@ -165,11 +227,13 @@ export default function ShareTab() {
     setTitle('');
     setDescription('');
     setCustomTag('');
-    setSelectedTags(['#MachineLearning']);
+    setSelectedTags([]);
     setSelectedStage('Experiment');
     setExternalUrl('');
     setTitleError('');
     setDescError('');
+    setUrlError('');
+    setSubmitError('');
   };
 
   return (
@@ -189,14 +253,14 @@ export default function ShareTab() {
           {/* Identity-First Header Row */}
           <View style={styles.identityHeader}>
             <Avatar
-              name={activeUser.name}
-              uri={activeUser.photoURL}
+              name={authorName}
+              uri={userProfile?.photoURL}
               size="md"
               style={{ borderWidth: 1, borderColor: colors.borderSubtle }}
             />
             <View style={styles.identityTextCol}>
               <Text style={[styles.userName, { color: colors.textPrimary }]}>
-                {activeUser.name}
+                {authorName}
               </Text>
               <Text style={[styles.statusText, { color: colors.textSecondary }]}>
                 Drafting a research update...
@@ -499,7 +563,10 @@ export default function ShareTab() {
               </View>
               <TextInput
                 value={externalUrl}
-                onChangeText={setExternalUrl}
+                onChangeText={(text) => {
+                  setExternalUrl(text);
+                  if (urlError) setUrlError('');
+                }}
                 placeholder="e.g., https://github.com/lab/repo or DOI"
                 placeholderTextColor={colors.textMuted}
                 autoCapitalize="none"
@@ -509,12 +576,24 @@ export default function ShareTab() {
                   styles.input,
                   {
                     backgroundColor: isDark ? colors.surfaceSubtle : colors.background,
-                    borderColor: colors.borderSubtle,
+                    borderColor: urlError ? colors.error : colors.borderSubtle,
                     color: colors.textPrimary,
                   },
                 ]}
               />
+              {urlError ? (
+                <Text style={[styles.errorText, { color: colors.error }]}>{urlError}</Text>
+              ) : null}
             </View>
+
+            {submitError ? (
+              <Text
+                style={[styles.errorText, { color: colors.error, marginBottom: spacing.sm }]}
+                accessibilityLiveRegion="polite"
+              >
+                {submitError}
+              </Text>
+            ) : null}
 
             {/* Primary Action Button */}
             <Button

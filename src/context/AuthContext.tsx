@@ -71,7 +71,7 @@ const AuthContext = createContext<AuthContextType>({
   signInWithGoogle: async () => {},
   signOut: async () => {},
   sendVerificationEmail: async () => {},
-  reloadCurrentUser: async () => {},
+  reloadCurrentUser: async () => false,
   sendPasswordReset: async () => {},
 });
 
@@ -85,6 +85,9 @@ export interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
+  // Tracked as its own state: `reload()` mutates the existing User object in
+  // place, so `setFirebaseUser(sameRef)` would not trigger a re-render.
+  const [emailVerified, setEmailVerified] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isProfileLoading, setIsProfileLoading] = useState(false);
@@ -124,6 +127,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       (user) => {
         if (!isMounted.current) return;
         setFirebaseUser(user);
+        setEmailVerified(user?.emailVerified ?? false);
         setIsLoading(false);
         // Clear any stale auth errors when the session changes
         setAuthError(null);
@@ -146,7 +150,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   useEffect(() => {
     // 1. Guard: If no user or email is unverified, do not subscribe
-    if (!firebaseUser || !firebaseUser.emailVerified) {
+    if (!firebaseUser || !emailVerified) {
       if (profileUnsubscribeRef.current) {
         profileUnsubscribeRef.current();
         profileUnsubscribeRef.current = null;
@@ -206,14 +210,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
       activeSubscribedUidRef.current = null;
     };
-  }, [firebaseUser?.uid, firebaseUser?.emailVerified]);
+  }, [firebaseUser?.uid, emailVerified]);
 
   // ---------------------------------------------------------------------------
   // Derived state & Access State Model
   // ---------------------------------------------------------------------------
 
   const isAuthenticated = firebaseUser !== null;
-  const emailVerified = firebaseUser?.emailVerified ?? false;
   const approvalStatus: ApprovalStatus | null = userProfile?.approvalStatus ?? null;
 
   const accessState = useMemo<AccessState>(() => {
@@ -324,15 +327,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, [firebaseUser, clearError]);
 
-  const reloadCurrentUser = useCallback(async (): Promise<void> => {
-    if (!firebaseUser) return;
+  const reloadCurrentUser = useCallback(async (): Promise<boolean> => {
+    if (!firebaseUser) return false;
     try {
-      await reloadUser(firebaseUser);
-      // After reload, force a local state refresh from the updated user object.
-      if (isMounted.current && auth) {
-        // auth.currentUser now has updated emailVerified — trigger a re-render
-        setFirebaseUser(auth.currentUser);
-      }
+      // reloadUser also force-refreshes the ID token once verified (H1).
+      const verified = await reloadUser(firebaseUser);
+      // Primitive state update guarantees a re-render, so accessState and the
+      // Firestore profile subscription react without an app restart (H2).
+      if (isMounted.current) setEmailVerified(verified);
+      return verified;
     } catch (error) {
       const mapped = mapFirebaseError(error);
       if (isMounted.current) setAuthError(mapped);

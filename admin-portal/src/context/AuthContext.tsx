@@ -84,15 +84,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setLoading(true);
-      setError(null);
 
       if (!firebaseUser) {
+        // Do not clear `error` here: a failed authorization signs the user out,
+        // and clearing would wipe the "unauthorized / record missing" message.
         setUser(null);
         setAdminRecord(null);
         setLoading(false);
         return;
       }
 
+      setError(null);
       try {
         const record = await validateAdminDocument(firebaseUser);
         setUser(firebaseUser);

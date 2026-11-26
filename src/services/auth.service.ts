@@ -156,9 +156,21 @@ export async function sendVerificationEmail(user: User): Promise<void> {
   await sendEmailVerification(user);
 }
 
-/** Reloads the Firebase user object from the server. */
-export async function reloadUser(user: User): Promise<void> {
+/**
+ * Reloads the Firebase user object from the server and returns the current
+ * `emailVerified` value.
+ *
+ * `reload()` updates `user.emailVerified` but leaves the cached ID token
+ * untouched, so Firestore requests would still carry `email_verified: false`.
+ * When the email is now verified we force a token refresh so subsequent
+ * Firestore requests (checked by security rules) carry the updated claim.
+ */
+export async function reloadUser(user: User): Promise<boolean> {
   await reload(user);
+  if (user.emailVerified) {
+    await user.getIdToken(true);
+  }
+  return user.emailVerified;
 }
 
 // ---------------------------------------------------------------------------
