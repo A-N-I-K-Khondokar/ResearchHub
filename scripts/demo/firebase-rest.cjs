@@ -181,4 +181,4 @@ async function deleteAuthUser(localId) {
   }
 }
 
-module.exports = { PROJECT_ID, commit, listDocs, upsertAuthUser, deleteAuthUser };
+module.exports = { PROJECT_ID, commit, listDocs, upsertAuthUser, deleteAuthUser, encodeFields, decodeFields };

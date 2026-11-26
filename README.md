@@ -1,34 +1,46 @@
 # CSE Research Hub 🎓
 
-A mobile application for Computer Science & Engineering (CSE) students, faculty, and researchers to discover ongoing research, explore academic domains, share work in progress, and connect with collaborators.
+A research discovery and researcher networking platform for the Computer Science & Engineering department — **DISCOVER → UNDERSTAND → CONNECT**.
 
----
+Researchers share what they are currently working on, discover people and topics, and connect with collaborators. A separate admin portal reviews and approves accounts.
 
-## 🚀 Getting Started
+- **Mobile app:** Expo SDK 52 · React Native · TypeScript · Expo Router
+- **Admin portal:** React 18 · Vite 6 · TypeScript (`admin-portal/`)
+- **Backend:** Firebase Authentication + Cloud Firestore with tested Security Rules (Spark plan)
 
-### Prerequisites
-* [Node.js](https://nodejs.org/) (v18 or higher)
-* [Expo Go](https://expo.dev/go) on your iOS or Android device (or an emulator / browser)
+## 📱 Download the Android app
 
-### Installation & Running Locally
+**[⬇️ Download CSE-Research-Hub.apk](https://github.com/A-N-I-K-Khondokar/ResearchHub/releases/latest/download/CSE-Research-Hub.apk)** — latest version · [all releases](https://github.com/A-N-I-K-Khondokar/ResearchHub/releases)
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/A-N-I-K-Khondokar/ResearchHub.git
-   cd ResearchHub
-   ```
+1. Open the link on an Android phone (Android 7.0+) and download the APK.
+2. When prompted, allow **Install unknown apps** for your browser or Files app, then tap **Install**.
+3. Create an account, verify your email and submit your profile. An administrator approves new accounts before you can access the research features.
 
-2. **Install dependencies:**
-   ```bash
-   npm install
-   ```
+> Preview build signed by EAS. Verify the download against the SHA-256 checksum listed in the release notes.
 
-3. **Start the development server:**
-   ```bash
-   npx expo start
-   ```
+## Quick start (developers)
 
-4. **Run on your platform:**
-   * **Android:** Scan the QR code using the Expo Go app (or press `a` for Android Emulator).
-   * **iOS:** Scan the QR code using the Camera app (or press `i` for iOS Simulator).
-   * **Web:** Press `w` in the terminal to open in your browser.
+```bash
+npm install
+cp .env.example .env          # add your Firebase web config
+npx expo start                # or: npm run web
+```
+
+Admin portal: `cd admin-portal && npm install && cp .env.example .env.local && npm run dev`
+
+## Checks
+
+```bash
+npm run typecheck             # mobile TypeScript
+npm run test:rules            # 150 Firestore security-rule tests (emulator)
+npm run qa:smoke              # live backend smoke test (after npm run demo:seed -- --yes)
+```
+
+## Documentation
+
+| Document | Contents |
+|---|---|
+| [docs/PROJECT_GUIDE.md](docs/PROJECT_GUIDE.md) | Architecture, features, 14-week roadmap status, setup, testing, deployment, limitations |
+| [docs/FIRESTORE_DATA_MODEL.md](docs/FIRESTORE_DATA_MODEL.md) | Collections, fields, approval state machine, security rules, indexes |
+| [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md) | University demonstration script and checklist |
+| [admin-portal/README.md](admin-portal/README.md) | Admin portal setup, actions and Firestore writes |

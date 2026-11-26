@@ -20,3 +20,9 @@ expo-env.d.ts
 # @end expo-cli
 # Demo seed credentials (never commit)
 scripts/demo/.demo-credentials.json
+
+# Firebase CLI deploy cache
+.firebase/
+
+# Built release binaries (APK) — distribute separately, never commit
+release/

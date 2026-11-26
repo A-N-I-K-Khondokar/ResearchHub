@@ -8,7 +8,8 @@ interface EnvConfig {
   firebaseProjectId: string;
   firebaseAppId: string;
   firebaseMessagingSenderId: string;
-  adminEmail: string;
+  /** True when an administrator email fingerprint was configured at build time. */
+  adminConfigured: boolean;
   isConfigured: boolean;
 }
 
@@ -17,8 +18,9 @@ const authDomain = import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'cse-research-hu
 const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID || 'cse-research-hub';
 const appId = import.meta.env.VITE_FIREBASE_APP_ID || '';
 const messagingSenderId = import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '';
-// No fallback: if VITE_ADMIN_EMAIL is missing, nobody is authorised (fail closed).
-const adminEmail = (import.meta.env.VITE_ADMIN_EMAIL || '').toLowerCase().trim();
+// Only a SHA-256 fingerprint of VITE_ADMIN_EMAIL is compiled in (see vite.config.ts).
+// No fallback: if it is missing, nobody is authorised (fail closed).
+const adminEmailSha256 = __ADMIN_EMAIL_SHA256__;
 
 export const ENV: EnvConfig = {
   firebaseApiKey: apiKey,
@@ -26,12 +28,20 @@ export const ENV: EnvConfig = {
   firebaseProjectId: projectId,
   firebaseAppId: appId,
   firebaseMessagingSenderId: messagingSenderId,
-  adminEmail: adminEmail,
-  isConfigured: Boolean(apiKey && projectId && adminEmail)
+  adminConfigured: Boolean(adminEmailSha256),
+  isConfigured: Boolean(apiKey && projectId && adminEmailSha256)
 };
 
-export function isAuthorizedAdminEmail(email?: string | null): boolean {
-  if (!email || !ENV.adminEmail) return false;
-  return email.toLowerCase().trim() === ENV.adminEmail;
+async function sha256Hex(value: string): Promise<string> {
+  const bytes = new TextEncoder().encode(value);
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
 }
 
+/** Compares the signed-in email with the configured administrator fingerprint. */
+export async function isAuthorizedAdminEmail(email?: string | null): Promise<boolean> {
+  if (!email || !adminEmailSha256) return false;
+  return (await sha256Hex(email.toLowerCase().trim())) === adminEmailSha256;
+}

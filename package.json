@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit",
     "test:rules": "npx --yes firebase-tools@15.35.0 emulators:exec --only firestore --project demo-cse-research-hub \"node --no-warnings --experimental-strip-types --test tests/firestore/*.test.mjs\"",
     "demo:seed": "node scripts/demo/seed.cjs",
-    "demo:clean": "node scripts/demo/clean.cjs"
+    "demo:clean": "node scripts/demo/clean.cjs",
+    "qa:smoke": "node scripts/qa/smoke-test.cjs"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.2.3",

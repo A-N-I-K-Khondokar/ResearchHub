@@ -28,9 +28,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const userEmail = (firebaseUser.email || '').toLowerCase().trim();
 
     // 1. Check authorized administrator email allowlist
-    if (!isAuthorizedAdminEmail(userEmail)) {
+    if (!(await isAuthorizedAdminEmail(userEmail))) {
       throw new Error(
-        ENV.adminEmail
+        ENV.adminConfigured
           ? `Unauthorized account: ${firebaseUser.email}. Only the configured administrator account is permitted to access this portal.`
           : 'Administrator email is not configured (VITE_ADMIN_EMAIL). Access is disabled until it is set in .env.local.'
       );

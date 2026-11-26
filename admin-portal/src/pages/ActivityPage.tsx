@@ -52,7 +52,7 @@ export const ActivityPage: React.FC<ActivityPageProps> = ({ onInspectUser }) => 
       >
         <ShieldCheck size={18} color="var(--color-brand)" style={{ flexShrink: 0, marginTop: '2px' }} />
         <div>
-          <strong>Operational Model Note:</strong> In-app notifications are captured in real-time while this Admin Portal remains open and authenticated. For scheduled asynchronous email alerts when offline, the Google Apps Script outbox polling service handles email dispatches to <code>anik.khondokar09@gmail.com</code>.
+          <strong>Operational Model Note:</strong> In-app notifications are captured in real-time while this Admin Portal remains open and authenticated. New applications are always waiting in the <strong>Pending</strong> queue, so nothing is missed while the portal is closed (no email or push alerts are sent).
         </div>
       </div>
 
