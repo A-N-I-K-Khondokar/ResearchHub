@@ -64,7 +64,7 @@ A research discovery and researcher networking platform for the CSE department: 
 | 8 — Phase 2E | Notifications & Connections | ✅ Completed |
 | 9 — Phase 2F | Researcher Profile, Settings, Saved Items; frontend freeze | ✅ Completed (Saved Items screen delivered with the backend in Weeks 10–13) |
 | 10–13 — Phase 3 | Firebase backend integration & live data | ✅ Completed — auth + approval, research works, discovery, networking, notifications, saved items, admin portal, security hardening |
-| 14 — Finalization | Testing, deployment, academic submission | ✅ Automated QA · ✅ Admin portal deployed · ✅ Android preview APK (v1.0.0, build 1) · ⏳ device QA rehearsal |
+| 14 — Finalization | Testing, deployment, academic submission | ✅ Automated QA · ✅ Admin portal deployed · ✅ Android preview APK (GitHub release v1.0.1, device-tested) · ⏳ device QA rehearsal |
 
 ## 4. Setup
 
@@ -124,7 +124,7 @@ npx --yes firebase-tools@15.35.0 deploy --only hosting --project cse-research-hu
 
 ### Android preview APK (EAS)
 
-**Built 26 Nov 2026** (v1.0.0, build 1) with the `preview` profile. The `preview` EAS environment already holds the Firebase variables, and the signing certificate SHA-1 matches the one registered in `google-services.json`, so native Google Sign-In works. To rebuild: `eas build --platform android --profile preview`.
+**Released 26 Nov 2026 as [v1.0.1](https://github.com/A-N-I-K-Khondokar/ResearchHub/releases/tag/v1.0.1)** (device-tested: Google and email/password sign-in) with the `preview` profile. The `preview` EAS environment already holds the Firebase variables, and the signing certificate SHA-1 matches the one registered in `google-services.json`, so native Google Sign-In works. To rebuild: `eas build --platform android --profile preview`.
 
 First-time setup (already done for this project):
 
@@ -136,6 +136,8 @@ First-time setup (already done for this project):
    ```
 3. `eas build --platform android --profile preview` → download the APK link and install on the phone.
 4. Native Google Sign-In on that APK requires its signing certificate's SHA-1 in Firebase Console → Project settings → Android app (`eas credentials` shows it); then download the updated `google-services.json`. Email/password sign-in works without this.
+
+> **Note:** read `EXPO_PUBLIC_*` variables only as literal `process.env.EXPO_PUBLIC_NAME`. Expo does not inline dynamic `process.env[key]`, which is empty in release builds — this caused v1.0.0's sign-in failure.
 
 ## 7. Known limitations
 
