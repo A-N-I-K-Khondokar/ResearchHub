@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from './context/AuthContext';
-import { NotificationProvider } from './context/NotificationContext';
+import { NotificationProvider, useNotifications } from './context/NotificationContext';
 import { AdminLayout } from './components/layout/AdminLayout';
 import type { NavTab } from './components/layout/Sidebar';
 import { LoginPage } from './pages/LoginPage';
@@ -15,11 +15,11 @@ import {
   approveUser,
   rejectUser,
   suspendUser,
-  reinstateUser
+  reinstateUser,
+  correctAcademicDetails,
+  type AcademicCorrection
 } from './services/admin.service';
 import type { UserProfile } from './types/user.types';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
-import { db } from './config/firebase';
 import { Loader2 } from 'lucide-react';
 
 const AdminPortalContent: React.FC = () => {
@@ -28,22 +28,10 @@ const AdminPortalContent: React.FC = () => {
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [actionTargetUser, setActionTargetUser] = useState<UserProfile | null>(null);
   const [actionType, setActionType] = useState<ActionType>('approve');
-  const [pendingCount, setPendingCount] = useState<number>(0);
-
-  // Live pending count listener for the sidebar badge
-  useEffect(() => {
-    if (!user || !adminRecord) {
-      setPendingCount(0);
-      return;
-    }
-
-    const q = query(collection(db, 'users'), where('approvalStatus', '==', 'pending'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      setPendingCount(snapshot.size);
-    });
-
-    return () => unsubscribe();
-  }, [user, adminRecord]);
+  // Sidebar badge reads the single shared pending listener (NotificationContext)
+  const { pendingCount } = useNotifications();
+  // Bumped after every admin action so the paginated directory reloads
+  const [directoryVersion, setDirectoryVersion] = useState(0);
 
   // Handle direct UID lookup (from notification or search)
   const handleInspectByUid = async (uid: string) => {
@@ -67,7 +55,7 @@ const AdminPortalContent: React.FC = () => {
 
     switch (actionType) {
       case 'approve':
-        await approveUser(target.uid, user.uid);
+        await approveUser(target, user.uid);
         break;
       case 'reject':
         await rejectUser(target.uid, user.uid, reason);
@@ -76,15 +64,22 @@ const AdminPortalContent: React.FC = () => {
         await suspendUser(target.uid);
         break;
       case 'reinstate':
-        await reinstateUser(target.uid, user.uid);
+        await reinstateUser(target, user.uid);
         break;
     }
+    setDirectoryVersion((v) => v + 1);
 
     // Refresh selectedUser if detail modal is open
     if (selectedUser && selectedUser.uid === target.uid) {
       const refreshed = await getUserById(target.uid);
       setSelectedUser(refreshed);
     }
+  };
+
+  const handleCorrectAcademic = async (target: UserProfile, fields: AcademicCorrection) => {
+    await correctAcademicDetails(target, fields);
+    setSelectedUser(await getUserById(target.uid));
+    setDirectoryVersion((v) => v + 1);
   };
 
   if (loading) {
@@ -139,6 +134,7 @@ const AdminPortalContent: React.FC = () => {
         <UsersPage
           onInspectUser={(u) => setSelectedUser(u)}
           onActionClick={handleOpenActionDialog}
+          reloadKey={directoryVersion}
         />
       )}
 
@@ -154,6 +150,7 @@ const AdminPortalContent: React.FC = () => {
         onActionClick={(u, act) => {
           handleOpenActionDialog(u, act);
         }}
+        onCorrectAcademic={handleCorrectAcademic}
       />
 
       {/* Action Confirmation Dialog */}

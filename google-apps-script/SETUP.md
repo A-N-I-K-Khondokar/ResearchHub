@@ -1,8 +1,13 @@
 # CSE Research Hub — Simplified Administrator Email Notification & Approval Setup
 
+> **⚠️ Not in use (Stage 4 decision).** The separate Admin Portal (`admin-portal/`) is the
+> administration interface. This Apps Script workflow is kept for reference only and is not deployed.
+> Note: it writes through the owner's OAuth token, which bypasses Firestore Security Rules.
+
+
 This guide details the setup of the lightweight administrator email notification and approval system for **CSE Research Hub**.
 
-The system operates strictly within the **Firebase Spark (free) plan** using Google Apps Script running under the administrator Google account (**`anik.khondokar09@gmail.com`**).
+The system operates strictly within the **Firebase Spark (free) plan** using Google Apps Script running under the administrator Google account (**`your-admin@example.com`**).
 
 ---
 
@@ -21,14 +26,14 @@ The system operates strictly within the **Firebase Spark (free) plan** using Goo
    [Google Apps Script Outbox Worker]
      ├── Reads queued notifications using ScriptApp.getOAuthToken()
      ├── Generates tamper-proof HMAC-SHA256 action links (48h expiry)
-     └── Sends email notification to anik.khondokar09@gmail.com via MailApp
+     └── Sends email notification to your-admin@example.com via MailApp
                │
                ▼
    [Admin Receives Email & Clicks Action]
                │
                ▼
    [Google Apps Script Web App (USER_ACCESSING)]
-     ├── GET: Confirms identity (anik.khondokar09@gmail.com) & displays applicant details
+     ├── GET: Confirms identity (your-admin@example.com) & displays applicant details
      └── POST: Confirms decision, verifies /admins/{ADMIN_UID}, updates users/{uid}
 ```
 
@@ -57,7 +62,7 @@ The script consists of these 6 files:
 
 ### Step 1: Create Google Apps Script Project
 
-1. In your browser, ensure you are signed in as **`anik.khondokar09@gmail.com`**.
+1. In your browser, ensure you are signed in as **`your-admin@example.com`**.
 2. Go to **[Google Apps Script](https://script.google.com/)**.
 3. Click **New Project** (top-left).
 4. Name the project: `CSE Research Hub Notification Service`.
@@ -95,14 +100,14 @@ The script consists of these 6 files:
    |---|---|---|
    | `FIREBASE_PROJECT_ID` | `cse-research-hub` | Your Firebase Project ID |
    | `FIREBASE_API_KEY` | *(From Firebase Console)* | Project Settings $\rightarrow$ General $\rightarrow$ Web API Key |
-   | `ADMIN_EMAIL` | `anik.khondokar09@gmail.com` | Destination for emails & authorized reviewer |
+   | `ADMIN_EMAIL` | `your-admin@example.com` | Destination for emails & authorized reviewer |
    | `ADMIN_UID` | *(Your Firebase Admin UID)* | The UID matching `/admins/{ADMIN_UID}` in Firestore |
    | `HMAC_SECRET` | *(64-char string generated above)* | Key used to sign expiring action links |
 
 4. Click **Save script properties**.
 
 > [!NOTE]
-> Values stored in Script Properties are accessible in plaintext to editors of this script project. Keep project sharing private to `anik.khondokar09@gmail.com`. Never log these values.
+> Values stored in Script Properties are accessible in plaintext to editors of this script project. Keep project sharing private to `your-admin@example.com`. Never log these values.
 
 ### Step 4: Authorize Google Permissions & Run Diagnostic Check
 
@@ -111,7 +116,7 @@ The script consists of these 6 files:
 3. Click **Run**.
 4. A permissions dialog will appear on first run:
    - Click **Review permissions**.
-   - Select your account: `anik.khondokar09@gmail.com`.
+   - Select your account: `your-admin@example.com`.
    - Click **Advanced** $\rightarrow$ click **Go to CSE Research Hub Notification Service (unsafe)**.
    - Click **Allow**.
 5. Check the **Execution log** at the bottom:
@@ -152,11 +157,11 @@ The script consists of these 6 files:
    - `users/{uid}` with `approvalStatus: 'pending'`
    - `admin_email_outbox/{uid}` with `deliveryStatus: 'queued'`
 3. Within 5 minutes (or immediately by selecting `processOutbox` in Apps Script and clicking **Run**):
-   - You will receive an email at **`anik.khondokar09@gmail.com`** with subject `New Account Approval Request — CSE Research Hub`.
+   - You will receive an email at **`your-admin@example.com`** with subject `New Account Approval Request — CSE Research Hub`.
    - The email contains the applicant details and two buttons: **Approve Application** and **Reject Application**.
 4. Click either button:
    - Opens the confirmation page in your browser.
-   - Requires you to be signed in as `anik.khondokar09@gmail.com`.
+   - Requires you to be signed in as `your-admin@example.com`.
    - Displays applicant information.
    - Clicking **Confirm Approval** updates Firestore to `approvalStatus: 'approved'`.
    - The user immediately gains access in the app!
@@ -168,4 +173,4 @@ The script consists of these 6 files:
 - **IAM Scopes**: REST requests to Cloud Firestore are made via `ScriptApp.getOAuthToken()`, inheriting the administrator's IAM permissions (`roles/datastore.user` or Project Owner/Editor).
 - **Tamper Resistance**: Action links are HMAC-SHA256 signed with a 48-hour expiration. An attacker cannot guess or forge approval links.
 - **Strict Allowlist**: Updates to `users/{uid}` modify only the 5 approval fields (`approvalStatus`, `approvedBy`, `approvedAt`, `rejectionReason`, `updatedAt`). Identity fields are immutable.
-- **Fail-Closed Identity Check**: The Web App rejects anonymous visitors and any Google account other than `anik.khondokar09@gmail.com`.
+- **Fail-Closed Identity Check**: The Web App rejects anonymous visitors and any Google account other than `your-admin@example.com`.

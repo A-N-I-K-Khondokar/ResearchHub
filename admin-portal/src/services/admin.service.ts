@@ -6,11 +6,17 @@ import {
   getDoc,
   doc,
   updateDoc,
+  writeBatch,
   serverTimestamp,
   getCountFromServer,
-  limit
+  limit,
+  orderBy,
+  startAfter,
+  type QueryDocumentSnapshot,
+  type DocumentData
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
+import { buildPublicProfile } from '../utils/publicProfile';
 import type { UserProfile, ApprovalStatus } from '../types/user.types';
 import type { DashboardStats } from '../types/stats.types';
 
@@ -39,53 +45,46 @@ export async function getDashboardCounts(): Promise<DashboardStats> {
 }
 
 /**
- * Retrieves recent registrations sorted client-side to avoid composite index requirements.
+ * Retrieves the most recent registrations (single-field requestedAt index, newest first).
  */
 export async function getRecentRegistrations(maxItems = 8): Promise<UserProfile[]> {
-  const usersColl = collection(db, 'users');
-  const snap = await getDocs(query(usersColl, limit(maxItems * 2)));
+  const snap = await getDocs(
+    query(collection(db, 'users'), orderBy('requestedAt', 'desc'), limit(maxItems))
+  );
+  return snap.docs.map((d) => ({ uid: d.id, ...d.data() } as UserProfile));
+}
 
-  const profiles: UserProfile[] = [];
-  snap.forEach((d) => {
-    profiles.push({ uid: d.id, ...d.data() } as UserProfile);
-  });
+export const USERS_PAGE_SIZE = 25;
 
-  // Sort by requestedAt or createdAt descending
-  profiles.sort((a, b) => {
-    const timeA = a.requestedAt?.toMillis ? a.requestedAt.toMillis() : (a.createdAt?.toMillis ? a.createdAt.toMillis() : 0);
-    const timeB = b.requestedAt?.toMillis ? b.requestedAt.toMillis() : (b.createdAt?.toMillis ? b.createdAt.toMillis() : 0);
-    return timeB - timeA;
-  });
-
-  return profiles.slice(0, maxItems);
+export interface UsersPage {
+  users: UserProfile[];
+  cursor: QueryDocumentSnapshot<DocumentData> | null;
+  hasMore: boolean;
 }
 
 /**
- * Retrieves users filtered by approvalStatus.
+ * Cursor-paginated user directory, newest applications first.
+ * Filtered queries use the (approvalStatus, requestedAt desc) composite index.
  */
-export async function getUsers(status?: ApprovalStatus | 'all', maxItems = 100): Promise<UserProfile[]> {
+export async function getUsersPage(
+  status: ApprovalStatus | 'all' = 'all',
+  cursor: QueryDocumentSnapshot<DocumentData> | null = null,
+  pageSize = USERS_PAGE_SIZE
+): Promise<UsersPage> {
   const usersColl = collection(db, 'users');
-  let q;
-
-  if (status && status !== 'all') {
-    q = query(usersColl, where('approvalStatus', '==', status), limit(maxItems));
-  } else {
-    q = query(usersColl, limit(maxItems));
-  }
-
-  const snap = await getDocs(q);
-  const profiles: UserProfile[] = [];
-  snap.forEach((d) => {
-    profiles.push({ uid: d.id, ...d.data() } as UserProfile);
-  });
-
-  profiles.sort((a, b) => {
-    const timeA = a.requestedAt?.toMillis ? a.requestedAt.toMillis() : (a.createdAt?.toMillis ? a.createdAt.toMillis() : 0);
-    const timeB = b.requestedAt?.toMillis ? b.requestedAt.toMillis() : (b.createdAt?.toMillis ? b.createdAt.toMillis() : 0);
-    return timeB - timeA;
-  });
-
-  return profiles;
+  const constraints = [
+    ...(status !== 'all' ? [where('approvalStatus', '==', status)] : []),
+    orderBy('requestedAt', 'desc'),
+    ...(cursor ? [startAfter(cursor)] : []),
+    limit(pageSize + 1)
+  ];
+  const snap = await getDocs(query(usersColl, ...constraints));
+  const docs = snap.docs.slice(0, pageSize);
+  return {
+    users: docs.map((d) => ({ uid: d.id, ...d.data() } as UserProfile)),
+    cursor: docs.length > 0 ? docs[docs.length - 1] : null,
+    hasMore: snap.docs.length > pageSize
+  };
 }
 
 /**
@@ -99,23 +98,28 @@ export async function getUserById(uid: string): Promise<UserProfile | null> {
 }
 
 /**
- * Approves a pending user application.
- * Transition: pending -> approved
+ * Approves a pending user application (pending -> approved) and publishes the
+ * sanitised public directory mirror in the same batch.
  */
-export async function approveUser(uid: string, adminUid: string): Promise<void> {
-  const userRef = doc(db, 'users', uid);
-  await updateDoc(userRef, {
+export async function approveUser(target: UserProfile, adminUid: string): Promise<void> {
+  // The mirror must equal the user document exactly, so build it from the latest copy.
+  const latest = (await getUserById(target.uid)) ?? target;
+  const now = serverTimestamp();
+  const batch = writeBatch(db);
+  batch.update(doc(db, 'users', target.uid), {
     approvalStatus: 'approved',
     approvedBy: adminUid,
-    approvedAt: serverTimestamp(),
+    approvedAt: now,
     rejectionReason: null,
-    updatedAt: serverTimestamp()
+    updatedAt: now
   });
+  batch.set(doc(db, 'public_profiles', target.uid), buildPublicProfile(latest, now));
+  await batch.commit();
 }
 
 /**
  * Rejects a pending user application.
- * Transition: pending -> rejected
+ * Transition: pending -> rejected (the applicant may correct and resubmit).
  */
 export async function rejectUser(uid: string, adminUid: string, reason?: string): Promise<void> {
   const userRef = doc(db, 'users', uid);
@@ -124,36 +128,116 @@ export async function rejectUser(uid: string, adminUid: string, reason?: string)
     approvalStatus: 'rejected',
     approvedBy: adminUid,
     approvedAt: null,
-    rejectionReason: cleanReason,
+    rejectionReason: cleanReason || null,
     updatedAt: serverTimestamp()
   });
 }
 
 /**
- * Suspends an approved user.
- * Transition: approved -> suspended
+ * Suspends an approved user (approved -> suspended) and removes them from the
+ * public directory in the same batch.
  * Note: Preserves established approval history (approvedBy, approvedAt, rejectionReason).
  */
 export async function suspendUser(uid: string): Promise<void> {
-  const userRef = doc(db, 'users', uid);
-  await updateDoc(userRef, {
+  const batch = writeBatch(db);
+  batch.update(doc(db, 'users', uid), {
     approvalStatus: 'suspended',
     updatedAt: serverTimestamp()
   });
+  batch.delete(doc(db, 'public_profiles', uid));
+  await batch.commit();
 }
 
 /**
- * Reinstates an eligible user from suspended or rejected back to approved.
- * Allowed Transitions: suspended -> approved, rejected -> approved
+ * Reinstates an eligible user from suspended or rejected back to approved,
+ * re-publishing their public directory mirror in the same batch.
  */
-export async function reinstateUser(uid: string, adminUid: string): Promise<void> {
-  const userRef = doc(db, 'users', uid);
-  await updateDoc(userRef, {
+export async function reinstateUser(target: UserProfile, adminUid: string): Promise<void> {
+  const latest = (await getUserById(target.uid)) ?? target;
+  const now = serverTimestamp();
+  const batch = writeBatch(db);
+  batch.update(doc(db, 'users', target.uid), {
     approvalStatus: 'approved',
     approvedBy: adminUid,
-    approvedAt: serverTimestamp(),
+    approvedAt: now,
     rejectionReason: null,
-    updatedAt: serverTimestamp()
+    updatedAt: now
   });
+  batch.set(doc(db, 'public_profiles', target.uid), buildPublicProfile(latest, now));
+  await batch.commit();
 }
 
+export interface AcademicCorrection {
+  department: string;
+  designation: string;
+  program: string | null;
+  batch: string | null;
+  studentId: string | null;
+}
+
+/**
+ * Administrator corrects locked academic fields (no status change).
+ * Approved researchers' public mirror is refreshed in the same batch.
+ */
+export async function correctAcademicDetails(
+  target: UserProfile,
+  fields: AcademicCorrection
+): Promise<void> {
+  const clean = {
+    department: fields.department.trim(),
+    designation: fields.designation.trim(),
+    program: fields.program?.trim() || null,
+    batch: fields.batch?.trim() || null,
+    studentId: fields.studentId?.trim() || null
+  };
+  if (!clean.department || !clean.designation) {
+    throw new Error('Department and designation are required.');
+  }
+  const latest = (await getUserById(target.uid)) ?? target;
+  const now = serverTimestamp();
+  const batch = writeBatch(db);
+  batch.update(doc(db, 'users', target.uid), { ...clean, updatedAt: now });
+  if (latest.approvalStatus === 'approved') {
+    batch.set(doc(db, 'public_profiles', target.uid), buildPublicProfile({ ...latest, ...clean }, now));
+  }
+  await batch.commit();
+}
+
+/**
+ * One-time / repair sync of the public directory:
+ *  - publishes a mirror for every approved user;
+ *  - removes mirrors whose user is no longer approved.
+ * Returns how many mirrors were written and removed.
+ */
+export async function syncPublicDirectory(): Promise<{ published: number; removed: number }> {
+  const [approvedSnap, mirrorSnap] = await Promise.all([
+    getDocs(query(collection(db, 'users'), where('approvalStatus', '==', 'approved'))),
+    getDocs(collection(db, 'public_profiles'))
+  ]);
+  const approvedIds = new Set(approvedSnap.docs.map((d) => d.id));
+
+  type Op = { kind: 'set'; user: UserProfile } | { kind: 'delete'; uid: string };
+  const ops: Op[] = [
+    ...approvedSnap.docs.map((d) => ({ kind: 'set' as const, user: { uid: d.id, ...d.data() } as UserProfile })),
+    ...mirrorSnap.docs.filter((d) => !approvedIds.has(d.id)).map((d) => ({ kind: 'delete' as const, uid: d.id }))
+  ];
+
+  // Firestore batches are limited to 500 writes
+  for (let i = 0; i < ops.length; i += 400) {
+    const batch = writeBatch(db);
+    const now = serverTimestamp();
+    ops.slice(i, i + 400).forEach((op) => {
+      if (op.kind === 'set') {
+        batch.set(doc(db, 'public_profiles', op.user.uid), buildPublicProfile(op.user, now));
+      } else {
+        batch.delete(doc(db, 'public_profiles', op.uid));
+      }
+    });
+    await batch.commit();
+  }
+
+  return {
+    published: ops.filter((o) => o.kind === 'set').length,
+    removed: ops.filter((o) => o.kind === 'delete').length
+  };
+}

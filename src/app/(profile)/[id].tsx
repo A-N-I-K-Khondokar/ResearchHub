@@ -26,10 +26,10 @@ import { useAuth } from '@/context/AuthContext';
 import { Avatar } from '../../components/common/Avatar';
 import { TopicChip } from '../../components/common/TopicChip';
 import { CurrentWorkCard } from '../../components/cards/CurrentWorkCard';
-import { getUserProfile } from '@/services/user.service';
+import { getPublicProfile } from '@/services/user.service';
 import { getPublishedWorksByAuthor, toCurrentWork } from '@/services/research.service';
 import { useConnections } from '@/hooks/useConnections';
-import type { UserProfile } from '@/types/user.types';
+import type { PublicProfile } from '@/types/user.types';
 import type { ResearchWork } from '@/types/research.types';
 
 type LoadState = 'loading' | 'ready' | 'not-found' | 'error';
@@ -49,7 +49,7 @@ export default function ResearcherProfileScreen() {
   const { firebaseUser } = useAuth();
   const { relationship, handleConnectPress, busyUid } = useConnections();
 
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [profile, setProfile] = useState<PublicProfile | null>(null);
   const [works, setWorks] = useState<ResearchWork[]>([]);
   const [state, setState] = useState<LoadState>('loading');
 
@@ -67,8 +67,9 @@ export default function ResearcherProfileScreen() {
     }
     setState('loading');
     try {
-      const [p, w] = await Promise.all([getUserProfile(id), getPublishedWorksByAuthor(id)]);
-      if (!p || p.approvalStatus !== 'approved') {
+      // public_profiles only holds APPROVED researchers (sanitised, no email / student ID)
+      const [p, w] = await Promise.all([getPublicProfile(id), getPublishedWorksByAuthor(id)]);
+      if (!p) {
         setState('not-found');
         return;
       }

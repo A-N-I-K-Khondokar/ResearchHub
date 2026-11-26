@@ -108,15 +108,10 @@ export default function ProfileTab() {
   const handleSaveProfile = async () => {
     if (!userProfile || isSaving) return;
     const name = editName.trim();
-    const department = editDepartment.trim();
     const bio = editBio.trim();
 
     if (!name || name.length > 100) {
       Alert.alert('Check your name', 'Full name is required (max 100 characters).');
-      return;
-    }
-    if (!department || department.length > 100) {
-      Alert.alert('Check your department', 'Department is required (max 100 characters).');
       return;
     }
     if (bio.length > 2000) {
@@ -127,9 +122,9 @@ export default function ProfileTab() {
     setIsSaving(true);
     try {
       // Only allowlisted, user-editable fields; the profile listener refreshes the UI.
-      await updateUserProfile(userProfile.uid, {
+      // Department / batch are locked after approval (admin correction only).
+      await updateUserProfile(userProfile, {
         displayName: name,
-        department,
         bio: bio || null,
       });
       setIsEditModalVisible(false);
@@ -877,25 +872,36 @@ export default function ProfileTab() {
                   />
                 </View>
 
-                {/* Field 2: Department */}
+                {/* Field 2: Department (Locked after approval — admin correction only) */}
                 <View style={styles.inputGroup}>
-                  <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>
-                    Department
-                  </Text>
+                  <View style={styles.inputLabelRow}>
+                    <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>
+                      Department
+                    </Text>
+                    <View style={styles.lockedBadge}>
+                      <Lock size={10} color={colors.textMuted} strokeWidth={2.4} />
+                      <Text style={[styles.lockedText, { color: colors.textMuted }]}>
+                        Locked
+                      </Text>
+                    </View>
+                  </View>
                   <TextInput
                     value={editDepartment}
-                    onChangeText={setEditDepartment}
-                    placeholder="e.g. CSE"
-                    placeholderTextColor={colors.textMuted}
+                    editable={false}
+                    selectTextOnFocus={false}
                     style={[
                       styles.textInput,
+                      styles.disabledInput,
                       {
                         backgroundColor: colors.surfaceSubtle,
                         borderColor: colors.borderSubtle,
-                        color: colors.textPrimary,
+                        color: colors.textMuted,
                       },
                     ]}
                   />
+                  <Text style={[styles.lockedText, { color: colors.textMuted, marginTop: 4 }]}>
+                    Department, batch, designation and student ID are verified at approval. Contact the department administrator to change them.
+                  </Text>
                 </View>
 
                 {/* Field 3: Batch (Locked / Read-only) */}

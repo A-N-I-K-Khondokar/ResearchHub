@@ -2,8 +2,13 @@ import React from 'react';
 import { Bell, X, ArrowRight } from 'lucide-react';
 import { useNotifications } from '../../context/NotificationContext';
 
-export const ToastContainer: React.FC = () => {
-  const { toasts, dismissToast, viewApplicant } = useNotifications();
+interface ToastContainerProps {
+  /** Opens the applicant detail modal (wired from App via AdminLayout). */
+  onSelectApplicant?: (uid: string) => void;
+}
+
+export const ToastContainer: React.FC<ToastContainerProps> = ({ onSelectApplicant }) => {
+  const { toasts, dismissToast } = useNotifications();
 
   if (toasts.length === 0) return null;
 
@@ -24,7 +29,7 @@ export const ToastContainer: React.FC = () => {
             {toast.applicantUid && (
               <button
                 onClick={() => {
-                  viewApplicant(toast.applicantUid);
+                  onSelectApplicant?.(toast.applicantUid);
                   dismissToast(toast.id);
                 }}
                 style={{

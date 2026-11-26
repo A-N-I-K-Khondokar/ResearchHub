@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Modal } from '../common/Modal';
 import { Badge } from '../common/Badge';
 import { Button } from '../common/Button';
@@ -12,9 +12,11 @@ import {
   CheckCircle,
   XCircle,
   ShieldAlert,
-  RotateCcw
+  RotateCcw,
+  Pencil
 } from 'lucide-react';
 import type { UserProfile } from '../../types/user.types';
+import type { AcademicCorrection } from '../../services/admin.service';
 import type { ActionType } from './ApprovalActionDialog';
 
 interface ApplicantDetailModalProps {
@@ -22,15 +24,75 @@ interface ApplicantDetailModalProps {
   onClose: () => void;
   user: UserProfile | null;
   onActionClick: (user: UserProfile, action: ActionType) => void;
+  /** Admin correction of fields that researchers cannot edit after approval. */
+  onCorrectAcademic?: (user: UserProfile, fields: AcademicCorrection) => Promise<void>;
 }
+
+const EMPTY_FORM: AcademicCorrection = {
+  department: '',
+  designation: '',
+  program: null,
+  batch: null,
+  studentId: null
+};
 
 export const ApplicantDetailModal: React.FC<ApplicantDetailModalProps> = ({
   isOpen,
   onClose,
   user,
-  onActionClick
+  onActionClick,
+  onCorrectAcademic
 }) => {
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState<AcademicCorrection>(EMPTY_FORM);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  // Reset the correction form whenever a different applicant is opened
+  useEffect(() => {
+    setEditing(false);
+    setSaveError(null);
+    if (user) {
+      setForm({
+        department: user.department || '',
+        designation: user.designation || '',
+        program: user.program ?? null,
+        batch: user.batch ?? null,
+        studentId: user.studentId ?? null
+      });
+    }
+  }, [user]);
+
   if (!user) return null;
+
+  const handleSaveCorrection = async () => {
+    if (!onCorrectAcademic) return;
+    if (!form.department.trim() || !form.designation.trim()) {
+      setSaveError('Department and designation are required.');
+      return;
+    }
+    setSaving(true);
+    setSaveError(null);
+    try {
+      await onCorrectAcademic(user, form);
+      setEditing(false);
+    } catch (err: any) {
+      console.error('[ApplicantDetailModal] Correction failed:', err);
+      setSaveError(err?.code === 'permission-denied'
+        ? 'Permission denied by security rules.'
+        : err?.message || 'Could not save the correction.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const correctionFields: { key: keyof AcademicCorrection; label: string; required?: boolean }[] = [
+    { key: 'department', label: 'Department', required: true },
+    { key: 'designation', label: 'Designation', required: true },
+    { key: 'program', label: 'Program' },
+    { key: 'batch', label: 'Batch' },
+    { key: 'studentId', label: 'Student / Faculty ID' }
+  ];
 
   const formatDate = (ts: any) => {
     if (!ts) return 'N/A';
@@ -115,6 +177,47 @@ export const ApplicantDetailModal: React.FC<ApplicantDetailModalProps> = ({
             </tbody>
           </table>
         </div>
+
+        {/* Admin academic correction (identity fields are locked for researchers after approval) */}
+        {onCorrectAcademic && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {!editing ? (
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <Button variant="ghost" size="sm" icon={<Pencil size={13} />} onClick={() => setEditing(true)}>
+                  Correct academic details
+                </Button>
+              </div>
+            ) : (
+              <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  Correct academic details
+                </div>
+                {correctionFields.map((f) => (
+                  <label key={f.key} style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '12.5px', color: 'var(--text-secondary)' }}>
+                    {f.label}{f.required ? ' *' : ''}
+                    <input
+                      className="input"
+                      value={form[f.key] ?? ''}
+                      maxLength={f.key === 'batch' || f.key === 'studentId' ? 50 : 100}
+                      onChange={(e) => setForm((prev) => ({ ...prev, [f.key]: e.target.value }))}
+                    />
+                  </label>
+                ))}
+                {saveError && (
+                  <div style={{ fontSize: '12.5px', color: 'var(--status-rejected-text)' }}>{saveError}</div>
+                )}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                  <Button variant="secondary" size="sm" onClick={() => setEditing(false)} disabled={saving}>
+                    Cancel
+                  </Button>
+                  <Button variant="primary" size="sm" onClick={handleSaveCorrection} loading={saving}>
+                    Save correction
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Bio */}
         {user.bio && (

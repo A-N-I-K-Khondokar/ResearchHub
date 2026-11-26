@@ -2,7 +2,8 @@
  * src/hooks/useResearchDirectory.ts
  *
  * Live discovery data shared by Home, Explore, search and topic pages:
- *  - approved researcher profiles (excluding the signed-in user)
+ *  - approved researcher profiles from the sanitised `public_profiles` mirror
+ *    (excluding the signed-in user; no email / studentId ever reaches the client)
  *  - the latest published research work
  * Mapped onto the UI card types so the existing components render unchanged.
  */
@@ -11,14 +12,14 @@ import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { subscribeApprovedResearchers } from '@/services/user.service';
 import { subscribePublishedFeed, toCurrentWork } from '@/services/research.service';
-import type { UserProfile as FirestoreProfile } from '@/types/user.types';
+import type { PublicProfile } from '@/types/user.types';
 import type { UserProfile as CardProfile, CurrentWork } from '@/types';
 import type { ResearchWork } from '@/types/research.types';
 
 export const DIRECTORY_WORK_LIMIT = 50;
 
-/** Maps a Firestore profile to the card shape. Email/student ID are deliberately omitted. */
-export function toCardProfile(p: FirestoreProfile, latestWorkId?: string): CardProfile {
+/** Maps a public profile to the card shape (it carries no email / student ID). */
+export function toCardProfile(p: PublicProfile, latestWorkId?: string): CardProfile {
   return {
     id: p.uid,
     name: p.displayName || 'CSE Researcher',
@@ -43,7 +44,7 @@ export function useResearchDirectory() {
   const myUid = userProfile?.uid ?? '';
   const enabled = userProfile?.approvalStatus === 'approved';
 
-  const [profiles, setProfiles] = useState<FirestoreProfile[]>([]);
+  const [profiles, setProfiles] = useState<PublicProfile[]>([]);
   const [works, setWorks] = useState<ResearchWork[]>([]);
   const [loadingPeople, setLoadingPeople] = useState(true);
   const [loadingWorks, setLoadingWorks] = useState(true);

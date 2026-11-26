@@ -39,7 +39,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
         <main className="page-body">{children}</main>
       </div>
 
-      <ToastContainer />
+      <ToastContainer onSelectApplicant={onSelectApplicant} />
     </div>
   );
 };

@@ -33,7 +33,9 @@ import {
 } from 'firebase/firestore';
 // Real payload builder used by src/services/user.service.ts (requires
 // `node --experimental-strip-types`, available in Node >= 22.6).
-import { buildPendingProfileDocuments } from '../../src/utils/pendingProfile.ts';
+import { buildPendingProfileDocuments, buildResubmissionUpdate } from '../../src/utils/pendingProfile.ts';
+import { buildPublicProfile as buildOwnerPublicProfile } from '../../src/utils/publicProfile.ts';
+import { buildPublicProfile as buildAdminPublicProfile } from '../../admin-portal/src/utils/publicProfile.ts';
 import { buildResearchWorkDocument } from '../../src/utils/researchWork.ts';
 import {
   connectionIdFor,
@@ -1233,8 +1235,13 @@ describe('Firestore Security Rules Suite — CSE Research Hub', () => {
       assert.equal(approvedSnap.data().approvalStatus, 'approved');
       assert.equal(approvedSnap.data().approvedBy, ADMIN_UID);
 
-      // Approved user now reads other approved researchers
-      await assertSucceeds(getDoc(doc(db, 'users', CHARLIE_UID)));
+      // Approved user now reads other approved researchers via the public mirror
+      // (Stage 4: the private users/{uid} document is owner/admin only).
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        await setDoc(doc(context.firestore(), 'public_profiles', CHARLIE_UID), { uid: CHARLIE_UID });
+      });
+      await assertSucceeds(getDoc(doc(db, 'public_profiles', CHARLIE_UID)));
+      await assertFails(getDoc(doc(db, 'users', CHARLIE_UID)));
     });
 
     it('TEST-81: Admin portal reject → reinstate → suspend → reinstate payloads follow state machine → ALLOW', async () => {
@@ -1753,6 +1760,232 @@ describe('Firestore Security Rules Suite — CSE Research Hub', () => {
       });
       await assertSucceeds(setDoc(doc(db, 'users', LENA_UID, 'saved_items', 'lena_draft'),
         buildSavedItem(savedSource('lena_draft'), serverTimestamp())));
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // 13. Stage 4 — Privacy Mirror, Identity Lock, Resubmission, Admin Grants (TEST-130 to TEST-149)
+  // -------------------------------------------------------------------------
+  describe('13. Stage 4 Privacy and Account Lifecycle', () => {
+    const PAUL_UID = 'user_paul_pending';
+    const PAUL_EMAIL = 'paul@gmail.com';
+    const ctx = (uid, email) =>
+      testEnv.authenticatedContext(uid, { email, email_verified: true }).firestore();
+    const adminDb = () => ctx(ADMIN_UID, ADMIN_EMAIL);
+    const charlieDb = () => ctx(CHARLIE_UID, CHARLIE_EMAIL);
+
+    // Mirrors of the seeded users/{uid} documents
+    const CHARLIE_SOURCE = {
+      uid: CHARLIE_UID, displayName: 'Charlie Approved', photoURL: null,
+      department: 'Computer Science and Engineering', program: 'M.Sc. in CSE', batch: 'Batch 12',
+      designation: 'Graduate Researcher', bio: 'Approved scholar profile.',
+      researchInterests: ['Networks', 'Security'], socialLinks: {},
+    };
+    const PAUL_SOURCE = {
+      uid: PAUL_UID, displayName: 'Scholar Name', photoURL: 'https://example.com/avatar.jpg',
+      department: 'Computer Science and Engineering', program: 'B.Sc. in CSE', batch: 'Batch 14',
+      designation: 'Undergraduate Researcher', bio: 'Focusing on distributed systems and NLP.',
+      researchInterests: ['Machine Learning', 'Systems'], socialLinks: { github: 'https://github.com/scholar' },
+    };
+
+    const APPROVE = () => ({
+      approvalStatus: 'approved', approvedBy: ADMIN_UID, approvedAt: serverTimestamp(),
+      rejectionReason: null, updatedAt: serverTimestamp(),
+    });
+
+    beforeEach(async () => {
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        const db = context.firestore();
+        await setDoc(doc(db, 'users', PAUL_UID), getValidProfile(PAUL_UID, PAUL_EMAIL, {
+          requestedAt: Timestamp.now(), createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
+        }));
+        await setDoc(doc(db, 'public_profiles', CHARLIE_UID), buildAdminPublicProfile(CHARLIE_SOURCE, Timestamp.now()));
+      });
+    });
+
+    // --- Public profile mirror -------------------------------------------------
+    it('TEST-130: Admin approves with public profile mirror in one batch (portal payload) → ALLOW', async () => {
+      const db = adminDb();
+      const batch = writeBatch(db);
+      batch.update(doc(db, 'users', PAUL_UID), APPROVE());
+      batch.set(doc(db, 'public_profiles', PAUL_UID), buildAdminPublicProfile(PAUL_SOURCE, serverTimestamp()));
+      await assertSucceeds(batch.commit());
+    });
+
+    it('TEST-131: Admin writes a mirror for a still-pending user → DENY', async () => {
+      await assertFails(setDoc(doc(adminDb(), 'public_profiles', PAUL_UID),
+        buildAdminPublicProfile(PAUL_SOURCE, serverTimestamp())));
+    });
+
+    it('TEST-132: Mirror containing email or studentId → DENY', async () => {
+      const db = adminDb();
+      const batch = writeBatch(db);
+      batch.update(doc(db, 'users', PAUL_UID), APPROVE());
+      batch.set(doc(db, 'public_profiles', PAUL_UID), {
+        ...buildAdminPublicProfile(PAUL_SOURCE, serverTimestamp()), email: PAUL_EMAIL, studentId: '190104001',
+      });
+      await assertFails(batch.commit());
+    });
+
+    it('TEST-133: Mirror that does not match the users document → DENY', async () => {
+      const db = adminDb();
+      const batch = writeBatch(db);
+      batch.update(doc(db, 'users', PAUL_UID), APPROVE());
+      batch.set(doc(db, 'public_profiles', PAUL_UID),
+        buildAdminPublicProfile({ ...PAUL_SOURCE, displayName: 'Different Name' }, serverTimestamp()));
+      await assertFails(batch.commit());
+    });
+
+    it('TEST-134: Approved researcher reads and lists public profiles → ALLOW', async () => {
+      const db = ctx(ALICE_UID, ALICE_EMAIL);
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        await setDoc(doc(context.firestore(), 'users', ALICE_UID), getValidProfile(ALICE_UID, ALICE_EMAIL, {
+          approvalStatus: 'approved', approvedBy: ADMIN_UID, approvedAt: Timestamp.now(),
+          requestedAt: Timestamp.now(), createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
+        }));
+      });
+      const snap = await assertSucceeds(getDoc(doc(db, 'public_profiles', CHARLIE_UID)));
+      assert.equal(snap.data().email, undefined);
+      assert.equal(snap.data().studentId, undefined);
+      await assertSucceeds(getDocs(query(collection(db, 'public_profiles'), limit(100))));
+    });
+
+    it('TEST-135: Pending user reads public profiles → DENY', async () => {
+      await assertFails(getDoc(doc(ctx(PAUL_UID, PAUL_EMAIL), 'public_profiles', CHARLIE_UID)));
+    });
+
+    it('TEST-136: Approved researcher reads another researcher\'s private users document → DENY', async () => {
+      const db = ctx('user_lena_approved', 'lena@gmail.com');
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        await setDoc(doc(context.firestore(), 'users', 'user_lena_approved'),
+          getValidProfile('user_lena_approved', 'lena@gmail.com', {
+            approvalStatus: 'approved', approvedBy: ADMIN_UID, approvedAt: Timestamp.now(),
+            requestedAt: Timestamp.now(), createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
+          }));
+      });
+      await assertFails(getDoc(doc(db, 'users', CHARLIE_UID)));
+      await assertFails(getDocs(query(collection(db, 'users'), where('approvalStatus', '==', 'approved'))));
+    });
+
+    it('TEST-137: Admin suspends and removes mirror → ALLOW; non-admin removes a mirror → DENY', async () => {
+      await assertFails(deleteDoc(doc(charlieDb(), 'public_profiles', CHARLIE_UID)));
+      const db = adminDb();
+      const batch = writeBatch(db);
+      batch.update(doc(db, 'users', CHARLIE_UID), { approvalStatus: 'suspended', updatedAt: serverTimestamp() });
+      batch.delete(doc(db, 'public_profiles', CHARLIE_UID));
+      await assertSucceeds(batch.commit());
+    });
+
+    it('TEST-138: Approved owner edits name and bio with mirror (mobile payload) → ALLOW', async () => {
+      const db = charlieDb();
+      const batch = writeBatch(db);
+      batch.update(doc(db, 'users', CHARLIE_UID), {
+        displayName: 'Charlie A. Researcher', bio: 'New bio.', updatedAt: serverTimestamp(),
+      });
+      batch.set(doc(db, 'public_profiles', CHARLIE_UID), buildOwnerPublicProfile(
+        { ...CHARLIE_SOURCE, displayName: 'Charlie A. Researcher', bio: 'New bio.' }, serverTimestamp()));
+      await assertSucceeds(batch.commit());
+    });
+
+    it('TEST-139: Approved owner writes a mirror inconsistent with their profile → DENY', async () => {
+      await assertFails(setDoc(doc(charlieDb(), 'public_profiles', CHARLIE_UID),
+        buildOwnerPublicProfile({ ...CHARLIE_SOURCE, designation: 'Professor' }, serverTimestamp())));
+    });
+
+    it('TEST-140: Suspended owner writes their own mirror → DENY', async () => {
+      const source = { uid: DAVID_UID, displayName: 'David Suspended', photoURL: null,
+        department: 'Computer Science and Engineering', program: null, batch: 'Batch 13',
+        designation: 'Former Researcher', bio: 'Suspended profile.', researchInterests: ['Robotics'], socialLinks: {} };
+      await assertFails(setDoc(doc(ctx(DAVID_UID, DAVID_EMAIL), 'public_profiles', DAVID_UID),
+        buildOwnerPublicProfile(source, serverTimestamp())));
+    });
+
+    // --- Identity lock -----------------------------------------------------------
+    it('TEST-141: Approved owner edits locked identity fields → DENY', async () => {
+      const ref = doc(charlieDb(), 'users', CHARLIE_UID);
+      await assertFails(updateDoc(ref, { department: 'Electrical Engineering', updatedAt: serverTimestamp() }));
+      await assertFails(updateDoc(ref, { studentId: '000000000', updatedAt: serverTimestamp() }));
+      await assertFails(updateDoc(ref, { designation: 'Professor', updatedAt: serverTimestamp() }));
+    });
+
+    it('TEST-142: Pending owner edits department → ALLOW', async () => {
+      await assertSucceeds(updateDoc(doc(ctx(PAUL_UID, PAUL_EMAIL), 'users', PAUL_UID), {
+        department: 'Software Engineering', updatedAt: serverTimestamp(),
+      }));
+    });
+
+    it('TEST-143: Admin corrects locked academic fields with mirror → ALLOW', async () => {
+      const db = adminDb();
+      const batch = writeBatch(db);
+      batch.update(doc(db, 'users', CHARLIE_UID), {
+        department: 'Software Engineering', designation: 'Research Assistant', updatedAt: serverTimestamp(),
+      });
+      batch.set(doc(db, 'public_profiles', CHARLIE_UID), buildAdminPublicProfile(
+        { ...CHARLIE_SOURCE, department: 'Software Engineering', designation: 'Research Assistant' }, serverTimestamp()));
+      await assertSucceeds(batch.commit());
+    });
+
+    // --- Rejected resubmission ---------------------------------------------------
+    const EVE_INPUT = {
+      displayName: 'Eve Resubmitted', photoURL: null, department: 'Computer Science and Engineering',
+      program: 'B.Sc. in CSE', batch: 'Batch 15', studentId: '200104015',
+      designation: 'Undergraduate Student', bio: 'Corrected enrollment details.',
+      researchInterests: ['AI'], socialLinks: {},
+    };
+
+    it('TEST-144: Rejected owner resubmits → pending; admin sees it and approves → ALLOW', async () => {
+      const eveDb = ctx(EVE_UID, EVE_EMAIL);
+      await assertSucceeds(updateDoc(doc(eveDb, 'users', EVE_UID),
+        buildResubmissionUpdate(EVE_INPUT, 'Eve Rejected', serverTimestamp())));
+      const snap = await assertSucceeds(getDocs(query(
+        collection(adminDb(), 'users'), where('approvalStatus', '==', 'pending'),
+      )));
+      assert.ok(snap.docs.some((d) => d.id === EVE_UID));
+      await assertSucceeds(updateDoc(doc(adminDb(), 'users', EVE_UID), APPROVE()));
+    });
+
+    it('TEST-145: Resubmission that keeps rejection reason or reviewer → DENY', async () => {
+      const ref = doc(ctx(EVE_UID, EVE_EMAIL), 'users', EVE_UID);
+      await assertFails(updateDoc(ref, {
+        ...buildResubmissionUpdate(EVE_INPUT, 'Eve Rejected', serverTimestamp()),
+        rejectionReason: 'Invalid department enrollment.',
+      }));
+      await assertFails(updateDoc(ref, {
+        ...buildResubmissionUpdate(EVE_INPUT, 'Eve Rejected', serverTimestamp()),
+        approvedBy: ADMIN_UID,
+      }));
+    });
+
+    it('TEST-146: Resubmission with client-generated requestedAt → DENY', async () => {
+      await assertFails(updateDoc(doc(ctx(EVE_UID, EVE_EMAIL), 'users', EVE_UID), {
+        ...buildResubmissionUpdate(EVE_INPUT, 'Eve Rejected', serverTimestamp()),
+        requestedAt: Timestamp.now(),
+      }));
+    });
+
+    it('TEST-147: Rejected owner sets themselves approved → DENY', async () => {
+      await assertFails(updateDoc(doc(ctx(EVE_UID, EVE_EMAIL), 'users', EVE_UID), {
+        ...buildResubmissionUpdate(EVE_INPUT, 'Eve Rejected', serverTimestamp()),
+        approvalStatus: 'approved',
+      }));
+    });
+
+    it('TEST-148: Pending or suspended owner fakes a resubmission → DENY', async () => {
+      await assertFails(updateDoc(doc(ctx(PAUL_UID, PAUL_EMAIL), 'users', PAUL_UID),
+        buildResubmissionUpdate(EVE_INPUT, 'Paul', serverTimestamp())));
+      await assertFails(updateDoc(doc(ctx(DAVID_UID, DAVID_EMAIL), 'users', DAVID_UID),
+        buildResubmissionUpdate(EVE_INPUT, 'David', serverTimestamp())));
+    });
+
+    // --- Admin privilege escalation -------------------------------------------
+    it('TEST-149: Approved user self-promotes via admins/{ownUid} or a role field → DENY', async () => {
+      const db = charlieDb();
+      await assertFails(setDoc(doc(db, 'admins', CHARLIE_UID), {
+        uid: CHARLIE_UID, email: CHARLIE_EMAIL, role: 'superadmin',
+        addedAt: serverTimestamp(), addedBy: CHARLIE_UID,
+      }));
+      await assertFails(updateDoc(doc(db, 'users', CHARLIE_UID), { role: 'admin', updatedAt: serverTimestamp() }));
+      await assertFails(getDocs(collection(db, 'admins')));
     });
   });
 });

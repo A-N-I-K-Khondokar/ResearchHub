@@ -34,7 +34,7 @@ import { ScreenContainer, Button, Avatar } from '@/components';
 import { radius, spacing, typography, fontFamilies } from '@/constants';
 import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
-import { createPendingUserProfile } from '@/services/user.service';
+import { createPendingUserProfile, resubmitApplication } from '@/services/user.service';
 import type {
   CreatePendingUserProfileInput,
   UserSocialLinks,
@@ -156,6 +156,30 @@ export default function AccountSetupScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isSubmittingRef = useRef(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  // Rejected applicants can correct and resubmit their application (Stage 4)
+  const [isResubmitting, setIsResubmitting] = useState(false);
+
+  const startResubmission = () => {
+    if (!userProfile) return;
+    setDisplayName(userProfile.displayName || '');
+    setPhotoURL(userProfile.photoURL || '');
+    setDepartment(userProfile.department || '');
+    setDesignation(userProfile.designation || '');
+    setProgram(userProfile.program || '');
+    setBatch(userProfile.batch || '');
+    setStudentId(userProfile.studentId || '');
+    setBio(userProfile.bio || '');
+    setResearchInterests(userProfile.researchInterests ?? []);
+    const links = userProfile.socialLinks ?? {};
+    setWebsite(links.website || '');
+    setGithub(links.github || '');
+    setLinkedin(links.linkedin || '');
+    setGoogleScholar(links.googleScholar || '');
+    setResearchGate(links.researchGate || '');
+    setErrors({});
+    setSubmitError(null);
+    setIsResubmitting(true);
+  };
 
   // Sync initial displayName/photoURL if auth user loads later
   useEffect(() => {
@@ -343,7 +367,15 @@ export default function AccountSetupScreen() {
         socialLinks: Object.keys(socialLinks).length > 0 ? socialLinks : undefined,
       };
 
-      await createPendingUserProfile(firebaseUser, input);
+      if (isResubmitting && userProfile) {
+        await resubmitApplication(firebaseUser, userProfile, input);
+        // Snapshot moves accessState rejected -> pending; show the pending view.
+        setIsResubmitting(false);
+        isSubmittingRef.current = false;
+        setIsSubmitting(false);
+      } else {
+        await createPendingUserProfile(firebaseUser, input);
+      }
       // Success! Real-time snapshot in AuthContext transitions accessState to 'pending'.
     } catch (err: any) {
       console.error('[AccountSetup] Submission failed:', err);
@@ -671,7 +703,7 @@ export default function AccountSetupScreen() {
   // VIEW: 4. Rejected State (rejected)
   // =========================================================================
 
-  if (accessState === 'rejected') {
+  if (accessState === 'rejected' && !isResubmitting) {
     return (
       <ScreenContainer scrollable>
         <View style={styles.centerContainer}>
@@ -754,11 +786,20 @@ export default function AccountSetupScreen() {
               ]}
             >
               <Text style={[styles.noticeText, { color: colors.textSecondary }]}>
-                If you believe this decision was made in error or your institutional
-                affiliation needs clarification, please contact the CSE Department
-                Administrator directly with proof of enrollment or faculty appointment.
+                You can correct your details and resubmit your application for review.
+                If you believe this decision was made in error, you may also contact the
+                CSE Department Administrator with proof of enrollment or faculty appointment.
               </Text>
             </View>
+
+            <Button
+              label="Edit & Resubmit Application"
+              onPress={startResubmission}
+              variant="primary"
+              icon={<RefreshCw size={16} color={colors.textInverse} />}
+              fullWidth
+              style={{ marginBottom: spacing.md }}
+            />
 
             <Button
               label="Sign Out"
@@ -901,11 +942,12 @@ export default function AccountSetupScreen() {
           </View>
 
           <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>
-            Complete Your Profile
+            {isResubmitting ? 'Update Your Application' : 'Complete Your Profile'}
           </Text>
           <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
-            Provide your academic and scholarly details to submit an application
-            for administrative approval.
+            {isResubmitting
+              ? 'Correct the details mentioned in the review, then resubmit for administrative approval.'
+              : 'Provide your academic and scholarly details to submit an application for administrative approval.'}
           </Text>
         </View>
 
@@ -1643,7 +1685,7 @@ export default function AccountSetupScreen() {
         {/* Submit Action Buttons */}
         <View style={styles.actionsContainer}>
           <Button
-            label="Submit Profile for Approval"
+            label={isResubmitting ? 'Resubmit for Approval' : 'Submit Profile for Approval'}
             onPress={handleSubmitProfile}
             variant="primary"
             loading={isSubmitting}
@@ -1652,6 +1694,20 @@ export default function AccountSetupScreen() {
             fullWidth
             style={{ marginBottom: spacing.md }}
           />
+
+          {isResubmitting ? (
+            <Button
+              label="Cancel"
+              onPress={() => {
+                setIsResubmitting(false);
+                setSubmitError(null);
+              }}
+              variant="ghost"
+              disabled={isSubmitting}
+              fullWidth
+              style={{ marginBottom: spacing.sm }}
+            />
+          ) : null}
 
           <Button
             label="Sign Out"

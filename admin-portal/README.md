@@ -18,7 +18,7 @@ A lightweight, independent administrative dashboard for **CSE Research Hub**. Bu
 Access is guarded by dual-boundary verification:
 
 1. **Google Sign-In**: Uses Firebase Authentication `signInWithPopup(auth, googleAuthProvider)`.
-2. **Email Verification**: Authenticated email must match configured administrator: `anik.khondokar09@gmail.com`.
+2. **Email Verification**: Authenticated email must match configured administrator: `your-admin@example.com`.
 3. **Firestore Database Authorization**:
    - The portal attempts to read `/admins/{request.auth.uid}`.
    - Deployed production `firestore.rules` allow this read only if `exists(/databases/$(database)/documents/admins/$(request.auth.uid))`.
@@ -28,10 +28,10 @@ Access is guarded by dual-boundary verification:
 ### Administrator Bootstrap Prerequisite
 The administrator account must be manually registered in Firestore before initial sign-in:
 - **Collection**: `admins`
-- **Document ID**: `<ADMIN_FIREBASE_UID>` (The Firebase Auth UID of `anik.khondokar09@gmail.com`)
+- **Document ID**: `<ADMIN_FIREBASE_UID>` (The Firebase Auth UID of `your-admin@example.com`)
 - **Fields**:
   - `uid`: string (`<ADMIN_FIREBASE_UID>`)
-  - `email`: string (`"anik.khondokar09@gmail.com"`)
+  - `email`: string (`"your-admin@example.com"`)
   - `role`: string (`"superadmin"` or `"admin"`)
   - `addedAt`: timestamp
   - `addedBy`: string (`"bootstrap-console"`)
@@ -56,7 +56,7 @@ The administrator account must be manually registered in Firestore before initia
    VITE_FIREBASE_PROJECT_ID=cse-research-hub
    VITE_FIREBASE_APP_ID=1:...
    VITE_FIREBASE_MESSAGING_SENDER_ID=...
-   VITE_ADMIN_EMAIL=anik.khondokar09@gmail.com
+   VITE_ADMIN_EMAIL=your-admin@example.com
    ```
 
 ### Install Dependencies
@@ -112,9 +112,37 @@ When authorized for deployment:
 
 ---
 
-## 5. In-App Real-Time Notification Limitations
+## 5. In-App Real-Time Notifications
 
-- **Session-Scoped**: Real-time notifications operate through a Firestore `onSnapshot()` listener on `users` where `approvalStatus == 'pending'`.
-- **Active State Only**: Notifications appear as toasts, increments in the alerts badge, and items in the activity log while the admin portal is open in an active browser tab.
-- **Offline Delivery**: When the admin portal is closed, notifications do not use FCM push or background service workers. Asynchronous offline alerts are handled by the 5-minute Google Apps Script outbox polling worker configured in `google-apps-script/`.
+- **Single shared listener**: `NotificationContext` owns the only `onSnapshot()` listener on `users` where `approvalStatus == 'pending'`. The sidebar badge, the Pending page and the new-application toasts all read from it.
+- **Session-scoped**: Notifications appear only while the portal is open (no FCM push, no service worker). A toast's **Review Applicant** button opens the applicant detail modal.
+- **Resubmissions**: A rejected applicant who resubmits moves back to `pending` and appears in the queue (and as a toast) in real time.
+- The Google Apps Script email workflow in `google-apps-script/` is **not used** — this portal is the administration interface.
 
+## 6. Admin Actions and Firestore Writes
+
+Every action follows the approval state machine enforced in `firestore.rules`:
+
+| Action | Transition | Writes (one atomic batch) |
+|---|---|---|
+| Approve | pending → approved | `users/{uid}` approval fields + `public_profiles/{uid}` mirror |
+| Reject (optional reason) | pending → rejected | `users/{uid}` approval fields (applicant may correct and resubmit) |
+| Suspend | approved → suspended | `users/{uid}` status + delete `public_profiles/{uid}` |
+| Reinstate | suspended / rejected → approved | `users/{uid}` approval fields + `public_profiles/{uid}` mirror |
+| Correct academic details | no status change | `users/{uid}` department / designation / program / batch / studentId (+ mirror if approved) |
+| Sync Public Directory (Overview) | — | Publishes mirrors for all approved users, removes stale ones (safe to re-run) |
+
+`public_profiles/{uid}` is the privacy-safe directory researchers read: it never contains email, student ID or review metadata. The rules require it to exactly mirror the approved `users/{uid}` document.
+
+The Users page is cursor-paginated (25 per page, newest applications first, **Load more**). Its search box filters the pages already loaded.
+
+## 7. Collections Overview
+
+| Collection | Used by | Notes |
+|---|---|---|
+| `users/{uid}` | App + Portal | Private: owner and admins only |
+| `public_profiles/{uid}` | App (read), Portal (write) | Sanitised mirror of approved researchers |
+| `admins/{uid}` | Portal | Console / Admin SDK only — clients can never write it |
+| `admin_email_outbox/{uid}` | App (create) | Created atomically with each application; kept as an audit trail (email worker not used) |
+| `research_works`, `connections`, `notifications`, `users/{uid}/saved_items` | App | Researcher features |
+| `admin_requests`, `notification_services` | — | **Unused** legacy collections; rules kept (deny-by-default for clients) so the original tests remain valid |

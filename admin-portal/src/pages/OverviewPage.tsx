@@ -6,12 +6,13 @@ import {
   XCircle,
   AlertOctagon,
   RefreshCw,
-  ArrowRight
+  ArrowRight,
+  Globe
 } from 'lucide-react';
 import { StatCard } from '../components/dashboard/StatCard';
 import { RecentActivity } from '../components/dashboard/RecentActivity';
 import { Button } from '../components/common/Button';
-import { getDashboardCounts, getRecentRegistrations } from '../services/admin.service';
+import { getDashboardCounts, getRecentRegistrations, syncPublicDirectory } from '../services/admin.service';
 import type { DashboardStats } from '../types/stats.types';
 import type { UserProfile } from '../types/user.types';
 
@@ -36,6 +37,24 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
   });
   const [recentUsers, setRecentUsers] = useState<UserProfile[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
+
+  // Publishes public_profiles mirrors for all approved researchers and removes
+  // stale ones. Needed once after the Stage 4 privacy migration; safe to re-run.
+  const handleSyncDirectory = async () => {
+    setSyncing(true);
+    setSyncMessage(null);
+    try {
+      const { published, removed } = await syncPublicDirectory();
+      setSyncMessage(`Public directory synced: ${published} profile(s) published, ${removed} stale profile(s) removed.`);
+    } catch (err: any) {
+      console.error('[OverviewPage] Directory sync failed:', err);
+      setSyncMessage(`Directory sync failed: ${err?.code || err?.message || 'unknown error'}`);
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const loadData = async () => {
     setRefreshing(true);
@@ -70,16 +89,32 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
           </div>
         </div>
 
-        <Button
-          variant="secondary"
-          size="sm"
-          icon={<RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />}
-          onClick={loadData}
-          loading={refreshing}
-        >
-          Refresh Metrics
-        </Button>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={<Globe size={14} />}
+            onClick={handleSyncDirectory}
+            loading={syncing}
+            title="Publish approved researchers to the privacy-safe public directory"
+          >
+            Sync Public Directory
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={<RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />}
+            onClick={loadData}
+            loading={refreshing}
+          >
+            Refresh Metrics
+          </Button>
+        </div>
       </div>
+
+      {syncMessage && (
+        <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{syncMessage}</div>
+      )}
 
       {/* Pending Review Callout Banner (if items waiting) */}
       {stats.pendingUsers > 0 && (

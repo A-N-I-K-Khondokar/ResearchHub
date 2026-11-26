@@ -168,7 +168,8 @@ export const LoginPage: React.FC = () => {
           }}
         >
           <div>Target Project: <code>{ENV.firebaseProjectId}</code></div>
-          <div>Authorized Admin: <code>{ENV.adminEmail}</code></div>
+          {/* Never reveal the administrator address on a public page */}
+          <div>Administrator access: <code>{ENV.adminEmail ? 'configured' : 'not configured'}</code></div>
         </div>
       </div>
     </div>

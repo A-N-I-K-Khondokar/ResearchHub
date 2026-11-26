@@ -28,11 +28,14 @@ import {
 } from 'firebase/firestore';
 import type { User } from 'firebase/auth';
 import { db } from '@/config/firebase';
-import { buildPendingProfileDocuments } from '@/utils/pendingProfile';
-import type {
-  UserProfile,
-  CreatePendingUserProfileInput,
-  UpdateUserProfileInput,
+import { buildPendingProfileDocuments, buildResubmissionUpdate } from '@/utils/pendingProfile';
+import { buildPublicProfile } from '@/utils/publicProfile';
+import {
+  POST_APPROVAL_EDITABLE_FIELDS,
+  type UserProfile,
+  type PublicProfile,
+  type CreatePendingUserProfileInput,
+  type UpdateUserProfileInput,
 } from '@/types/user.types';
 
 // ---------------------------------------------------------------------------
@@ -231,12 +234,30 @@ export function subscribeUserProfile(
   );
 }
 
+function mapPublicProfile(docSnap: DocumentSnapshot<DocumentData>): PublicProfile | null {
+  if (!docSnap.exists()) return null;
+  const d = docSnap.data({ serverTimestamps: 'estimate' });
+  return {
+    uid: d.uid ?? docSnap.id,
+    displayName: d.displayName ?? '',
+    photoURL: d.photoURL ?? null,
+    department: d.department ?? '',
+    program: d.program ?? null,
+    batch: d.batch ?? null,
+    designation: d.designation ?? '',
+    bio: d.bio ?? null,
+    researchInterests: Array.isArray(d.researchInterests) ? d.researchInterests : [],
+    socialLinks: d.socialLinks ?? {},
+    updatedAt: d.updatedAt,
+  };
+}
+
 /**
- * Real-time directory of approved researchers (used by Explore, search and
- * Home). The `approvalStatus == 'approved'` filter is required by the rules.
+ * Real-time directory of approved researchers from the sanitised
+ * `public_profiles` mirror (no email / studentId). Used by Explore, search and Home.
  */
 export function subscribeApprovedResearchers(
-  onUpdate: (profiles: UserProfile[]) => void,
+  onUpdate: (profiles: PublicProfile[]) => void,
   onError?: (error: Error) => void,
   maxItems = 100,
 ): () => void {
@@ -244,18 +265,13 @@ export function subscribeApprovedResearchers(
     onError?.(new Error('[user.service] Cloud Firestore is not initialized or configured.'));
     return () => {};
   }
-  const q = query(
-    collection(db, 'users'),
-    where('approvalStatus', '==', 'approved'),
-    limit(maxItems),
-  );
   return onSnapshot(
-    q,
+    query(collection(db, 'public_profiles'), limit(maxItems)),
     (snapshot) => {
       onUpdate(
         snapshot.docs
-          .map((d) => mapUserProfile(d))
-          .filter((p): p is UserProfile => p !== null),
+          .map((d) => mapPublicProfile(d))
+          .filter((p): p is PublicProfile => p !== null),
       );
     },
     (err) => {
@@ -265,30 +281,35 @@ export function subscribeApprovedResearchers(
   );
 }
 
+/** One researcher's public profile, or `null` if they are not in the directory. */
+export async function getPublicProfile(uid: string): Promise<PublicProfile | null> {
+  const firestore = getFirestoreDb();
+  return mapPublicProfile(await getDoc(doc(firestore, 'public_profiles', uid)));
+}
+
 // ---------------------------------------------------------------------------
 // 5. Profile Update
 // ---------------------------------------------------------------------------
 
 /**
- * Updates user-editable fields on an existing profile at `users/{uid}`.
+ * Updates user-editable fields on the signed-in user's own profile.
  *
  * Security & Integrity:
- * - Rejects any attempt to modify approval fields (`approvalStatus`, `approvedAt`, `approvedBy`, `rejectionReason`).
- * - Rejects any attempt to modify system identifiers (`uid`, `email`).
- * - Rejects any attempt to assign administrator roles or privileges.
- * - Automatically updates `updatedAt` with `serverTimestamp()`.
- *
- * @param uid Firebase Auth UID.
- * @param updates Subset of user-editable fields.
+ * - Rejects any attempt to modify approval fields, identity (`uid`, `email`) or roles.
+ * - After approval, identity fields (department, designation, studentId, batch,
+ *   program) are locked — only presentation fields may change (rule-enforced).
+ * - For approved researchers the sanitised `public_profiles/{uid}` mirror is
+ *   rewritten in the SAME batch so the directory never drifts.
  */
 export async function updateUserProfile(
-  uid: string,
+  profile: UserProfile,
   updates: UpdateUserProfileInput,
 ): Promise<void> {
   const firestore = getFirestoreDb();
+  const uid = profile.uid;
 
   if (!uid || typeof uid !== 'string' || uid.trim() === '') {
-    throw new Error('[user.service] Invalid UID provided to updateUserProfile.');
+    throw new Error('[user.service] Invalid profile provided to updateUserProfile.');
   }
 
   // Defensive blacklist: Block protected, admin, or identity fields
@@ -316,29 +337,68 @@ export async function updateUserProfile(
     }
   }
 
+  if (profile.approvalStatus !== 'pending') {
+    const locked = updateKeys.filter(
+      (k) => !(POST_APPROVAL_EDITABLE_FIELDS as readonly string[]).includes(k),
+    );
+    if (locked.length > 0) {
+      throw new Error(
+        `[user.service] "${locked.join(', ')}" can only be changed by an administrator after approval.`,
+      );
+    }
+  }
+
   // Whitelist sanitization: permit only user-editable profile fields
-  const sanitizedUpdates: Record<string, unknown> = {
-    updatedAt: serverTimestamp(),
-  };
-
-  if (updates.displayName !== undefined) sanitizedUpdates.displayName = updates.displayName.trim();
-  if (updates.photoURL !== undefined) sanitizedUpdates.photoURL = updates.photoURL;
-  if (updates.department !== undefined) sanitizedUpdates.department = updates.department.trim();
-  if (updates.program !== undefined) sanitizedUpdates.program = updates.program ? updates.program.trim() : null;
-  if (updates.batch !== undefined) sanitizedUpdates.batch = updates.batch ? updates.batch.trim() : null;
-  if (updates.studentId !== undefined) sanitizedUpdates.studentId = updates.studentId ? updates.studentId.trim() : null;
-  if (updates.designation !== undefined) sanitizedUpdates.designation = updates.designation.trim();
-  if (updates.bio !== undefined) sanitizedUpdates.bio = updates.bio ? updates.bio.trim() : null;
+  const changes: Record<string, unknown> = {};
+  if (updates.displayName !== undefined) changes.displayName = updates.displayName.trim();
+  if (updates.photoURL !== undefined) changes.photoURL = updates.photoURL;
+  if (updates.department !== undefined) changes.department = updates.department.trim();
+  if (updates.program !== undefined) changes.program = updates.program ? updates.program.trim() : null;
+  if (updates.batch !== undefined) changes.batch = updates.batch ? updates.batch.trim() : null;
+  if (updates.studentId !== undefined) changes.studentId = updates.studentId ? updates.studentId.trim() : null;
+  if (updates.designation !== undefined) changes.designation = updates.designation.trim();
+  if (updates.bio !== undefined) changes.bio = updates.bio ? updates.bio.trim() : null;
   if (updates.researchInterests !== undefined) {
-    sanitizedUpdates.researchInterests = Array.isArray(updates.researchInterests)
-      ? updates.researchInterests
-      : [];
+    changes.researchInterests = Array.isArray(updates.researchInterests) ? updates.researchInterests : [];
   }
-  if (updates.socialLinks !== undefined) {
-    sanitizedUpdates.socialLinks = updates.socialLinks;
+  if (updates.socialLinks !== undefined) changes.socialLinks = updates.socialLinks;
+
+  const now = serverTimestamp();
+  const batch = writeBatch(firestore);
+  batch.update(doc(firestore, 'users', uid), { ...changes, updatedAt: now });
+
+  if (profile.approvalStatus === 'approved') {
+    const merged = { ...profile, ...changes } as UserProfile;
+    batch.set(doc(firestore, 'public_profiles', uid), buildPublicProfile(merged, now));
   }
 
-  const userDocRef = doc(firestore, 'users', uid.trim());
-  await updateDoc(userDocRef, sanitizedUpdates);
+  await batch.commit();
 }
 
+// ---------------------------------------------------------------------------
+// 6. Rejected Application Resubmission
+// ---------------------------------------------------------------------------
+
+/**
+ * Rejected applicant resubmits a corrected application (rejected -> pending).
+ * The admin portal's live Pending queue picks it up immediately.
+ */
+export async function resubmitApplication(
+  user: User,
+  profile: UserProfile,
+  input: CreatePendingUserProfileInput,
+): Promise<void> {
+  const firestore = getFirestoreDb();
+  if (profile.approvalStatus !== 'rejected') {
+    throw new Error('[user.service] Only rejected applications can be resubmitted.');
+  }
+  // Same verified-email token refresh as the first submission (rules check the claim).
+  const tokenResult = await user.getIdTokenResult();
+  if (tokenResult.claims.email_verified !== true) {
+    await user.getIdToken(true);
+  }
+  await updateDoc(
+    doc(firestore, 'users', profile.uid),
+    buildResubmissionUpdate(input, profile.displayName, serverTimestamp()),
+  );
+}

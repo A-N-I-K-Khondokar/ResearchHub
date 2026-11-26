@@ -42,8 +42,8 @@ service cloud.firestore {
     //   - read:
     //       * Document owner can ALWAYS read their own profile (even if pending, rejected, or suspended).
     //       * Administrators can read any profile.
-    //       * Authenticated, approved users can read approved profiles of other researchers.
-    //       * Ordinary users cannot read pending, rejected, or suspended profiles of other users.
+    //       * Other researchers cannot read users/{uid} at all (email / studentId privacy);
+    //         approved researchers read the sanitised /public_profiles/{uid} mirror instead.
     //   - create:
     //       * Must be authenticated with a verified email address (`isOwner(userId) && isEmailVerified()`).
     //       * Document ID must match UID field (`uid == userId`).
@@ -56,6 +56,10 @@ service cloud.firestore {
     //   - update:
     //       * Owner Profile Update:
     //           - Allowed for document owner (`isOwner(userId)`).
+    //           - Pending: all academic fields editable. Approved/suspended: department,
+    //             designation, studentId, batch and program are locked (admin correction only).
+    //       * Rejected Owner Resubmission: rejected -> pending with fresh requestedAt.
+    //       * Admin Academic Correction: locked academic fields only, no status change.
     //           - Identity fields (`uid`, `email`, `createdAt`, `requestedAt`) are immutable.
     //           - Positive allowlist: Only user-editable profile fields plus `updatedAt` can change.
     //           - Approval fields and administrative roles are strictly protected from modification.
@@ -300,14 +304,12 @@ service cloud.firestore {
     // ===============================================================
     match /users/{userId} {
 
-      // Read permissions:
+      // Read permissions (Stage 4 privacy hardening):
       // 1. Document owner can always read their own profile.
       // 2. Administrators can read any profile.
-      // 3. Approved researchers can read approved profiles of other users.
-      // 4. Pending, rejected, or suspended profiles of other users are never exposed.
-      allow read: if isOwner(userId) ||
-        isAdmin() ||
-        (isApprovedUser() && resource.data.approvalStatus == 'approved');
+      // 3. Other researchers NEVER read users/{uid} (it holds email and studentId);
+      //    they read the sanitised mirror at /public_profiles/{uid} instead.
+      allow read: if isOwner(userId) || isAdmin();
 
       // Create permissions:
       // 1. Must be authenticated with verified email.
@@ -348,17 +350,65 @@ service cloud.firestore {
       // Update permissions:
       // Flow A: Owner updating their own editable profile details via explicit allowlist.
       // Flow B: Administrator updating approval status and approval metadata via explicit allowlist.
-      allow update: if isOwnerProfileUpdate(userId) || isAdminApprovalUpdate();
+      // Flow C: Rejected owner corrects their application and resubmits (rejected -> pending).
+      // Flow D: Administrator corrects locked academic fields (no status change).
+      // Shared invariants are evaluated ONCE here (keeps evaluation well under the
+      // 1000-expression limit); each flow below only adds its own conditions.
+      allow update: if isValidUserDoc(request.resource.data) &&
+        request.resource.data.uid == resource.data.uid &&
+        request.resource.data.email == resource.data.email &&
+        request.resource.data.createdAt == resource.data.createdAt &&
+        request.resource.data.updatedAt == request.time &&
+        (isOwnerProfileUpdate(userId) ||
+          isOwnerResubmission(userId) ||
+          isAdminApprovalUpdate() ||
+          isAdminAcademicCorrection());
 
       // Helper: Validates owner-initiated profile updates using an explicit positive allowlist
       function isOwnerProfileUpdate(userId) {
         return isOwner(userId) &&
-          isValidUserDoc(request.resource.data) &&
-          request.resource.data.uid == resource.data.uid &&
-          request.resource.data.email == resource.data.email &&
-          request.resource.data.createdAt == resource.data.createdAt &&
           request.resource.data.requestedAt == resource.data.requestedAt &&
-          request.resource.data.updatedAt == request.time &&
+          (
+            // Pending applicants may edit every academic field.
+            (resource.data.approvalStatus == 'pending' &&
+              request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                'displayName',
+                'photoURL',
+                'department',
+                'program',
+                'batch',
+                'studentId',
+                'designation',
+                'bio',
+                'researchInterests',
+                'socialLinks',
+                'updatedAt'
+              ])) ||
+            // After approval, identity fields (department, designation, studentId,
+            // batch, program) are locked; only presentation fields stay editable.
+            (resource.data.approvalStatus in ['approved', 'suspended'] &&
+              request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                'displayName',
+                'photoURL',
+                'bio',
+                'researchInterests',
+                'socialLinks',
+                'updatedAt'
+              ]))
+          );
+      }
+
+      // Helper: Rejected applicant resubmits a corrected application (rejected -> pending).
+      // A fresh requestedAt is recorded and all previous review metadata is cleared.
+      function isOwnerResubmission(userId) {
+        return isOwner(userId) &&
+          isEmailVerified() &&
+          resource.data.approvalStatus == 'rejected' &&
+          request.resource.data.approvalStatus == 'pending' &&
+          request.resource.data.requestedAt == request.time &&
+          request.resource.data.approvedBy == null &&
+          request.resource.data.get('approvedAt', null) == null &&
+          request.resource.data.rejectionReason == null &&
           request.resource.data.diff(resource.data).affectedKeys().hasOnly([
             'displayName',
             'photoURL',
@@ -370,6 +420,25 @@ service cloud.firestore {
             'bio',
             'researchInterests',
             'socialLinks',
+            'approvalStatus',
+            'requestedAt',
+            'approvedBy',
+            'approvedAt',
+            'rejectionReason',
+            'updatedAt'
+          ]);
+      }
+
+      // Helper: Administrator corrects locked academic fields without changing status.
+      function isAdminAcademicCorrection() {
+        return isAdmin() &&
+          request.resource.data.requestedAt == resource.data.requestedAt &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'department',
+            'designation',
+            'studentId',
+            'batch',
+            'program',
             'updatedAt'
           ]);
       }
@@ -412,12 +481,7 @@ service cloud.firestore {
       // Helper: Validates administrator-initiated status and review updates using an explicit positive allowlist
       function isAdminApprovalUpdate() {
         return isAdmin() &&
-          isValidUserDoc(request.resource.data) &&
-          request.resource.data.uid == resource.data.uid &&
-          request.resource.data.email == resource.data.email &&
-          request.resource.data.createdAt == resource.data.createdAt &&
           request.resource.data.requestedAt == resource.data.requestedAt &&
-          request.resource.data.updatedAt == request.time &&
           request.resource.data.diff(resource.data).affectedKeys().hasOnly([
             'approvalStatus',
             'approvedAt',
@@ -781,6 +845,47 @@ service cloud.firestore {
       // Delete: the author or an administrator.
       allow delete: if isAdmin() ||
         (isAuthenticated() && resource.data.authorUid == request.auth.uid);
+    }
+
+    // ===============================================================
+    // Rules: Public Profiles (/public_profiles/{uid})  — Stage 4
+    // ===============================================================
+    //
+    // Sanitised directory mirror of an APPROVED users/{uid} document.
+    // Contains no email, studentId or review metadata. Written in the same
+    // batch as the users/{uid} change that it mirrors (validated via getAfter):
+    //   - by an administrator on approve / reinstate / academic correction;
+    //   - by the approved owner when they edit their profile.
+    // Removed by an administrator when a researcher is suspended.
+    function publicProfileMirrorsUser(uid, d) {
+      let u = getAfter(/databases/$(database)/documents/users/$(uid)).data;
+      return d.keys().hasOnly([
+          'uid', 'displayName', 'photoURL', 'department', 'program', 'batch',
+          'designation', 'bio', 'researchInterests', 'socialLinks', 'updatedAt'
+        ]) &&
+        d.keys().hasAll([
+          'uid', 'displayName', 'photoURL', 'department', 'program', 'batch',
+          'designation', 'bio', 'researchInterests', 'socialLinks', 'updatedAt'
+        ]) &&
+        u.approvalStatus == 'approved' &&
+        d.uid == uid &&
+        d.displayName == u.displayName &&
+        d.photoURL == u.get('photoURL', null) &&
+        d.department == u.department &&
+        d.program == u.get('program', null) &&
+        d.batch == u.get('batch', null) &&
+        d.designation == u.designation &&
+        d.bio == u.get('bio', null) &&
+        d.researchInterests == u.researchInterests &&
+        d.socialLinks == u.get('socialLinks', {}) &&
+        d.updatedAt == request.time;
+    }
+
+    match /public_profiles/{uid} {
+      allow read: if isApprovedUser() || isAdmin();
+      allow create, update: if (isAdmin() || isOwner(uid)) &&
+        publicProfileMirrorsUser(uid, request.resource.data);
+      allow delete: if isAdmin();
     }
 
     // ===============================================================

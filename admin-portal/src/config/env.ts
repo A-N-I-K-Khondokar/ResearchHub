@@ -17,7 +17,8 @@ const authDomain = import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'cse-research-hu
 const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID || 'cse-research-hub';
 const appId = import.meta.env.VITE_FIREBASE_APP_ID || '';
 const messagingSenderId = import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '';
-const adminEmail = (import.meta.env.VITE_ADMIN_EMAIL || 'anik.khondokar09@gmail.com').toLowerCase().trim();
+// No fallback: if VITE_ADMIN_EMAIL is missing, nobody is authorised (fail closed).
+const adminEmail = (import.meta.env.VITE_ADMIN_EMAIL || '').toLowerCase().trim();
 
 export const ENV: EnvConfig = {
   firebaseApiKey: apiKey,
@@ -26,11 +27,11 @@ export const ENV: EnvConfig = {
   firebaseAppId: appId,
   firebaseMessagingSenderId: messagingSenderId,
   adminEmail: adminEmail,
-  isConfigured: Boolean(apiKey && projectId)
+  isConfigured: Boolean(apiKey && projectId && adminEmail)
 };
 
 export function isAuthorizedAdminEmail(email?: string | null): boolean {
-  if (!email) return false;
+  if (!email || !ENV.adminEmail) return false;
   return email.toLowerCase().trim() === ENV.adminEmail;
 }
 

@@ -3,16 +3,25 @@ import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from './AuthContext';
 import type { AdminNotification, NotificationContextType } from '../types/notification.types';
+import type { UserProfile } from '../types/user.types';
+
+const requestedMillis = (u: UserProfile) =>
+  u.requestedAt?.toMillis ? u.requestedAt.toMillis() : u.createdAt?.toMillis ? u.createdAt.toMillis() : 0;
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
+/**
+ * Owns the ONE real-time listener on pending applications. The sidebar badge,
+ * the Pending page and new-application toasts all read from it.
+ */
 export const NotificationProvider: React.FC<{
   children: React.ReactNode;
-  onSelectApplicant?: (uid: string) => void;
-}> = ({ children, onSelectApplicant }) => {
+}> = ({ children }) => {
   const { user, adminRecord } = useAuth();
   const [notifications, setNotifications] = useState<AdminNotification[]>([]);
   const [toasts, setToasts] = useState<AdminNotification[]>([]);
+  const [pendingUsers, setPendingUsers] = useState<UserProfile[]>([]);
+  const [pendingLoading, setPendingLoading] = useState(true);
   const knownPendingIds = useRef<Set<string>>(new Set());
   const initialLoadCompleted = useRef<boolean>(false);
 
@@ -23,6 +32,8 @@ export const NotificationProvider: React.FC<{
       initialLoadCompleted.current = false;
       setNotifications([]);
       setToasts([]);
+      setPendingUsers([]);
+      setPendingLoading(true);
       return;
     }
 
@@ -32,6 +43,11 @@ export const NotificationProvider: React.FC<{
       q,
       (snapshot) => {
         const isFirstSnapshot = !initialLoadCompleted.current;
+
+        const list = snapshot.docs.map((d) => ({ uid: d.id, ...d.data() } as UserProfile));
+        list.sort((a, b) => requestedMillis(b) - requestedMillis(a));
+        setPendingUsers(list);
+        setPendingLoading(false);
 
         snapshot.docChanges().forEach((change) => {
           const docId = change.doc.id;
@@ -79,6 +95,7 @@ export const NotificationProvider: React.FC<{
       },
       (error) => {
         console.error('[NotificationContext] Real-time listener error:', error);
+        setPendingLoading(false);
       }
     );
 
@@ -107,23 +124,19 @@ export const NotificationProvider: React.FC<{
     setToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
-  const viewApplicant = (uid: string) => {
-    if (onSelectApplicant) {
-      onSelectApplicant(uid);
-    }
-  };
-
   return (
     <NotificationContext.Provider
       value={{
+        pendingUsers,
+        pendingCount: pendingUsers.length,
+        pendingLoading,
         notifications,
         unreadCount,
         markAsRead,
         markAllAsRead,
         clearNotifications,
         toasts,
-        dismissToast,
-        viewApplicant
+        dismissToast
       }}
     >
       {children}

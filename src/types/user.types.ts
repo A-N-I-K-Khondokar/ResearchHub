@@ -197,3 +197,34 @@ export interface AdminEmailOutboxDoc {
 }
 
 
+
+// ---------------------------------------------------------------------------
+// 6. Public Directory Profile (`public_profiles/{uid}`) — Stage 4
+// ---------------------------------------------------------------------------
+
+/**
+ * Sanitised mirror of an APPROVED researcher's profile, readable by approved
+ * researchers. Never contains email, studentId or review metadata.
+ */
+export interface PublicProfile {
+  uid: string;
+  displayName: string;
+  photoURL: string | null;
+  department: string;
+  program: string | null;
+  batch: string | null;
+  designation: string;
+  bio: string | null;
+  researchInterests: string[];
+  socialLinks: UserSocialLinks;
+  updatedAt: Timestamp;
+}
+
+/** Fields an approved researcher may still edit (identity fields are locked). */
+export const POST_APPROVAL_EDITABLE_FIELDS = [
+  'displayName',
+  'photoURL',
+  'bio',
+  'researchInterests',
+  'socialLinks',
+] as const;

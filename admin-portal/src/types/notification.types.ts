@@ -9,7 +9,13 @@ export interface AdminNotification {
   read: boolean;
 }
 
+import type { UserProfile } from './user.types';
+
 export interface NotificationContextType {
+  /** Live pending applications (single shared listener for badge, page and toasts). */
+  pendingUsers: UserProfile[];
+  pendingCount: number;
+  pendingLoading: boolean;
   notifications: AdminNotification[];
   unreadCount: number;
   markAsRead: (id: string) => void;
@@ -17,6 +23,5 @@ export interface NotificationContextType {
   clearNotifications: () => void;
   toasts: AdminNotification[];
   dismissToast: (id: string) => void;
-  viewApplicant: (uid: string) => void;
 }
 

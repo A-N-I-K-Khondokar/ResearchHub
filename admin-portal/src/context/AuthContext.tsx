@@ -30,7 +30,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // 1. Check authorized administrator email allowlist
     if (!isAuthorizedAdminEmail(userEmail)) {
       throw new Error(
-        `Unauthorized account: ${firebaseUser.email}. Only the configured administrator account (${ENV.adminEmail}) is permitted to access this portal.`
+        ENV.adminEmail
+          ? `Unauthorized account: ${firebaseUser.email}. Only the configured administrator account is permitted to access this portal.`
+          : 'Administrator email is not configured (VITE_ADMIN_EMAIL). Access is disabled until it is set in .env.local.'
       );
     }
 
@@ -121,10 +123,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setAttemptedUserEmail(null);
 
     try {
-      const result = await signInWithPopup(auth, googleProvider);
-      const record = await validateAdminDocument(result.user);
-      setUser(result.user);
-      setAdminRecord(record);
+      // The onAuthStateChanged listener validates the admin record exactly once
+      // (no duplicate /admins read or race between two validation paths).
+      await signInWithPopup(auth, googleProvider);
     } catch (err: any) {
       console.error('[AuthContext] Sign-in error:', {
         code: err?.code,
@@ -145,7 +146,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         msg = `[${err.code}] ${err.message || 'Authentication failed.'}`;
       }
       setError(msg);
-    } finally {
       setLoading(false);
     }
   };

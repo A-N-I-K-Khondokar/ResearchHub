@@ -67,3 +67,34 @@ export function buildPendingProfileDocuments(
 
   return { profile, outbox };
 }
+
+/**
+ * Update payload for a rejected applicant resubmitting a corrected application
+ * (`users/{uid}`: rejected -> pending). Academic fields are normalised exactly
+ * like the original submission; review metadata is cleared and `requestedAt`
+ * is refreshed (the rules require `request.time`).
+ */
+export function buildResubmissionUpdate(
+  input: CreatePendingUserProfileInput,
+  fallbackDisplayName: string,
+  timestamp: unknown,
+): Record<string, unknown> {
+  return {
+    displayName: input.displayName?.trim() || fallbackDisplayName,
+    photoURL: input.photoURL ?? null,
+    department: input.department.trim(),
+    program: input.program?.trim() ?? null,
+    batch: input.batch?.trim() ?? null,
+    studentId: input.studentId?.trim() ?? null,
+    designation: input.designation.trim(),
+    bio: input.bio?.trim() ?? null,
+    researchInterests: Array.isArray(input.researchInterests) ? input.researchInterests : [],
+    socialLinks: input.socialLinks ?? {},
+    approvalStatus: 'pending',
+    requestedAt: timestamp,
+    approvedBy: null,
+    approvedAt: null,
+    rejectionReason: null,
+    updatedAt: timestamp,
+  };
+}

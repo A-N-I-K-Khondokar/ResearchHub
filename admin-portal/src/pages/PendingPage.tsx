@@ -1,6 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
-import { db } from '../config/firebase';
+import React from 'react';
+import { useNotifications } from '../context/NotificationContext';
 import { Badge } from '../components/common/Badge';
 import { Button } from '../components/common/Button';
 import { CheckCircle, XCircle, Eye, Radio, Sparkles } from 'lucide-react';
@@ -16,39 +15,8 @@ export const PendingPage: React.FC<PendingPageProps> = ({
   onInspectUser,
   onActionClick
 }) => {
-  const [pendingUsers, setPendingUsers] = useState<UserProfile[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    setLoading(true);
-    const q = query(collection(db, 'users'), where('approvalStatus', '==', 'pending'));
-
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const list: UserProfile[] = [];
-        snapshot.forEach((d) => {
-          list.push({ uid: d.id, ...d.data() } as UserProfile);
-        });
-
-        // Client-side sort by requestedAt descending
-        list.sort((a, b) => {
-          const timeA = a.requestedAt?.toMillis ? a.requestedAt.toMillis() : (a.createdAt?.toMillis ? a.createdAt.toMillis() : 0);
-          const timeB = b.requestedAt?.toMillis ? b.requestedAt.toMillis() : (b.createdAt?.toMillis ? b.createdAt.toMillis() : 0);
-          return timeB - timeA;
-        });
-
-        setPendingUsers(list);
-        setLoading(false);
-      },
-      (error) => {
-        console.error('[PendingPage] Real-time listener error:', error);
-        setLoading(false);
-      }
-    );
-
-    return () => unsubscribe();
-  }, []);
+  // Single shared real-time listener (NotificationContext) — no duplicate subscription
+  const { pendingUsers, pendingLoading: loading } = useNotifications();
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
