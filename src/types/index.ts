@@ -53,6 +53,9 @@ export interface CurrentWork {
   topics: string[];
   stage?: 'Ideation' | 'Data Collection' | 'Experimentation' | 'Drafting' | 'Pre-print' | 'In Review' | 'Model Training' | 'Paper Drafting' | 'System Building' | string;
   externalURL?: string;
+  /** 'collaboration' posts look for collaborators (see research.types.ts). */
+  postType?: 'work' | 'collaboration';
+  lookingFor?: string[];
   likesCount?: number;
   commentsCount?: number;
   isBookmarked?: boolean;

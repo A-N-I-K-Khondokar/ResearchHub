@@ -25,6 +25,7 @@ import { spacing, radius, typography, fontFamilies, floatingButtonTokens } from 
 import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
 import { Avatar } from '@/components/common/Avatar';
+import { SkeletonList } from '@/components/feedback/Skeleton';
 import { useConnections } from '@/hooks/useConnections';
 import {
   subscribeNotifications,
@@ -469,8 +470,8 @@ export default function NotificationsTab() {
         }
         ListEmptyComponent={
           loading ? (
-            <View style={styles.emptyContainer}>
-              <ActivityIndicator color={colors.primary} />
+            <View style={{ padding: spacing.md }}>
+              <SkeletonList count={5} variant="row" />
             </View>
           ) : (
           <View style={styles.emptyContainer}>

@@ -18,6 +18,7 @@ import { TOPIC_TAXONOMY, topicCounts } from '@/utils/search';
 import { useResearchDirectory } from '@/hooks/useResearchDirectory';
 import { useConnections } from '@/hooks/useConnections';
 import { useSavedItems } from '@/hooks/useSavedItems';
+import { useCollaborate } from '@/hooks/useCollaborate';
 import { useAuth } from '@/context/AuthContext';
 import { subscribePublishedFeed, toCurrentWork } from '@/services/research.service';
 import { tagMatchKey } from '@/utils/researchWork';
@@ -27,6 +28,9 @@ import { TopicShortcutRow } from '../../components/home/TopicShortcutRow';
 import { CurrentWorkCard } from '../../components/cards/CurrentWorkCard';
 import { ResearcherCard } from '../../components/cards/ResearcherCard';
 import { SectionHeader } from '../../components/common/SectionHeader';
+import { Avatar } from '../../components/common/Avatar';
+import { SkeletonList } from '../../components/feedback/Skeleton';
+import { Users } from 'lucide-react-native';
 
 export default function HomeFeedScreen() {
   const router = useRouter();
@@ -35,6 +39,9 @@ export default function HomeFeedScreen() {
   const { firebaseUser, userProfile } = useAuth();
   // Feed listener only runs for an approved session (stops cleanly on sign-out)
   const feedEnabled = userProfile?.approvalStatus === 'approved';
+  const firstName = (userProfile?.displayName || 'Researcher').split(' ')[0];
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
   const [refreshing, setRefreshing] = useState(false);
   const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
 
@@ -68,11 +75,11 @@ export default function HomeFeedScreen() {
     return unsubscribe;
   }, [feedKey, feedEnabled]);
 
-  // Likes are local-only (no likes model in scope); bookmarks persist as Saved Items
-  const [likedWorkIds, setLikedWorkIds] = useState<Set<string>>(() => new Set());
+  // Bookmarks persist as Saved Items
   const { isSaved, toggleSave } = useSavedItems();
   const directory = useResearchDirectory();
   const { cardStatus, handleConnectPress } = useConnections();
+  const collaborate = useCollaborate();
 
   // Researchers to follow: approved researchers you are not yet connected with
   const featuredResearchers = useMemo(
@@ -116,43 +123,27 @@ export default function HomeFeedScreen() {
   };
 
   const renderWorkCard = (work: ResearchWork) => {
-    const isLiked = likedWorkIds.has(work.id);
     const isBookmarked = isSaved(work.id);
     const dept = /computer science/i.test(work.authorDepartment) ? 'CSE' : work.authorDepartment || 'CSE';
-    const card = toCurrentWork(work);
     return (
       <CurrentWorkCard
         key={work.id}
-        work={{ ...card, likesCount: isLiked ? 1 : 0 }}
+        work={toCurrentWork(work)}
         authorName={work.authorName}
         authorBatch={dept}
         authorAvatar={work.authorPhotoURL}
         authorRole={work.authorDesignation || undefined}
-        isLiked={isLiked}
         isBookmarked={isBookmarked}
+        {...collaborate(work, directory.profileByUid.get(work.authorUid))}
         onPress={() => router.push(`/(research)/${work.id}` as any)}
         onAuthorPress={() => handleAuthorPress(work.authorUid)}
         onTopicPress={(tag) => {
           const foundTopic = findTopicByTag(tag);
           if (foundTopic) setSelectedTopic(foundTopic);
         }}
-        onLikePress={() => handleToggleLike(work.id)}
         onBookmarkPress={() => toggleSave(work)}
-        onCommentPress={() => router.push(`/(research)/${work.id}` as any)}
       />
     );
-  };
-
-  const handleToggleLike = (workId: string) => {
-    setLikedWorkIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(workId)) {
-        next.delete(workId);
-      } else {
-        next.add(workId);
-      }
-      return next;
-    });
   };
 
   const handleTopicSelect = (topic: Topic) => {
@@ -183,6 +174,38 @@ export default function HomeFeedScreen() {
           />
         }
       >
+        {/* Greeting + share prompt */}
+        <View style={[styles.greetingBlock, { backgroundColor: colors.surface }]}>
+          <Text style={[styles.greetingTitle, { color: colors.textPrimary }]} numberOfLines={1}>
+            {greeting}, {firstName} 👋
+          </Text>
+          <Text style={[styles.greetingSubtitle, { color: colors.textSecondary }]}>
+            Here's what the CSE community is working on.
+          </Text>
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => router.push('/(tabs)/share' as any)}
+            style={[styles.sharePrompt, { backgroundColor: colors.background, borderColor: colors.borderSubtle }]}
+            accessibilityRole="button"
+            accessibilityLabel="Share what you're working on"
+          >
+            <Avatar name={userProfile?.displayName || 'You'} uri={userProfile?.photoURL} size="sm" />
+            <Text style={[styles.sharePromptText, { color: colors.textMuted }]} numberOfLines={1}>
+              Share what you're working on…
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => router.push({ pathname: '/(tabs)/share' as any, params: { mode: 'collaboration' } })}
+            style={[styles.collabShortcut, { backgroundColor: colors.primaryMuted }]}
+            accessibilityRole="button"
+            accessibilityLabel="Find collaborators"
+          >
+            <Users size={14} color={colors.primary} />
+            <Text style={[styles.collabShortcutText, { color: colors.primary }]}>Find collaborators</Text>
+          </TouchableOpacity>
+        </View>
+
         {/* Topic Shortcuts Row */}
         <View
           style={[
@@ -212,12 +235,7 @@ export default function HomeFeedScreen() {
           </View>
 
           {feedLoading ? (
-            <View style={[styles.emptyContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <ActivityIndicator color={colors.primary} />
-              <Text style={[styles.emptySubtitle, { color: colors.textSecondary, marginTop: spacing.sm, marginBottom: 0 }]}>
-                Loading the research feed...
-              </Text>
-            </View>
+            <SkeletonList count={2} />
           ) : feedError ? (
             <View style={[styles.emptyContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>Feed unavailable</Text>
@@ -275,7 +293,9 @@ export default function HomeFeedScreen() {
           </View>
 
           {directory.loading ? (
-            <ActivityIndicator color={colors.primary} style={{ marginVertical: spacing.md }} />
+            <View style={{ paddingHorizontal: spacing.md }}>
+              <SkeletonList count={2} variant="row" />
+            </View>
           ) : featuredResearchers.length === 0 ? (
             <Text style={[styles.emptySubtitle, { color: colors.textSecondary, paddingHorizontal: spacing.md }]}>
               {directory.researchers.length === 0
@@ -325,6 +345,47 @@ export default function HomeFeedScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
+  },
+  greetingBlock: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.sm,
+  },
+  greetingTitle: {
+    ...typography.headline,
+  },
+  greetingSubtitle: {
+    ...typography.bodySmall,
+    marginTop: 2,
+    marginBottom: spacing.md,
+  },
+  sharePrompt: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    minHeight: spacing.secondaryButtonHeight,
+    borderWidth: 1,
+    borderRadius: radius.full,
+    paddingHorizontal: spacing.sm,
+  },
+  sharePromptText: {
+    ...typography.bodyCompact,
+    flex: 1,
+  },
+  collabShortcut: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 6,
+    minHeight: 32,
+    paddingHorizontal: 14,
+    borderRadius: radius.full,
+    marginTop: spacing.sm,
+  },
+  collabShortcutText: {
+    ...typography.caption,
+    fontSize: 13,
+    fontWeight: '600',
   },
   container: {
     flex: 1,

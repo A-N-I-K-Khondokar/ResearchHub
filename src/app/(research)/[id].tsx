@@ -10,21 +10,29 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { BookOpen, Layers, Calendar, ExternalLink, Trash2, Bookmark } from 'lucide-react-native';
+import { BookOpen, Layers, Calendar, ExternalLink, Trash2, Bookmark, Users, UserPlus, Check, Clock, User } from 'lucide-react-native';
 import { spacing, radius, typography, fontFamilies } from '../../constants';
 import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
 import { Avatar } from '../../components/common/Avatar';
 import { ScreenHeader } from '../../components/layout/ScreenHeader';
+import { DetailSkeleton } from '../../components/feedback/Skeleton';
 import { Button } from '../../components/common/Button';
 import {
   getResearchWork,
   deleteResearchWork,
   formatWorkDate,
+  getPublishedWorksByAuthor,
 } from '@/services/research.service';
-import type { ResearchWork } from '@/types/research.types';
+import { getPublicProfile } from '@/services/user.service';
+import { RESEARCH_STAGE_IDS, type ResearchWork } from '@/types/research.types';
+import type { PublicProfile } from '@/types/user.types';
+import { useConnections } from '@/hooks/useConnections';
+import { useToast } from '@/context/ToastContext';
+import { WorkList } from '@/components/profile';
+import { useCollaborate } from '@/hooks/useCollaborate';
 import { useSavedItems } from '@/hooks/useSavedItems';
-import { confirmAction, showMessage } from '@/utils/dialogs';
+import { confirmAction } from '@/utils/dialogs';
 
 type LoadState = 'loading' | 'ready' | 'not-found' | 'error';
 
@@ -38,6 +46,11 @@ export default function ResearchDetailScreen() {
   const [state, setState] = useState<LoadState>('loading');
   const [isDeleting, setIsDeleting] = useState(false);
   const { isSaved, toggleSave } = useSavedItems();
+  const { relationship, handleConnectPress, busyUid } = useConnections();
+  const toast = useToast();
+  const collaborate = useCollaborate();
+  const [author, setAuthor] = useState<PublicProfile | null>(null);
+  const [moreWorks, setMoreWorks] = useState<ResearchWork[]>([]);
 
   const load = useCallback(async () => {
     if (!id) {
@@ -49,6 +62,16 @@ export default function ResearchDetailScreen() {
       const result = await getResearchWork(id);
       setWork(result);
       setState(result ? 'ready' : 'not-found');
+      if (result) {
+        // Secondary data (non-blocking): author card + "More from this researcher"
+        Promise.all([
+          getPublicProfile(result.authorUid).catch(() => null),
+          getPublishedWorksByAuthor(result.authorUid).catch(() => [] as ResearchWork[]),
+        ]).then(([profile, works]) => {
+          setAuthor(profile);
+          setMoreWorks(works.filter((w) => w.id !== result.id).slice(0, 3));
+        });
+      }
     } catch (err: any) {
       // Unknown / legacy IDs and inaccessible drafts are denied by the rules.
       setState(err?.code === 'permission-denied' ? 'not-found' : 'error');
@@ -62,7 +85,7 @@ export default function ResearchDetailScreen() {
   const isOwner = Boolean(work && firebaseUser && work.authorUid === firebaseUser.uid);
 
   const handleOpenLink = (url: string) => {
-    Linking.openURL(url).catch(() => showMessage('Link Error', `Unable to open: ${url}`));
+    Linking.openURL(url).catch(() => toast.show('Unable to open this link', 'error'));
   };
 
   const handleAuthorPress = () => {
@@ -82,23 +105,17 @@ export default function ResearchDetailScreen() {
     setIsDeleting(true);
     try {
       await deleteResearchWork(work.id);
+      toast.show('Update deleted', 'info');
       router.back();
     } catch {
       setIsDeleting(false);
-      showMessage('Delete failed', 'Could not delete this update. Please try again.');
+      toast.show('Could not delete this update. Please try again.', 'error');
     }
   };
 
   const renderStatus = () => {
     if (state === 'loading') {
-      return (
-        <View style={styles.centered}>
-          <ActivityIndicator color={colors.primary} />
-          <Text style={[styles.subtitle, { color: colors.textSecondary, marginTop: spacing.sm }]}>
-            Loading research details...
-          </Text>
-        </View>
-      );
+      return <DetailSkeleton />;
     }
     return (
       <View style={styles.centered}>
@@ -160,6 +177,12 @@ export default function ResearchDetailScreen() {
           </TouchableOpacity>
 
           {/* Title & meta */}
+          {work.postType === 'collaboration' ? (
+            <View style={[styles.collabBadge, { backgroundColor: colors.primaryMuted }]}>
+              <Users size={13} color={colors.primary} />
+              <Text style={[styles.collabBadgeText, { color: colors.primary }]}>Looking for collaborators</Text>
+            </View>
+          ) : null}
           <Text style={[styles.title, { color: colors.textPrimary }]}>{work.title}</Text>
 
           <View style={styles.metaRow}>
@@ -178,6 +201,43 @@ export default function ResearchDetailScreen() {
                 <Text style={[styles.metaPillText, { color: colors.textMuted }]}>Draft</Text>
               </View>
             ) : null}
+          </View>
+
+          {/* Stage stepper */}
+          <View style={styles.stepper} accessibilityLabel={`Research stage: ${work.stage}`}>
+            {RESEARCH_STAGE_IDS.map((stageId, index) => {
+              const current = RESEARCH_STAGE_IDS.indexOf(work.stage);
+              const reached = index <= current;
+              return (
+                <React.Fragment key={stageId}>
+                  {index > 0 ? (
+                    <View style={[styles.stepLine, { backgroundColor: index <= current ? colors.primary : colors.borderSubtle }]} />
+                  ) : null}
+                  <View style={styles.step}>
+                    <View
+                      style={[
+                        styles.stepDot,
+                        reached
+                          ? { backgroundColor: colors.primary, borderColor: colors.primary }
+                          : { backgroundColor: colors.surface, borderColor: colors.border },
+                      ]}
+                    >
+                      {index < current ? <Check size={11} color="#FFFFFF" strokeWidth={3} /> : null}
+                    </View>
+                    <Text
+                      style={[
+                        styles.stepLabel,
+                        { color: index === current ? colors.primary : colors.textSecondary },
+                        index === current && { fontFamily: fontFamilies.sansSemiBold },
+                      ]}
+                      numberOfLines={2}
+                    >
+                      {stageId}
+                    </Text>
+                  </View>
+                </React.Fragment>
+              );
+            })}
           </View>
 
           {/* Description */}
@@ -201,6 +261,53 @@ export default function ResearchDetailScreen() {
             </View>
           ) : null}
 
+          {/* Looking for (collaboration) */}
+          {work.postType === 'collaboration' && work.lookingFor.length > 0 ? (
+            <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.primaryLight }]}>
+              <Text style={[styles.sectionLabel, { color: colors.textPrimary }]}>Looking for</Text>
+              <View style={styles.tagsRow}>
+                {work.lookingFor.map((role) => (
+                  <View key={role} style={[styles.tag, { backgroundColor: colors.primaryMuted, borderColor: colors.primaryLight }]}>
+                    <Text style={[styles.tagText, { color: colors.primary, fontFamily: fontFamilies.sansSemiBold }]} numberOfLines={1}>
+                      {role}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+              {(() => {
+                const action = collaborate(work, author);
+                if (isOwner) {
+                  return (
+                    <Text style={[styles.metaText, { color: colors.textSecondary, marginTop: spacing.sm }]}>
+                      This is your collaboration post. Interested researchers will send you a connection request — check Notifications.
+                    </Text>
+                  );
+                }
+                if (!action.onCollaboratePress) return null;
+                return (
+                  <TouchableOpacity
+                    onPress={action.onCollaboratePress}
+                    disabled={action.collaborateDisabled}
+                    style={[
+                      styles.authorButton,
+                      { marginTop: spacing.md },
+                      action.collaborateDisabled
+                        ? { backgroundColor: colors.surfaceSubtle, borderColor: colors.borderSubtle }
+                        : { backgroundColor: colors.primary, borderColor: colors.primary },
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityLabel={action.collaborateLabel}
+                  >
+                    <UserPlus size={15} color={action.collaborateDisabled ? colors.textMuted : '#FFFFFF'} />
+                    <Text style={[styles.authorButtonText, { color: action.collaborateDisabled ? colors.textMuted : '#FFFFFF' }]}>
+                      {action.collaborateLabel}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })()}
+            </View>
+          ) : null}
+
           {/* External link */}
           {work.externalUrl ? (
             <TouchableOpacity
@@ -214,6 +321,78 @@ export default function ResearchDetailScreen() {
                 {work.externalUrl}
               </Text>
             </TouchableOpacity>
+          ) : null}
+
+          {/* About the researcher */}
+          {!isOwner && author ? (
+            <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}>
+              <Text style={[styles.sectionLabel, { color: colors.textPrimary }]}>About the researcher</Text>
+              <View style={styles.authorRow}>
+                <Avatar name={author.displayName} uri={author.photoURL} size="md" />
+                <View style={styles.authorInfo}>
+                  <Text style={[styles.authorName, { color: colors.textPrimary }]} numberOfLines={1}>
+                    {author.displayName}
+                  </Text>
+                  <Text style={[styles.authorMeta, { color: colors.textSecondary }]} numberOfLines={1}>
+                    {[author.designation, author.department].filter(Boolean).join(' • ')}
+                  </Text>
+                </View>
+              </View>
+              {author.bio ? (
+                <Text style={[styles.metaText, { color: colors.textSecondary, marginBottom: spacing.sm }]} numberOfLines={3}>
+                  {author.bio}
+                </Text>
+              ) : null}
+              <View style={styles.authorActions}>
+                <TouchableOpacity
+                  onPress={handleAuthorPress}
+                  style={[styles.authorButton, { borderColor: colors.border, backgroundColor: colors.surface }]}
+                  accessibilityRole="button"
+                >
+                  <User size={15} color={colors.textPrimary} />
+                  <Text style={[styles.authorButtonText, { color: colors.textPrimary }]}>View profile</Text>
+                </TouchableOpacity>
+                {(() => {
+                  const rel = relationship(author.uid).state;
+                  const busy = busyUid === author.uid;
+                  const filled = rel === 'none' || rel === 'incoming';
+                  const label =
+                    rel === 'connected' ? 'Connected'
+                    : rel === 'outgoing' ? 'Request sent'
+                    : rel === 'incoming' ? 'Respond'
+                    : rel === 'rejected' ? 'Declined'
+                    : work.postType === 'collaboration' ? "I'm interested" : 'Connect';
+                  const Icon = rel === 'connected' ? Check : rel === 'outgoing' || rel === 'rejected' ? Clock : UserPlus;
+                  return (
+                    <TouchableOpacity
+                      onPress={() => handleConnectPress(author)}
+                      disabled={busy}
+                      style={[
+                        styles.authorButton,
+                        filled
+                          ? { backgroundColor: colors.primary, borderColor: colors.primary }
+                          : { backgroundColor: colors.primaryMuted, borderColor: colors.primaryLight },
+                      ]}
+                      accessibilityRole="button"
+                      accessibilityLabel={label}
+                    >
+                      <Icon size={15} color={filled ? '#FFFFFF' : colors.primary} />
+                      <Text style={[styles.authorButtonText, { color: filled ? '#FFFFFF' : colors.primary }]}>{label}</Text>
+                    </TouchableOpacity>
+                  );
+                })()}
+              </View>
+            </View>
+          ) : null}
+
+          {/* More from this researcher */}
+          {moreWorks.length > 0 ? (
+            <View style={styles.moreSection}>
+              <Text style={[styles.sectionLabel, { color: colors.textPrimary }]}>
+                More from {isOwner ? 'you' : work.authorName.split(' ')[0]}
+              </Text>
+              <WorkList works={moreWorks} onOpen={(w) => router.push(`/(research)/${w.id}` as any)} />
+            </View>
           ) : null}
 
           {/* Owner actions */}
@@ -238,6 +417,72 @@ export default function ResearchDetailScreen() {
 }
 
 const styles = StyleSheet.create({
+  collabBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: radius.full,
+    marginBottom: spacing.sm,
+  },
+  collabBadgeText: {
+    ...typography.caption,
+    fontFamily: fontFamilies.sansSemiBold,
+  },
+  stepper: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: spacing.md,
+  },
+  step: {
+    alignItems: 'center',
+    width: 64,
+  },
+  stepDot: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepLine: {
+    flex: 1,
+    height: 2,
+    marginTop: 9,
+    marginHorizontal: -18,
+  },
+  stepLabel: {
+    ...typography.micro,
+    textAlign: 'center',
+    marginTop: 4,
+  },
+  sectionLabel: {
+    ...typography.sectionHeader,
+    marginBottom: spacing.sm,
+  },
+  authorActions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  authorButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    height: spacing.secondaryButtonHeight,
+    borderRadius: radius.button,
+    borderWidth: 1,
+  },
+  authorButtonText: {
+    ...typography.label,
+  },
+  moreSection: {
+    marginBottom: spacing.md,
+  },
   safeArea: {
     flex: 1,
   },

@@ -1,0 +1,1071 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // This security rules file defines the server-authoritative schema
+    // and access policies for the CSE Research Hub platform (Project: cse-research-hub):
+    //
+    // ---------------------------------------------------------------
+    // 1. Collection: /users/{userId}
+    // ---------------------------------------------------------------
+    // Document ID: Firebase Authentication UID (`userId == request.auth.uid`).
+    //
+    // Schema & Constraints:
+    //   - uid: string (required, immutable) - Must match document ID and request.auth.uid.
+    //   - email: string (required, immutable) - Must match verified request.auth.token.email.
+    //   - displayName: string (required, 1-100 chars) - User's full scholarly name.
+    //   - photoURL: string | null (optional, max 500 chars) - Profile avatar URL.
+    //   - department: string (required, 1-100 chars) - Academic department (e.g., 'Computer Science and Engineering').
+    //   - program: string | null (optional, max 100 chars) - Degree program (e.g., 'B.Sc. in CSE').
+    //   - batch: string | null (optional, max 50 chars) - Academic batch/cohort (e.g., 'Batch 14').
+    //   - studentId: string | null (optional, max 50 chars) - Student or Faculty ID number.
+    //   - designation: string (required, 1-100 chars) - Title (e.g., 'Undergraduate Student', 'Assistant Professor').
+    //   - bio: string | null (optional, max 2000 chars) - Scholarly bio and research focus.
+    //   - researchInterests: list of strings (required, max 30 items) - Research domain tags.
+    //   - socialLinks: map (optional, max 10 keys) - External academic/social profile links.
+    //   - approvalStatus: string (required, 'pending' | 'approved' | 'rejected' | 'suspended').
+    //       * On create: strictly 'pending'.
+    //       * On update: modified ONLY by administrators.
+    //   - requestedAt: timestamp (required, immutable, request.time) - Application submission time.
+    //   - approvedAt: timestamp | null (optional, set by administrator upon approval).
+    //   - approvedBy: string | null (optional, admin UID who approved the account).
+    //   - rejectionReason: string | null (optional, max 500 chars) - Admin rejection explanation.
+    //   - createdAt: timestamp (required, immutable, request.time) - Profile creation timestamp.
+    //   - updatedAt: timestamp (required, updated to request.time on every modification).
+    //
+    // Access Policies:
+    //   - read:
+    //       * Document owner can ALWAYS read their own profile (even if pending, rejected, or suspended).
+    //       * Administrators can read any profile.
+    //       * Other researchers cannot read users/{uid} at all (email / studentId privacy);
+    //         approved researchers read the sanitised /public_profiles/{uid} mirror instead.
+    //   - create:
+    //       * Must be authenticated with a verified email address (`isOwner(userId) && isEmailVerified()`).
+    //       * Document ID must match UID field (`uid == userId`).
+    //       * Email must match auth token email.
+    //       * `approvalStatus` must be strictly 'pending'.
+    //       * Approval metadata (`approvedAt`, `approvedBy`, `rejectionReason`) must be null.
+    //       * Timestamps (`createdAt`, `updatedAt`, `requestedAt`) must equal `request.time`.
+    //       * Document must not already exist (`!exists(...)`).
+    //       * No administrative or unauthorized role fields may be assigned.
+    //   - update:
+    //       * Owner Profile Update:
+    //           - Allowed for document owner (`isOwner(userId)`).
+    //           - Pending: all academic fields editable. Approved/suspended: department,
+    //             designation, studentId, batch and program are locked (admin correction only).
+    //       * Rejected Owner Resubmission: rejected -> pending with fresh requestedAt.
+    //       * Admin Academic Correction: locked academic fields only, no status change.
+    //           - Identity fields (`uid`, `email`, `createdAt`, `requestedAt`) are immutable.
+    //           - Positive allowlist: Only user-editable profile fields plus `updatedAt` can change.
+    //           - Approval fields and administrative roles are strictly protected from modification.
+    //           - Validates field types and size bounds.
+    //           - `updatedAt` must be updated to `request.time`.
+    //       * Admin Approval / Status Update:
+    //           - Allowed for administrators (`isAdmin()`).
+    //           - Restricted via positive allowlist strictly to approval fields (`approvalStatus`,
+    //             `approvedAt`, `approvedBy`, `rejectionReason`, `updatedAt`).
+    //           - Administrators cannot alter user's identity or academic profile fields.
+    //           - Validates `approvedBy == request.auth.uid` and timestamps.
+    //   - delete:
+    //       * Administrators ONLY. Ordinary users cannot delete profile documents.
+    //
+    // ---------------------------------------------------------------
+    // 2. Collection: /admins/{adminId}
+    // ---------------------------------------------------------------
+    // Document ID: Firebase Authentication UID of the administrator.
+    //
+    // Schema & Constraints:
+    //   - uid: string (required, immutable) - Administrator UID matching document ID.
+    //   - email: string (required, max 100 chars) - Institutional email address.
+    //   - role: string (required, 'admin' | 'superadmin') - Administrative privilege level.
+    //   - addedAt: timestamp (required, immutable) - Time when administrative privileges were granted.
+    //   - addedBy: string (required, max 128 chars) - UID of granting administrator.
+    //
+    // Access Policies:
+    //   - read: Administrators ONLY. Non-admins cannot inspect admin lists.
+    //   - write: Console / Admin SDK ONLY (`allow write: false`). No client-side promotion or modification.
+    //
+    // ---------------------------------------------------------------
+    // 3. Collection: /admin_requests/{requestId}
+    // ---------------------------------------------------------------
+    // Document ID: Unique request identifier.
+    //
+    // Schema & Constraints:
+    //   - requestId: string (required, immutable) - Identifier matching document ID.
+    //   - uid: string (required, immutable) - Applicant's Firebase Auth UID.
+    //   - userEmail: string (required, immutable) - Applicant's verified email.
+    //   - userName: string (required, immutable, 1-100 chars) - Applicant's full name.
+    //   - department: string (required, immutable, 1-100 chars) - Academic department.
+    //   - batch: string | null (optional, immutable, max 50 chars) - Academic cohort/batch.
+    //   - status: string (required, 'pending' | 'approved' | 'rejected').
+    //   - submittedAt: timestamp (required, immutable, request.time) - Time of submission.
+    //   - reviewedAt: timestamp | null (set by admin upon review).
+    //   - reviewedBy: string | null (UID of reviewing admin).
+    //   - reviewNotes: string | null (optional, max 1000 chars) - Administrative notes or feedback.
+    //
+    // Access Policies:
+    //   - read: Applicant (owner of `uid`) or administrators.
+    //   - create: Authenticated, email-verified applicant submitting a 'pending' request for their own UID.
+    //   - update: Administrators ONLY via positive allowlist (`status`, `reviewedAt`, `reviewedBy`, `reviewNotes`).
+    //   - delete: Administrators ONLY.
+    //
+    // ---------------------------------------------------------------
+    // 4. Collection: /admin_email_outbox/{requestId}
+    // ---------------------------------------------------------------
+    // Document ID: Firebase Authentication UID of the applicant (`requestId == request.auth.uid`).
+    //
+    // Schema & Constraints:
+    //   - uid: string (required, immutable) - Applicant UID matching document ID.
+    //   - userEmail: string (required, immutable) - Verified email from auth token.
+    //   - displayName: string (required, immutable, 1-100 chars) - Full scholarly name.
+    //   - department: string (required, immutable, 1-100 chars) - Academic department.
+    //   - designation: string (required, immutable, 1-100 chars) - Academic designation.
+    //   - program: string | null (optional, max 100 chars) - Academic program.
+    //   - batch: string | null (optional, max 50 chars) - Academic cohort/batch.
+    //   - researchInterests: list of strings (required, max 30 items) - Research domain tags.
+    //   - deliveryStatus: string (required, 'queued' | 'sending' | 'sent' | 'failed').
+    //   - createdAt: timestamp (required, immutable, request.time) - Queue timestamp.
+    //   - sentAt: timestamp | null (set when email is sent).
+    //   - attemptCount: int (required, >= 0, initially 0).
+    //   - lastAttemptAt: timestamp | null (set upon dispatch attempt).
+    //   - lastError: string | null (optional, max 1000 chars) - Dispatch error message.
+    //
+    // Access Policies:
+    //   - read: Notification service identity or administrators only.
+    //   - create: Authenticated email-verified applicant creating in an atomic batch with /users/{uid}.
+    //   - update: Notification service identity only via positive allowlist.
+    //   - delete: Administrators ONLY.
+    //
+    // ---------------------------------------------------------------
+    // 5. Collection: /notification_services/{serviceId}
+    // ---------------------------------------------------------------
+    // Document ID: Firebase Authentication UID of dedicated notification service accounts.
+    //
+    // Access Policies:
+    //   - read: Administrators or service account itself.
+    //   - write: Console / Admin SDK ONLY (`allow write: false`).
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    // Check if the request is from an authenticated user
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Check if the authenticated user has verified their email address
+    function isEmailVerified() {
+      return isAuthenticated() && request.auth.token.email_verified == true;
+    }
+
+    // Check if the authenticated user matches a given user ID
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Check if the authenticated user is registered in the administrators collection
+    function isAdmin() {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    // Check if the authenticated user has an approved profile in the users collection
+    function isApprovedUser() {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.approvalStatus == 'approved';
+    }
+
+    // Check if the authenticated user is registered in the notification services collection
+    function isNotificationService() {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/notification_services/$(request.auth.uid));
+    }
+
+    // Validate email format and bounded length
+    function isValidEmail(email) {
+      return email is string &&
+        email.size() >= 5 &&
+        email.size() <= 100 &&
+        email.matches('^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$');
+    }
+
+    // Validate non-empty bounded string
+    function isValidString(val, minLen, maxLen) {
+      return val is string &&
+        val.size() >= minLen &&
+        val.size() <= maxLen;
+    }
+
+    // Validate optional bounded string (missing, null, or string of bounded length)
+    function isOptionalString(data, field, maxLen) {
+      return !(field in data) ||
+        data[field] == null ||
+        (data[field] is string && data[field].size() <= maxLen);
+    }
+
+    // Validate optional timestamp field (missing, null, or timestamp)
+    function isOptionalTimestamp(data, field) {
+      return !(field in data) ||
+        data[field] == null ||
+        data[field] is timestamp;
+    }
+
+    // Validate list bounds
+    function isValidList(val, maxSize) {
+      return val is list && val.size() <= maxSize;
+    }
+
+    // Validate map bounds
+    function isValidMap(val, maxKeys) {
+      return val is map && val.keys().size() <= maxKeys;
+    }
+
+    // ===============================================================
+    // Domain Validators: Users Collection
+    // ===============================================================
+
+    // Enforce strict schema with no unauthorized or extra fields
+    function userHasOnlyAllowedFields(data) {
+      return data.keys().hasOnly([
+        'uid',
+        'email',
+        'displayName',
+        'photoURL',
+        'department',
+        'program',
+        'batch',
+        'studentId',
+        'designation',
+        'bio',
+        'researchInterests',
+        'socialLinks',
+        'approvalStatus',
+        'requestedAt',
+        'approvedAt',
+        'approvedBy',
+        'rejectionReason',
+        'createdAt',
+        'updatedAt'
+      ]);
+    }
+
+    // Verify all baseline required fields are present
+    function userHasRequiredFields(data) {
+      return data.keys().hasAll([
+        'uid',
+        'email',
+        'displayName',
+        'department',
+        'designation',
+        'researchInterests',
+        'approvalStatus',
+        'requestedAt',
+        'createdAt',
+        'updatedAt'
+      ]);
+    }
+
+    // Domain validator for /users/{userId} documents (called on BOTH create and update)
+    function isValidUserDoc(data) {
+      return userHasOnlyAllowedFields(data) &&
+        userHasRequiredFields(data) &&
+        isValidString(data.uid, 1, 128) &&
+        isValidEmail(data.email) &&
+        isValidString(data.displayName, 1, 100) &&
+        isOptionalString(data, 'photoURL', 500) &&
+        isValidString(data.department, 1, 100) &&
+        isOptionalString(data, 'program', 100) &&
+        isOptionalString(data, 'batch', 50) &&
+        isOptionalString(data, 'studentId', 50) &&
+        isValidString(data.designation, 1, 100) &&
+        isOptionalString(data, 'bio', 2000) &&
+        isValidList(data.researchInterests, 30) &&
+        (!( 'socialLinks' in data ) || data.socialLinks == null || isValidMap(data.socialLinks, 10)) &&
+        data.approvalStatus in ['pending', 'approved', 'rejected', 'suspended'] &&
+        data.requestedAt is timestamp &&
+        isOptionalTimestamp(data, 'approvedAt') &&
+        isOptionalString(data, 'approvedBy', 128) &&
+        isOptionalString(data, 'rejectionReason', 500) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    // ===============================================================
+    // Rules: Users Collection (/users/{userId})
+    // ===============================================================
+    match /users/{userId} {
+
+      // Read permissions (Stage 4 privacy hardening):
+      // 1. Document owner can always read their own profile.
+      // 2. Administrators can read any profile.
+      // 3. Other researchers NEVER read users/{uid} (it holds email and studentId);
+      //    they read the sanitised mirror at /public_profiles/{uid} instead.
+      allow read: if isOwner(userId) || isAdmin();
+
+      // Create permissions:
+      // 1. Must be authenticated with verified email.
+      // 2. Document ID and data.uid must match request.auth.uid.
+      // 3. Email must match auth token email.
+      // 4. Must not overwrite an existing document.
+      // 5. Initial approvalStatus must be strictly 'pending'.
+      // 6. Approval metadata must be null.
+      // 7. Timestamps must be set to request.time.
+      // 8. Strict schema and field constraints enforced via domain validator.
+      // 9. Mandatory matching notification outbox request created in the same atomic batch.
+      allow create: if isOwner(userId) &&
+        isEmailVerified() &&
+        !exists(/databases/$(database)/documents/users/$(userId)) &&
+        isValidUserDoc(request.resource.data) &&
+        request.resource.data.uid == userId &&
+        request.resource.data.email == request.auth.token.email &&
+        request.resource.data.approvalStatus == 'pending' &&
+        request.resource.data.approvedAt == null &&
+        request.resource.data.approvedBy == null &&
+        request.resource.data.rejectionReason == null &&
+        request.resource.data.createdAt == request.time &&
+        request.resource.data.updatedAt == request.time &&
+        request.resource.data.requestedAt == request.time &&
+        existsAfter(/databases/$(database)/documents/admin_email_outbox/$(userId)) &&
+        getAfter(/databases/$(database)/documents/admin_email_outbox/$(userId)).data.uid == userId &&
+        getAfter(/databases/$(database)/documents/admin_email_outbox/$(userId)).data.userEmail == request.auth.token.email &&
+        getAfter(/databases/$(database)/documents/admin_email_outbox/$(userId)).data.displayName == request.resource.data.displayName &&
+        getAfter(/databases/$(database)/documents/admin_email_outbox/$(userId)).data.department == request.resource.data.department &&
+        getAfter(/databases/$(database)/documents/admin_email_outbox/$(userId)).data.designation == request.resource.data.designation &&
+        getAfter(/databases/$(database)/documents/admin_email_outbox/$(userId)).data.program == request.resource.data.program &&
+        getAfter(/databases/$(database)/documents/admin_email_outbox/$(userId)).data.batch == request.resource.data.batch &&
+        getAfter(/databases/$(database)/documents/admin_email_outbox/$(userId)).data.researchInterests == request.resource.data.researchInterests &&
+        getAfter(/databases/$(database)/documents/admin_email_outbox/$(userId)).data.deliveryStatus == 'queued' &&
+        getAfter(/databases/$(database)/documents/admin_email_outbox/$(userId)).data.attemptCount == 0 &&
+        getAfter(/databases/$(database)/documents/admin_email_outbox/$(userId)).data.createdAt == request.time;
+
+      // Update permissions:
+      // Flow A: Owner updating their own editable profile details via explicit allowlist.
+      // Flow B: Administrator updating approval status and approval metadata via explicit allowlist.
+      // Flow C: Rejected owner corrects their application and resubmits (rejected -> pending).
+      // Flow D: Administrator corrects locked academic fields (no status change).
+      // Shared invariants are evaluated ONCE here (keeps evaluation well under the
+      // 1000-expression limit); each flow below only adds its own conditions.
+      allow update: if isValidUserDoc(request.resource.data) &&
+        request.resource.data.uid == resource.data.uid &&
+        request.resource.data.email == resource.data.email &&
+        request.resource.data.createdAt == resource.data.createdAt &&
+        request.resource.data.updatedAt == request.time &&
+        (isOwnerProfileUpdate(userId) ||
+          isOwnerResubmission(userId) ||
+          isAdminApprovalUpdate() ||
+          isAdminAcademicCorrection());
+
+      // Helper: Validates owner-initiated profile updates using an explicit positive allowlist
+      function isOwnerProfileUpdate(userId) {
+        return isOwner(userId) &&
+          request.resource.data.requestedAt == resource.data.requestedAt &&
+          (
+            // Pending applicants may edit every academic field.
+            (resource.data.approvalStatus == 'pending' &&
+              request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                'displayName',
+                'photoURL',
+                'department',
+                'program',
+                'batch',
+                'studentId',
+                'designation',
+                'bio',
+                'researchInterests',
+                'socialLinks',
+                'updatedAt'
+              ])) ||
+            // After approval, identity fields (department, designation, studentId,
+            // batch, program) are locked; only presentation fields stay editable.
+            (resource.data.approvalStatus in ['approved', 'suspended'] &&
+              request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                'displayName',
+                'photoURL',
+                'bio',
+                'researchInterests',
+                'socialLinks',
+                'updatedAt'
+              ]))
+          );
+      }
+
+      // Helper: Rejected applicant resubmits a corrected application (rejected -> pending).
+      // A fresh requestedAt is recorded and all previous review metadata is cleared.
+      function isOwnerResubmission(userId) {
+        return isOwner(userId) &&
+          isEmailVerified() &&
+          resource.data.approvalStatus == 'rejected' &&
+          request.resource.data.approvalStatus == 'pending' &&
+          request.resource.data.requestedAt == request.time &&
+          request.resource.data.approvedBy == null &&
+          request.resource.data.get('approvedAt', null) == null &&
+          request.resource.data.rejectionReason == null &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'displayName',
+            'photoURL',
+            'department',
+            'program',
+            'batch',
+            'studentId',
+            'designation',
+            'bio',
+            'researchInterests',
+            'socialLinks',
+            'approvalStatus',
+            'requestedAt',
+            'approvedBy',
+            'approvedAt',
+            'rejectionReason',
+            'updatedAt'
+          ]);
+      }
+
+      // Helper: Administrator corrects locked academic fields without changing status.
+      function isAdminAcademicCorrection() {
+        return isAdmin() &&
+          request.resource.data.requestedAt == resource.data.requestedAt &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'department',
+            'designation',
+            'studentId',
+            'batch',
+            'program',
+            'updatedAt'
+          ]);
+      }
+
+      // Helper: Enforces the exact 5 permitted administrator status transitions
+      function isValidAdminStatusTransition(prevStatus, nextStatus) {
+        return (
+          // Transition 1: pending -> approved
+          (prevStatus == 'pending' && nextStatus == 'approved' &&
+           request.resource.data.approvedBy == request.auth.uid &&
+           request.resource.data.approvedAt == request.time &&
+           request.resource.data.rejectionReason == null) ||
+
+          // Transition 2: pending -> rejected
+          (prevStatus == 'pending' && nextStatus == 'rejected' &&
+           request.resource.data.approvedBy == request.auth.uid &&
+           request.resource.data.approvedAt == null &&
+           isOptionalString(request.resource.data, 'rejectionReason', 500)) ||
+
+          // Transition 3: approved -> suspended (preserves established approval history)
+          (prevStatus == 'approved' && nextStatus == 'suspended' &&
+           request.resource.data.approvedBy == resource.data.approvedBy &&
+           request.resource.data.approvedAt == resource.data.approvedAt &&
+           request.resource.data.rejectionReason == resource.data.rejectionReason) ||
+
+          // Transition 4: suspended -> approved (Re-approval: records current admin & timestamp)
+          (prevStatus == 'suspended' && nextStatus == 'approved' &&
+           request.resource.data.approvedBy == request.auth.uid &&
+           request.resource.data.approvedAt == request.time &&
+           request.resource.data.rejectionReason == null) ||
+
+          // Transition 5: rejected -> approved (Re-consideration: records current admin & timestamp)
+          (prevStatus == 'rejected' && nextStatus == 'approved' &&
+           request.resource.data.approvedBy == request.auth.uid &&
+           request.resource.data.approvedAt == request.time &&
+           request.resource.data.rejectionReason == null)
+        );
+      }
+
+      // Helper: Validates administrator-initiated status and review updates using an explicit positive allowlist
+      function isAdminApprovalUpdate() {
+        return isAdmin() &&
+          request.resource.data.requestedAt == resource.data.requestedAt &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'approvalStatus',
+            'approvedAt',
+            'approvedBy',
+            'rejectionReason',
+            'updatedAt'
+          ]) &&
+          isValidAdminStatusTransition(resource.data.approvalStatus, request.resource.data.approvalStatus);
+      }
+
+      // Delete permissions: Administrators only. Ordinary users cannot delete profiles.
+      allow delete: if isAdmin();
+    }
+
+    // ===============================================================
+    // Rules: Administrators Collection (/admins/{adminId})
+    // ===============================================================
+    match /admins/{adminId} {
+      // Only administrators can read the admin collection
+      allow read: if isAdmin();
+
+      // Client-side administrator creation, modification, and deletion are disabled.
+      // The initial administrator and any subsequent administrators must be
+      // provisioned manually in Firebase Console or via trusted Firebase Admin SDK.
+      allow write: if false;
+    }
+
+    // ===============================================================
+    // Domain Validators: Admin Requests Collection
+    // ===============================================================
+
+    function adminRequestHasOnlyAllowedFields(data) {
+      return data.keys().hasOnly([
+        'requestId',
+        'uid',
+        'userEmail',
+        'userName',
+        'department',
+        'batch',
+        'status',
+        'submittedAt',
+        'reviewedAt',
+        'reviewedBy',
+        'reviewNotes'
+      ]);
+    }
+
+    function adminRequestHasRequiredFields(data) {
+      return data.keys().hasAll([
+        'requestId',
+        'uid',
+        'userEmail',
+        'userName',
+        'department',
+        'status',
+        'submittedAt'
+      ]);
+    }
+
+    // Domain validator for /admin_requests/{requestId} documents
+    function isValidAdminRequestDoc(data) {
+      return adminRequestHasOnlyAllowedFields(data) &&
+        adminRequestHasRequiredFields(data) &&
+        isValidString(data.requestId, 1, 128) &&
+        isValidString(data.uid, 1, 128) &&
+        isValidEmail(data.userEmail) &&
+        isValidString(data.userName, 1, 100) &&
+        isValidString(data.department, 1, 100) &&
+        isOptionalString(data, 'batch', 50) &&
+        data.status in ['pending', 'approved', 'rejected'] &&
+        data.submittedAt is timestamp &&
+        isOptionalTimestamp(data, 'reviewedAt') &&
+        isOptionalString(data, 'reviewedBy', 128) &&
+        isOptionalString(data, 'reviewNotes', 1000);
+    }
+
+    // ===============================================================
+    // Rules: Admin Requests Collection (/admin_requests/{requestId})
+    // ===============================================================
+    match /admin_requests/{requestId} {
+      // Applicant can read their own request; administrators can read all requests
+      allow read: if (isAuthenticated() && resource.data.uid == request.auth.uid) || isAdmin();
+
+      // Email-verified user can submit an admin request for their own account
+      allow create: if isAuthenticated() &&
+        isEmailVerified() &&
+        !exists(/databases/$(database)/documents/admin_requests/$(requestId)) &&
+        isValidAdminRequestDoc(request.resource.data) &&
+        request.resource.data.requestId == requestId &&
+        request.resource.data.uid == request.auth.uid &&
+        request.resource.data.userEmail == request.auth.token.email &&
+        request.resource.data.status == 'pending' &&
+        request.resource.data.submittedAt == request.time &&
+        request.resource.data.reviewedAt == null &&
+        request.resource.data.reviewedBy == null;
+
+      // Only administrators can review / update admin requests via an explicit positive allowlist.
+      // Once reviewed, a request cannot be reviewed again or have its status reversed.
+      allow update: if isAdmin() &&
+        resource.data.status == 'pending' &&
+        isValidAdminRequestDoc(request.resource.data) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status',
+          'reviewedAt',
+          'reviewedBy',
+          'reviewNotes'
+        ]) &&
+        request.resource.data.requestId == resource.data.requestId &&
+        request.resource.data.uid == resource.data.uid &&
+        request.resource.data.userEmail == resource.data.userEmail &&
+        request.resource.data.userName == resource.data.userName &&
+        request.resource.data.department == resource.data.department &&
+        request.resource.data.submittedAt == resource.data.submittedAt &&
+        request.resource.data.reviewedAt == request.time &&
+        request.resource.data.reviewedBy == request.auth.uid &&
+        request.resource.data.status in ['approved', 'rejected'];
+
+      // Only administrators can delete admin requests
+      allow delete: if isAdmin();
+    }
+
+    // ===============================================================
+    // Domain Validators: Admin Email Notification Outbox
+    // ===============================================================
+
+    function outboxHasOnlyAllowedFields(data) {
+      return data.keys().hasOnly([
+        'uid',
+        'userEmail',
+        'displayName',
+        'department',
+        'designation',
+        'program',
+        'batch',
+        'researchInterests',
+        'deliveryStatus',
+        'createdAt',
+        'sentAt',
+        'attemptCount',
+        'lastAttemptAt',
+        'lastError'
+      ]);
+    }
+
+    function outboxHasRequiredFields(data) {
+      return data.keys().hasAll([
+        'uid',
+        'userEmail',
+        'displayName',
+        'department',
+        'designation',
+        'researchInterests',
+        'deliveryStatus',
+        'createdAt',
+        'attemptCount'
+      ]);
+    }
+
+    // Domain validator for /admin_email_outbox/{requestId} documents
+    function isValidOutboxDoc(data) {
+      return outboxHasOnlyAllowedFields(data) &&
+        outboxHasRequiredFields(data) &&
+        isValidString(data.uid, 1, 128) &&
+        isValidEmail(data.userEmail) &&
+        isValidString(data.displayName, 1, 100) &&
+        isValidString(data.department, 1, 100) &&
+        isValidString(data.designation, 1, 100) &&
+        isOptionalString(data, 'program', 100) &&
+        isOptionalString(data, 'batch', 50) &&
+        isValidList(data.researchInterests, 30) &&
+        data.deliveryStatus in ['queued', 'sending', 'sent', 'failed'] &&
+        data.createdAt is timestamp &&
+        isOptionalTimestamp(data, 'sentAt') &&
+        data.attemptCount is int && data.attemptCount >= 0 &&
+        isOptionalTimestamp(data, 'lastAttemptAt') &&
+        isOptionalString(data, 'lastError', 1000);
+    }
+
+    // ===============================================================
+    // Rules: Admin Email Notification Outbox (/admin_email_outbox/{requestId})
+    // ===============================================================
+    match /admin_email_outbox/{requestId} {
+      // Read permissions: Notification service identity or administrators only.
+      // Ordinary applicants cannot inspect, read, or list outbox records.
+      allow read: if isNotificationService() || isAdmin();
+
+      // Create permissions:
+      // 1. Must be authenticated with verified email.
+      // 2. Document ID and data.uid must match request.auth.uid.
+      // 3. Email must match auth token email.
+      // 4. Must not overwrite an existing outbox document.
+      // 5. Initial deliveryStatus must be strictly 'queued'.
+      // 6. attemptCount must be 0.
+      // 7. sentAt, lastAttemptAt, and lastError must be null.
+      // 8. createdAt must equal request.time.
+      // 9. Atomic verification: A corresponding pending profile in /users/{requestId}
+      //    must be created in the same atomic batch, matching all applicant details.
+      allow create: if isOwner(requestId) &&
+        isEmailVerified() &&
+        !exists(/databases/$(database)/documents/admin_email_outbox/$(requestId)) &&
+        isValidOutboxDoc(request.resource.data) &&
+        request.resource.data.uid == requestId &&
+        request.resource.data.userEmail == request.auth.token.email &&
+        request.resource.data.deliveryStatus == 'queued' &&
+        request.resource.data.attemptCount == 0 &&
+        request.resource.data.sentAt == null &&
+        request.resource.data.lastAttemptAt == null &&
+        request.resource.data.lastError == null &&
+        request.resource.data.createdAt == request.time &&
+        existsAfter(/databases/$(database)/documents/users/$(requestId)) &&
+        getAfter(/databases/$(database)/documents/users/$(requestId)).data.approvalStatus == 'pending' &&
+        getAfter(/databases/$(database)/documents/users/$(requestId)).data.uid == requestId &&
+        getAfter(/databases/$(database)/documents/users/$(requestId)).data.email == request.auth.token.email &&
+        getAfter(/databases/$(database)/documents/users/$(requestId)).data.displayName == request.resource.data.displayName &&
+        getAfter(/databases/$(database)/documents/users/$(requestId)).data.department == request.resource.data.department &&
+        getAfter(/databases/$(database)/documents/users/$(requestId)).data.designation == request.resource.data.designation &&
+        getAfter(/databases/$(database)/documents/users/$(requestId)).data.program == request.resource.data.program &&
+        getAfter(/databases/$(database)/documents/users/$(requestId)).data.batch == request.resource.data.batch &&
+        getAfter(/databases/$(database)/documents/users/$(requestId)).data.researchInterests == request.resource.data.researchInterests;
+
+      // Update permissions:
+      // Notification service bot only, updating delivery status and delivery metadata via positive allowlist.
+      // Ordinary applicants cannot update or mark notifications as sent.
+      allow update: if isNotificationService() &&
+        isValidOutboxDoc(request.resource.data) &&
+        request.resource.data.uid == resource.data.uid &&
+        request.resource.data.userEmail == resource.data.userEmail &&
+        request.resource.data.displayName == resource.data.displayName &&
+        request.resource.data.department == resource.data.department &&
+        request.resource.data.designation == resource.data.designation &&
+        request.resource.data.createdAt == resource.data.createdAt &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'deliveryStatus',
+          'sentAt',
+          'attemptCount',
+          'lastAttemptAt',
+          'lastError'
+        ]);
+
+      // Delete permissions: Administrators only. Applicants cannot delete outbox records.
+      allow delete: if isAdmin();
+    }
+
+    // ===============================================================
+    // Rules: Notification Services Collection (/notification_services/{serviceId})
+    // ===============================================================
+    match /notification_services/{serviceId} {
+      // Read permissions: Only administrators or the service account itself can read
+      allow read: if isAdmin() || (isAuthenticated() && request.auth.uid == serviceId && isNotificationService());
+
+      // Client-side creation, modification, and deletion are disabled.
+      // Service identities must be provisioned via Firebase Console or Admin SDK.
+      allow write: if false;
+    }
+
+    // ===============================================================
+    // Domain Validators: Research Works Collection
+    // ===============================================================
+    //
+    // /research_works/{workId} — shared current research (auto-generated ID).
+    //   - authorUid: string (immutable) - Author's Firebase Auth UID.
+    //   - authorName / authorPhotoURL / authorDepartment / authorDesignation:
+    //       author snapshot (immutable), must equal users/{authorUid} at creation.
+    //   - title: string (3-200), description: string (20-5000).
+    //   - tags: list (max 10), stage: 'Idea' | 'Literature Review' | 'Experiment' | 'Writing'.
+    //   - externalUrl: http(s) string (max 500) | null.
+    //   - status: 'published' (approved researchers can read) | 'draft' (author only).
+    //   - createdAt (immutable) / updatedAt: request.time.
+
+    function researchWorkHasValidKeys(data) {
+      return data.keys().hasOnly([
+        'authorUid',
+        'authorName',
+        'authorPhotoURL',
+        'authorDepartment',
+        'authorDesignation',
+        'title',
+        'description',
+        'tags',
+        'stage',
+        'externalUrl',
+        'status',
+        'createdAt',
+        'updatedAt'
+      ]) && data.keys().hasAll([
+        'authorUid',
+        'authorName',
+        'authorPhotoURL',
+        'authorDepartment',
+        'authorDesignation',
+        'title',
+        'description',
+        'tags',
+        'stage',
+        'externalUrl',
+        'status',
+        'createdAt',
+        'updatedAt'
+      ]);
+    }
+
+    function isValidResearchWork(data) {
+      return researchWorkHasValidKeys(data) &&
+        isValidString(data.authorUid, 1, 128) &&
+        isValidString(data.authorName, 1, 100) &&
+        (data.authorPhotoURL == null || isValidString(data.authorPhotoURL, 1, 500)) &&
+        isValidString(data.authorDepartment, 1, 100) &&
+        isValidString(data.authorDesignation, 1, 100) &&
+        isValidString(data.title, 3, 200) &&
+        isValidString(data.description, 20, 5000) &&
+        isValidList(data.tags, 10) &&
+        data.stage in ['Idea', 'Literature Review', 'Experiment', 'Writing'] &&
+        (data.externalUrl == null ||
+          (isValidString(data.externalUrl, 8, 500) && data.externalUrl.matches('^https?://.+'))) &&
+        data.status in ['published', 'draft'] &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    // ===============================================================
+    // Rules: Research Works Collection (/research_works/{workId})
+    // ===============================================================
+    match /research_works/{workId} {
+      // Read: author always; administrators; approved researchers for published work only.
+      // Queries must be constrained (status == 'published' or authorUid == uid).
+      allow read: if isAdmin() ||
+        (isAuthenticated() && resource.data.authorUid == request.auth.uid) ||
+        (resource.data.status == 'published' && isApprovedUser());
+
+      // Create: approved researchers only, for themselves, with an author snapshot
+      // that matches their own profile, and server timestamps.
+      allow create: if isApprovedUser() &&
+        isValidResearchWork(request.resource.data) &&
+        request.resource.data.authorUid == request.auth.uid &&
+        request.resource.data.authorName ==
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.displayName &&
+        request.resource.data.authorDepartment ==
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.department &&
+        request.resource.data.authorDesignation ==
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.designation &&
+        request.resource.data.authorPhotoURL ==
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('photoURL', null) &&
+        request.resource.data.createdAt == request.time &&
+        request.resource.data.updatedAt == request.time;
+
+      // Update: the (still approved) author may edit content fields and status only.
+      allow update: if isApprovedUser() &&
+        resource.data.authorUid == request.auth.uid &&
+        isValidResearchWork(request.resource.data) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'title',
+          'description',
+          'tags',
+          'stage',
+          'externalUrl',
+          'status',
+          'updatedAt'
+        ]) &&
+        request.resource.data.updatedAt == request.time;
+
+      // Delete: the author or an administrator.
+      allow delete: if isAdmin() ||
+        (isAuthenticated() && resource.data.authorUid == request.auth.uid);
+    }
+
+    // ===============================================================
+    // Rules: Public Profiles (/public_profiles/{uid})  — Stage 4
+    // ===============================================================
+    //
+    // Sanitised directory mirror of an APPROVED users/{uid} document.
+    // Contains no email, studentId or review metadata. Written in the same
+    // batch as the users/{uid} change that it mirrors (validated via getAfter):
+    //   - by an administrator on approve / reinstate / academic correction;
+    //   - by the approved owner when they edit their profile.
+    // Removed by an administrator when a researcher is suspended.
+    function publicProfileMirrorsUser(uid, d) {
+      let u = getAfter(/databases/$(database)/documents/users/$(uid)).data;
+      return d.keys().hasOnly([
+          'uid', 'displayName', 'photoURL', 'department', 'program', 'batch',
+          'designation', 'bio', 'researchInterests', 'socialLinks', 'updatedAt'
+        ]) &&
+        d.keys().hasAll([
+          'uid', 'displayName', 'photoURL', 'department', 'program', 'batch',
+          'designation', 'bio', 'researchInterests', 'socialLinks', 'updatedAt'
+        ]) &&
+        u.approvalStatus == 'approved' &&
+        d.uid == uid &&
+        d.displayName == u.displayName &&
+        d.photoURL == u.get('photoURL', null) &&
+        d.department == u.department &&
+        d.program == u.get('program', null) &&
+        d.batch == u.get('batch', null) &&
+        d.designation == u.designation &&
+        d.bio == u.get('bio', null) &&
+        d.researchInterests == u.researchInterests &&
+        d.socialLinks == u.get('socialLinks', {}) &&
+        d.updatedAt == request.time;
+    }
+
+    match /public_profiles/{uid} {
+      allow read: if isApprovedUser() || isAdmin();
+      allow create, update: if (isAdmin() || isOwner(uid)) &&
+        publicProfileMirrorsUser(uid, request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    // ===============================================================
+    // Networking Helpers (Stage 3)
+    // ===============================================================
+
+    // True when the given UID has an approved profile.
+    function isApprovedUid(uid) {
+      return exists(/databases/$(database)/documents/users/$(uid)) &&
+        get(/databases/$(database)/documents/users/$(uid)).data.approvalStatus == 'approved';
+    }
+
+    // Participant snapshot must exactly mirror users/{uid}.
+    function participantMatchesProfile(p, uid) {
+      let profile = get(/databases/$(database)/documents/users/$(uid)).data;
+      return p is map &&
+        p.keys().hasOnly(['uid', 'displayName', 'photoURL', 'designation']) &&
+        p.keys().hasAll(['uid', 'displayName', 'photoURL', 'designation']) &&
+        p.uid == uid &&
+        p.displayName == profile.displayName &&
+        p.designation == profile.designation &&
+        p.photoURL == profile.get('photoURL', null);
+    }
+
+    // ===============================================================
+    // Rules: Connections (/connections/{connectionId})
+    // ===============================================================
+    //
+    // One document per researcher pair. ID = `${smallerUid}_${largerUid}`, so a
+    // duplicate request in either direction is an update (denied), never a create.
+    //   - users: [smallerUid, largerUid]; requesterUid / recipientUid.
+    //   - requester / recipient: participant snapshots (validated).
+    //   - status: 'pending' -> 'accepted' | 'rejected' (recipient only).
+    //   - createdAt / updatedAt / respondedAt: request.time.
+    function isValidConnectionCreate(connectionId, d) {
+      return d.keys().hasOnly([
+          'users', 'requesterUid', 'recipientUid', 'requester', 'recipient',
+          'status', 'createdAt', 'updatedAt', 'respondedAt'
+        ]) &&
+        d.keys().hasAll([
+          'users', 'requesterUid', 'recipientUid', 'requester', 'recipient',
+          'status', 'createdAt', 'updatedAt', 'respondedAt'
+        ]) &&
+        d.requesterUid == request.auth.uid &&
+        d.recipientUid is string &&
+        d.recipientUid != request.auth.uid &&
+        isApprovedUid(d.recipientUid) &&
+        connectionId == (d.requesterUid < d.recipientUid
+          ? d.requesterUid + '_' + d.recipientUid
+          : d.recipientUid + '_' + d.requesterUid) &&
+        d.users == (d.requesterUid < d.recipientUid
+          ? [d.requesterUid, d.recipientUid]
+          : [d.recipientUid, d.requesterUid]) &&
+        d.status == 'pending' &&
+        d.respondedAt == null &&
+        d.createdAt == request.time &&
+        d.updatedAt == request.time &&
+        participantMatchesProfile(d.requester, d.requesterUid) &&
+        participantMatchesProfile(d.recipient, d.recipientUid);
+    }
+
+    match /connections/{connectionId} {
+      // Only the two participants can read (queries: users array-contains uid).
+      allow read: if isAuthenticated() && request.auth.uid in resource.data.users;
+
+      // Approved researcher sends a request to another approved researcher.
+      allow create: if isApprovedUser() &&
+        isValidConnectionCreate(connectionId, request.resource.data);
+
+      // Only the recipient answers a pending request.
+      allow update: if isApprovedUser() &&
+        resource.data.recipientUid == request.auth.uid &&
+        resource.data.status == 'pending' &&
+        request.resource.data.status in ['accepted', 'rejected'] &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['status', 'respondedAt', 'updatedAt']) &&
+        request.resource.data.respondedAt == request.time &&
+        request.resource.data.updatedAt == request.time;
+
+      // Participants may cancel a pending request or remove a connection.
+      // A rejected request can only be cleared by its recipient (prevents re-request spam).
+      allow delete: if isAuthenticated() &&
+        request.auth.uid in resource.data.users &&
+        (resource.data.status != 'rejected' || resource.data.recipientUid == request.auth.uid);
+    }
+
+    // ===============================================================
+    // Rules: In-App Notifications (/notifications/{notificationId})
+    // ===============================================================
+    //
+    // Created by the acting researcher in the SAME batch as the connection change
+    // they describe (verified with get/getAfter), so they cannot be forged or spammed.
+    //   - recipientUid, actorUid, actorName, actorPhotoURL (validated snapshot).
+    //   - type: 'connection_request' | 'connection_accepted'; connectionId.
+    //   - read: false on create; recipient may only flip it to true.
+    function isValidNotificationCreate(d) {
+      let connPath = /databases/$(database)/documents/connections/$(d.connectionId);
+      let actor = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      return d.keys().hasOnly([
+          'recipientUid', 'actorUid', 'actorName', 'actorPhotoURL',
+          'type', 'connectionId', 'read', 'createdAt'
+        ]) &&
+        d.keys().hasAll([
+          'recipientUid', 'actorUid', 'actorName', 'actorPhotoURL',
+          'type', 'connectionId', 'read', 'createdAt'
+        ]) &&
+        d.actorUid == request.auth.uid &&
+        d.recipientUid is string &&
+        d.recipientUid != request.auth.uid &&
+        d.connectionId is string &&
+        d.actorName == actor.displayName &&
+        d.actorPhotoURL == actor.get('photoURL', null) &&
+        d.read == false &&
+        d.createdAt == request.time &&
+        (
+          // New request: the connection is created in this same batch.
+          (d.type == 'connection_request' &&
+            !exists(connPath) &&
+            getAfter(connPath).data.status == 'pending' &&
+            getAfter(connPath).data.requesterUid == request.auth.uid &&
+            getAfter(connPath).data.recipientUid == d.recipientUid) ||
+          // Acceptance: the connection moves pending -> accepted in this same batch.
+          (d.type == 'connection_accepted' &&
+            get(connPath).data.status == 'pending' &&
+            getAfter(connPath).data.status == 'accepted' &&
+            getAfter(connPath).data.recipientUid == request.auth.uid &&
+            getAfter(connPath).data.requesterUid == d.recipientUid)
+        );
+    }
+
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated() && resource.data.recipientUid == request.auth.uid;
+
+      allow create: if isApprovedUser() && isValidNotificationCreate(request.resource.data);
+
+      // Recipient may only mark as read.
+      allow update: if isAuthenticated() &&
+        resource.data.recipientUid == request.auth.uid &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']) &&
+        request.resource.data.read == true;
+
+      allow delete: if isAuthenticated() && resource.data.recipientUid == request.auth.uid;
+    }
+
+    // ===============================================================
+    // Rules: Saved Items (/users/{userId}/saved_items/{workId})
+    // ===============================================================
+    //
+    // Private bookmarks. Document ID = workId (one bookmark per work).
+    // The snapshot must mirror a research work the owner is allowed to read.
+    function isValidSavedItemCreate(workId, d) {
+      let workPath = /databases/$(database)/documents/research_works/$(workId);
+      let work = get(workPath).data;
+      return d.keys().hasOnly(['workId', 'workTitle', 'workAuthorUid', 'workAuthorName', 'workStage', 'savedAt']) &&
+        d.keys().hasAll(['workId', 'workTitle', 'workAuthorUid', 'workAuthorName', 'workStage', 'savedAt']) &&
+        d.workId == workId &&
+        d.savedAt == request.time &&
+        exists(workPath) &&
+        (work.status == 'published' || work.authorUid == request.auth.uid) &&
+        d.workTitle == work.title &&
+        d.workAuthorUid == work.authorUid &&
+        d.workAuthorName == work.authorName &&
+        d.workStage == work.stage;
+    }
+
+    match /users/{userId}/saved_items/{workId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) &&
+        isApprovedUser() &&
+        isValidSavedItemCreate(workId, request.resource.data);
+      allow update: if false;
+      allow delete: if isOwner(userId);
+    }
+
+    // ===============================================================
+    // Default Deny Rule
+    // ===============================================================
+    // Deny read and write access to all other paths by default.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

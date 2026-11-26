@@ -15,6 +15,7 @@ import {
 } from '@expo-google-fonts/source-serif-4';
 import { ThemeProvider, useTheme } from '@/context/ThemeContext';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { ToastProvider } from '@/context/ToastContext';
 
 // Keep the native splash screen visible while fonts load
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -171,11 +172,13 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <ThemeProvider>
-        <AuthProvider>
-          <AuthGuard>
-            <RootNavigation />
-          </AuthGuard>
-        </AuthProvider>
+        <ToastProvider>
+          <AuthProvider>
+            <AuthGuard>
+              <RootNavigation />
+            </AuthGuard>
+          </AuthProvider>
+        </ToastProvider>
       </ThemeProvider>
     </SafeAreaProvider>
   );

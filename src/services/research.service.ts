@@ -28,6 +28,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 import { buildResearchWorkDocument } from '@/utils/researchWork';
+import { formatRelativeDate } from '@/utils/date';
 import type { UserProfile } from '@/types/user.types';
 import type { ResearchWork, CreateResearchWorkInput } from '@/types/research.types';
 import type { CurrentWork } from '@/types';
@@ -60,6 +61,8 @@ function toResearchWork(snap: DocumentSnapshot<DocumentData>): ResearchWork | nu
     stage: data.stage ?? 'Idea',
     externalUrl: data.externalUrl ?? null,
     status: data.status ?? 'published',
+    postType: data.postType === 'collaboration' ? 'collaboration' : 'work',
+    lookingFor: Array.isArray(data.lookingFor) ? data.lookingFor : [],
     createdAt: data.createdAt,
     updatedAt: data.updatedAt,
   };
@@ -229,6 +232,8 @@ export function toCurrentWork(work: ResearchWork): CurrentWork {
     topics: work.tags,
     stage: work.stage,
     externalURL: work.externalUrl ?? undefined,
+    postType: work.postType,
+    lookingFor: work.lookingFor,
     likesCount: 0,
     commentsCount: 0,
     createdAt: created,
@@ -238,15 +243,5 @@ export function toCurrentWork(work: ResearchWork): CurrentWork {
 
 /** Human-readable relative date, e.g. "Just now", "3h ago", "12 Nov 2026". */
 export function formatWorkDate(value: ResearchWork['createdAt'] | undefined): string {
-  const ms = toMillis(value);
-  if (!ms) return 'Just now';
-  const diff = Date.now() - ms;
-  const minutes = Math.floor(diff / 60000);
-  if (minutes < 1) return 'Just now';
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d ago`;
-  return new Date(ms).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+  return formatRelativeDate(value);
 }

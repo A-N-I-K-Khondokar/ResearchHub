@@ -32,6 +32,7 @@
     "expo-router": "~4.0.17",
     "expo-splash-screen": "~0.29.21",
     "expo-status-bar": "~2.0.1",
+    "expo-system-ui": "~4.0.9",
     "expo-web-browser": "~14.0.2",
     "firebase": "^13.1.0",
     "lucide-react-native": "^0.475.0",

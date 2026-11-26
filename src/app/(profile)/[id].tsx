@@ -16,6 +16,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/context/AuthContext';
 import { TopicChip } from '../../components/common/TopicChip';
 import { ScreenHeader } from '../../components/layout/ScreenHeader';
+import { ProfileSkeleton } from '../../components/feedback/Skeleton';
 import {
   ProfileHero,
   HeroActionButton,
@@ -28,7 +29,7 @@ import {
 import { getPublicProfile } from '@/services/user.service';
 import { getPublishedWorksByAuthor } from '@/services/research.service';
 import { useConnections } from '@/hooks/useConnections';
-import { showMessage } from '@/utils/dialogs';
+import { useToast } from '@/context/ToastContext';
 import type { PublicProfile } from '@/types/user.types';
 import type { ResearchWork } from '@/types/research.types';
 
@@ -48,6 +49,7 @@ export default function ResearcherProfileScreen() {
   const { colors } = useTheme();
   const { firebaseUser } = useAuth();
   const { relationship, handleConnectPress, busyUid } = useConnections();
+  const toast = useToast();
 
   const [profile, setProfile] = useState<PublicProfile | null>(null);
   const [works, setWorks] = useState<ResearchWork[]>([]);
@@ -106,10 +108,10 @@ export default function ResearcherProfileScreen() {
           label: LINK_LABELS[key] ?? key,
           icon: iconFor(key),
           trailing: 'external' as const,
-          onPress: () => Linking.openURL(url).catch(() => showMessage('Link Error', `Unable to open: ${url}`)),
+          onPress: () => Linking.openURL(url).catch(() => toast.show('Unable to open this link', 'error')),
         };
       });
-  }, [profile?.socialLinks, colors.primary]);
+  }, [profile?.socialLinks, colors.primary, toast]);
 
   const renderConnectAction = () => {
     if (!profile) return null;
@@ -138,9 +140,7 @@ export default function ResearcherProfileScreen() {
       <ScreenHeader title="Researcher Profile" />
 
       {state === 'loading' ? (
-        <View style={styles.centered}>
-          <ActivityIndicator color={colors.primary} />
-        </View>
+        <ProfileSkeleton />
       ) : state !== 'ready' || !profile ? (
         <View style={styles.centered}>
           <View style={[styles.iconContainer, { backgroundColor: colors.primaryMuted }]}>

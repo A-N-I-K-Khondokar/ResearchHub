@@ -1998,4 +1998,70 @@ describe('Firestore Security Rules Suite — CSE Research Hub', () => {
         buildOwnerPublicProfile(PAUL_SOURCE, serverTimestamp())));
     });
   });
+  // -------------------------------------------------------------------------
+  // 14. Collaboration posts (TEST-151 to TEST-156)
+  // -------------------------------------------------------------------------
+  describe('14. Collaboration Posts', () => {
+    const ctx = (uid, email) =>
+      testEnv.authenticatedContext(uid, { email, email_verified: true }).firestore();
+    const charlieDb = () => ctx(CHARLIE_UID, CHARLIE_EMAIL);
+    const CHARLIE_AUTHOR = {
+      uid: CHARLIE_UID, displayName: 'Charlie Approved', photoURL: null,
+      department: 'Computer Science and Engineering', designation: 'Graduate Researcher',
+    };
+    const COLLAB = {
+      title: 'Seeking collaborators for Bangla OCR', description: 'Looking for teammates to build a Bangla handwriting OCR dataset and model.',
+      tags: ['#BanglaNLP'], stage: 'Idea', externalUrl: null,
+      postType: 'collaboration', lookingFor: ['Data Annotation', '#MLEngineer', '#mlengineer'],
+    };
+    const build = (input = COLLAB, ts = serverTimestamp()) => buildResearchWorkDocument(CHARLIE_AUTHOR, input, ts);
+
+    it('TEST-151: Approved researcher publishes a collaboration post (builder payload) → ALLOW', async () => {
+      const work = build();
+      assert.equal(work.postType, 'collaboration');
+      assert.deepEqual(work.lookingFor, ['#DataAnnotation', '#MLEngineer']);
+      await assertSucceeds(setDoc(doc(collection(charlieDb(), 'research_works')), work));
+    });
+
+    it('TEST-152: Collaboration post without any lookingFor roles → DENY', async () => {
+      await assertFails(setDoc(doc(collection(charlieDb(), 'research_works')), build({ ...COLLAB, lookingFor: [] })));
+    });
+
+    it('TEST-153: Unknown postType or more than 10 roles → DENY', async () => {
+      const db = charlieDb();
+      await assertFails(setDoc(doc(collection(db, 'research_works')), { ...build(), postType: 'advert' }));
+      await assertFails(setDoc(doc(collection(db, 'research_works')), {
+        ...build(), lookingFor: Array.from({ length: 11 }, (_, i) => `#Role${i}`),
+      }));
+    });
+
+    it('TEST-154: Plain work post keeps the legacy shape (no postType field) → ALLOW', async () => {
+      const work = build({ ...COLLAB, postType: 'work', lookingFor: ['ignored'] });
+      assert.equal('postType' in work, false);
+      assert.equal('lookingFor' in work, false);
+      await assertSucceeds(setDoc(doc(collection(charlieDb(), 'research_works')), work));
+    });
+
+    it('TEST-155: Author updates lookingFor → ALLOW; author changes postType → DENY', async () => {
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        await setDoc(doc(context.firestore(), 'research_works', 'collab_1'), build(COLLAB, Timestamp.now()));
+      });
+      const ref = doc(charlieDb(), 'research_works', 'collab_1');
+      await assertSucceeds(updateDoc(ref, { lookingFor: ['#FrontendDeveloper'], updatedAt: serverTimestamp() }));
+      await assertFails(updateDoc(ref, { postType: 'work', updatedAt: serverTimestamp() }));
+    });
+
+    it('TEST-156: Feed query returns collaboration and work posts together → ALLOW', async () => {
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        const db = context.firestore();
+        await setDoc(doc(db, 'research_works', 'collab_2'), build(COLLAB, Timestamp.now()));
+        await setDoc(doc(db, 'research_works', 'work_2'), build({ ...COLLAB, postType: 'work' }, Timestamp.now()));
+      });
+      const snap = await assertSucceeds(getDocs(query(
+        collection(charlieDb(), 'research_works'), where('status', '==', 'published'),
+        orderBy('createdAt', 'desc'), limit(20),
+      )));
+      assert.deepEqual(snap.docs.map((d) => d.id).sort(), ['collab_2', 'work_2']);
+    });
+  });
 });

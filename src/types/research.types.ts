@@ -19,6 +19,12 @@ export type ResearchStage = (typeof RESEARCH_STAGE_IDS)[number];
  */
 export type ResearchWorkStatus = 'published' | 'draft';
 
+/**
+ * `work`          — sharing current research (default; legacy docs have no field).
+ * `collaboration` — looking for collaborators; carries `lookingFor` skills/roles.
+ */
+export type ResearchPostType = 'work' | 'collaboration';
+
 /** Persisted document at `research_works/{workId}`. */
 export interface ResearchWork {
   id: string;
@@ -43,6 +49,11 @@ export interface ResearchWork {
   externalUrl: string | null;
   status: ResearchWorkStatus;
 
+  /** Post kind; documents written before this field existed are `work`. */
+  postType: ResearchPostType;
+  /** Skills / roles wanted (collaboration posts only, max 10), e.g. `#BackendDeveloper`. */
+  lookingFor: string[];
+
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -55,6 +66,8 @@ export interface CreateResearchWorkInput {
   stage: ResearchStage;
   externalUrl?: string | null;
   status?: ResearchWorkStatus;
+  postType?: ResearchPostType;
+  lookingFor?: string[];
 }
 
 /** Validation limits shared by the UI, the payload builder and the rules. */
@@ -66,4 +79,5 @@ export const RESEARCH_LIMITS = {
   tagsMax: 10,
   tagMax: 40,
   urlMax: 500,
+  lookingForMax: 10,
 } as const;

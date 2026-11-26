@@ -11,6 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Bookmark, Layers, Trash2 } from 'lucide-react-native';
 import { ScreenHeader } from '../../components/layout/ScreenHeader';
+import { SkeletonList } from '../../components/feedback/Skeleton';
 import { spacing, radius, typography, fontFamilies } from '../../constants';
 import { useTheme } from '@/hooks/useTheme';
 import { useSavedItems } from '@/hooks/useSavedItems';
@@ -27,8 +28,8 @@ export default function SavedItemsScreen() {
       <ScreenHeader title="Saved Items" />
 
       {loading ? (
-        <View style={styles.centered}>
-          <ActivityIndicator color={colors.primary} />
+        <View style={styles.list}>
+          <SkeletonList count={4} variant="row" />
         </View>
       ) : error ? (
         <View style={styles.centered}>

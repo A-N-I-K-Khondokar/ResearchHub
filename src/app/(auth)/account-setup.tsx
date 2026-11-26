@@ -30,11 +30,12 @@ import {
   Building2,
   Check,
 } from 'lucide-react-native';
-import { ScreenContainer, Button, Avatar } from '@/components';
+import { ScreenContainer, Button, Avatar, OnboardingProgress } from '@/components';
 import { radius, spacing, typography, fontFamilies } from '@/constants';
 import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
 import { createPendingUserProfile, resubmitApplication } from '@/services/user.service';
+import { Skeleton } from '@/components/feedback/Skeleton';
 import type {
   CreatePendingUserProfileInput,
   UserSocialLinks,
@@ -156,6 +157,15 @@ export default function AccountSetupScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isSubmittingRef = useRef(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  // Three-step form: 1 Personal · 2 Academic · 3 Research profile
+  const [step, setStep] = useState(1);
+  const STEP_TITLES = ['Personal', 'Academic', 'Research profile'];
+  const STEP_FIELDS: Record<number, string[]> = {
+    1: ['displayName', 'photoURL'],
+    2: ['department', 'designation', 'program', 'batch', 'studentId'],
+    3: ['bio', 'researchInterests'],
+  };
+
   // Rejected applicants can correct and resubmit their application (Stage 4)
   const [isResubmitting, setIsResubmitting] = useState(false);
 
@@ -178,6 +188,7 @@ export default function AccountSetupScreen() {
     setResearchGate(links.researchGate || '');
     setErrors({});
     setSubmitError(null);
+    setStep(1);
     setIsResubmitting(true);
   };
 
@@ -280,7 +291,7 @@ export default function AccountSetupScreen() {
   // Form Validation & Submission
   // -------------------------------------------------------------------------
 
-  const validateForm = (): boolean => {
+  const computeErrors = (): Record<string, string> => {
     const newErrors: Record<string, string> = {};
 
     if (!displayName.trim()) {
@@ -321,8 +332,29 @@ export default function AccountSetupScreen() {
       newErrors.photoURL = 'Photo URL must be 500 characters or less.';
     }
 
+    return newErrors;
+  };
+
+  const validateForm = (): boolean => {
+    const newErrors = computeErrors();
     setErrors(newErrors);
+    // Jump back to the first step that still has a problem
+    const firstBadStep = [1, 2, 3].find((n) => STEP_FIELDS[n].some((f) => f in newErrors));
+    if (firstBadStep && firstBadStep !== step) setStep(firstBadStep);
     return Object.keys(newErrors).length === 0;
+  };
+
+  /** Validate only the current step, then advance. */
+  const goNext = () => {
+    const all = computeErrors();
+    const stepErrors = Object.fromEntries(Object.entries(all).filter(([k]) => STEP_FIELDS[step].includes(k)));
+    setErrors(stepErrors);
+    if (Object.keys(stepErrors).length === 0) setStep((n) => Math.min(3, n + 1));
+  };
+
+  const goBack = () => {
+    setErrors({});
+    setStep((n) => Math.max(1, n - 1));
   };
 
   const handleSubmitProfile = async () => {
@@ -419,7 +451,11 @@ export default function AccountSetupScreen() {
             ]}
           >
             <View style={[styles.accentBar, { backgroundColor: colors.primary }]} />
-            <ActivityIndicator size="large" color={colors.primary} style={{ marginVertical: spacing.xl }} />
+            <View style={{ width: '100%', marginVertical: spacing.lg, gap: 8 }}>
+              <Skeleton width="60%" height={16} />
+              <Skeleton width="100%" height={12} />
+              <Skeleton width="80%" height={12} />
+            </View>
             <Text style={[styles.title, { color: colors.textPrimary }]}>
               Checking Profile Status
             </Text>
@@ -951,6 +987,16 @@ export default function AccountSetupScreen() {
           </Text>
         </View>
 
+        {/* Step progress */}
+        <View style={styles.stepHeader}>
+          <OnboardingProgress currentStep={step} totalSteps={3} />
+          <Text style={[styles.stepCaption, { color: colors.textSecondary }]}>
+            Step {step} of 3 · {STEP_TITLES[step - 1]}
+          </Text>
+        </View>
+
+        {step === 1 ? (
+        <>
         {/* Authenticated Identity Card */}
         <View
           style={[
@@ -1095,6 +1141,11 @@ export default function AccountSetupScreen() {
           </View>
         </View>
 
+        </>
+        ) : null}
+
+        {step === 2 ? (
+        <>
         {/* ================================================================= */}
         {/* Section B — Academic Information */}
         {/* ================================================================= */}
@@ -1356,6 +1407,11 @@ export default function AccountSetupScreen() {
           </View>
         </View>
 
+        </>
+        ) : null}
+
+        {step === 3 ? (
+        <>
         {/* ================================================================= */}
         {/* Section C — Research Profile */}
         {/* ================================================================= */}
@@ -1664,6 +1720,9 @@ export default function AccountSetupScreen() {
           </View>
         </View>
 
+        </>
+        ) : null}
+
         {/* Submit Error Banner */}
         {submitError ? (
           <View
@@ -1684,16 +1743,37 @@ export default function AccountSetupScreen() {
 
         {/* Submit Action Buttons */}
         <View style={styles.actionsContainer}>
-          <Button
-            label={isResubmitting ? 'Resubmit for Approval' : 'Submit Profile for Approval'}
-            onPress={handleSubmitProfile}
-            variant="primary"
-            loading={isSubmitting}
-            disabled={isSubmitting}
-            icon={<CircleCheck size={18} color={colors.textInverse} />}
-            fullWidth
-            style={{ marginBottom: spacing.md }}
-          />
+          {step < 3 ? (
+            <Button
+              label={`Continue to ${STEP_TITLES[step]}`}
+              onPress={goNext}
+              variant="primary"
+              fullWidth
+              style={{ marginBottom: spacing.sm }}
+            />
+          ) : (
+            <Button
+              label={isResubmitting ? 'Resubmit for Approval' : 'Submit Profile for Approval'}
+              onPress={handleSubmitProfile}
+              variant="primary"
+              loading={isSubmitting}
+              disabled={isSubmitting}
+              icon={<CircleCheck size={18} color={colors.textInverse} />}
+              fullWidth
+              style={{ marginBottom: spacing.sm }}
+            />
+          )}
+
+          {step > 1 ? (
+            <Button
+              label="Back"
+              onPress={goBack}
+              variant="secondary"
+              disabled={isSubmitting}
+              fullWidth
+              style={{ marginBottom: spacing.sm }}
+            />
+          ) : null}
 
           {isResubmitting ? (
             <Button
@@ -1861,6 +1941,14 @@ const styles = StyleSheet.create({
     height: 18,
     borderRadius: radius.full,
     marginRight: spacing.sm,
+  },
+  stepHeader: {
+    alignItems: 'center',
+    marginBottom: spacing.md,
+    gap: spacing.xs,
+  },
+  stepCaption: {
+    ...typography.caption,
   },
   sectionTitle: {
     fontFamily: fontFamilies.sansSemiBold,

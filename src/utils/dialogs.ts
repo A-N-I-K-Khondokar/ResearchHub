@@ -62,3 +62,29 @@ export function showMessage(title: string, message: string): void {
   }
   Alert.alert(title, message);
 }
+
+export interface ActionOption {
+  label: string;
+  onPress: () => void;
+  destructive?: boolean;
+}
+
+/**
+ * Small action menu (e.g. a card's "⋯" button). Native: Alert with one button
+ * per option + Cancel. Web: numbered window.prompt (RN-Web has no Alert).
+ */
+export function chooseAction(title: string, options: ActionOption[]): void {
+  if (options.length === 0) return;
+  if (Platform.OS === 'web') {
+    if (typeof window === 'undefined' || typeof window.prompt !== 'function') return;
+    const menu = options.map((o, i) => `${i + 1}. ${o.label}`).join('\n');
+    const answer = window.prompt(`${title}\n\n${menu}\n\nEnter a number:`);
+    const index = answer ? parseInt(answer, 10) - 1 : -1;
+    if (index >= 0 && index < options.length) options[index].onPress();
+    return;
+  }
+  Alert.alert(title, undefined, [
+    ...options.map((o) => ({ text: o.label, style: o.destructive ? ('destructive' as const) : ('default' as const), onPress: o.onPress })),
+    { text: 'Cancel', style: 'cancel' as const },
+  ]);
+}

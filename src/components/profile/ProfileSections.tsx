@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Calendar, Layers, ChevronRight, ExternalLink } from 'lucide-react-native';
+import { Calendar, Layers, ChevronRight, ExternalLink, Users } from 'lucide-react-native';
 import { spacing, radius, typography, fontFamilies } from '@/constants';
 import { useTheme } from '@/context/ThemeContext';
 import { SectionHeader } from '../common/SectionHeader';
@@ -41,6 +41,14 @@ export const WorkListItem: React.FC<{ work: ResearchWork; onPress: () => void }>
       accessibilityLabel={`Open ${work.title}`}
     >
       <View style={styles.workBody}>
+        {work.postType === 'collaboration' ? (
+          <View style={[styles.collabTag, { backgroundColor: colors.primaryMuted }]}>
+            <Users size={11} color={colors.primary} />
+            <Text style={[styles.collabTagText, { color: colors.primary }]}>
+              Looking for {work.lookingFor.slice(0, 2).join(', ')}{work.lookingFor.length > 2 ? '…' : ''}
+            </Text>
+          </View>
+        ) : null}
         <Text style={[styles.workTitle, { color: colors.textPrimary }]} numberOfLines={2}>
           {work.title}
         </Text>
@@ -141,6 +149,22 @@ export const ProfileListCard: React.FC<{ items: ProfileListItem[] }> = ({ items 
 };
 
 const styles = StyleSheet.create({
+  collabTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: radius.full,
+    marginBottom: 6,
+    maxWidth: '100%',
+  },
+  collabTagText: {
+    ...typography.micro,
+    fontFamily: fontFamilies.sansSemiBold,
+    flexShrink: 1,
+  },
   section: {
     marginBottom: spacing.lg,
   },

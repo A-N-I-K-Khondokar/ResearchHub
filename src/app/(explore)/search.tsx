@@ -21,7 +21,9 @@ import { EmptyState } from '@/components/feedback/EmptyState';
 import { searchHub, SearchCategory, TOPIC_TAXONOMY, topicCounts } from '@/utils/search';
 import { useResearchDirectory } from '@/hooks/useResearchDirectory';
 import { useConnections } from '@/hooks/useConnections';
+import { useCollaborate } from '@/hooks/useCollaborate';
 import { useAuth } from '@/context/AuthContext';
+import { SkeletonList } from '@/components/feedback/Skeleton';
 import { ActivityIndicator } from 'react-native';
 
 export default function GlobalSearchScreen() {
@@ -37,6 +39,7 @@ export default function GlobalSearchScreen() {
   const { firebaseUser } = useAuth();
   const directory = useResearchDirectory();
   const { cardStatus, handleConnectPress } = useConnections();
+  const collaborate = useCollaborate();
 
   useEffect(() => {
     if (params.q) {
@@ -165,7 +168,9 @@ export default function GlobalSearchScreen() {
         keyboardShouldPersistTaps="handled"
       >
         {directory.loading ? (
-          <ActivityIndicator color={colors.primary} style={{ marginTop: 32 }} />
+          <View style={{ paddingTop: spacing.md }}>
+            <SkeletonList count={3} variant="row" />
+          </View>
         ) : query.trim().length === 0 ? (
           /* Initial State / Suggested Topics */
           <View
@@ -281,6 +286,7 @@ export default function GlobalSearchScreen() {
                       authorAvatar={work.authorPhotoURL}
                       onPress={() => router.push(`/(research)/${work.id}` as any)}
                       onAuthorPress={() => openAuthor(work.userId)}
+                      {...collaborate(work, directory.profileByUid.get(work.userId))}
                       onTopicPress={(topic) => handleTopicPress(topic)}
                     />
                   );

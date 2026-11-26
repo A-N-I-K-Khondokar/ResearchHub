@@ -58,7 +58,7 @@ export type ThemeColors = Record<ColorToken, string>;
 
 export const lightColors: ThemeColors = {
   // Brand & Accents (Vibrant Sky Azure #2471E7 / #0058C2)
-  primary: '#2471E7',                // Vibrant Sky Azure (Primary CTAs, active indicators, focus rings)
+  primary: '#236CDE',                // Vibrant Sky Azure (Primary CTAs, active indicators, focus rings)  // WCAG AA: >= 4.6:1 on background & surface
   primaryHover: '#3D85EF',           // Ambient hover glow
   primaryPressed: '#1B5ECC',         // Deep kinetic pressed state
   primaryDark: '#0058C2',            // Authoritative deep azure
@@ -97,7 +97,7 @@ export const lightColors: ThemeColors = {
   // Typography (Deep Ocean Navy replacing pure black)
   textPrimary: '#071A3E',            // Deep Ocean Navy (on-surface / high optical weight)
   textSecondary: '#424754',          // Slate navy for metadata & subheads (on-surface-variant)
-  textMuted: '#727785',              // Outline / placeholder text
+  textMuted: '#6C717E',              // Outline / placeholder text  // WCAG AA: >= 4.6:1
   textInverse: '#FFFFFF',            // Crisp white text on primary buttons
   onSurface: '#071A3E',
   onSurfaceVariant: '#424754',
@@ -161,7 +161,7 @@ export const darkColors: ThemeColors = {
   // Typography
   textPrimary: '#EEF0FF',            // Inverse-on-surface high contrast readability
   textSecondary: '#A5B0C8',          // Clean slate metadata
-  textMuted: '#727785',              // Outline / placeholder text
+  textMuted: '#808591',              // Outline / placeholder text  // WCAG AA: >= 4.6:1 on dark surfaces
   textInverse: '#071A3E',            // Deep navy text on bright buttons
   onSurface: '#EEF0FF',
   onSurfaceVariant: '#A5B0C8',

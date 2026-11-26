@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { showMessage } from '@/utils/dialogs';
+import { useToast } from '@/context/ToastContext';
 import { useRouter } from 'expo-router';
 import { MailCheck, ArrowLeft, RefreshCw, CheckCircle } from 'lucide-react-native';
 import { ScreenContainer, Button } from '@/components';
@@ -15,6 +15,7 @@ export default function VerifyEmailScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const { firebaseUser, emailVerified, sendVerificationEmail, reloadCurrentUser, signOut } = useAuth();
+  const toast = useToast();
 
   const [resending, setResending] = useState(false);
   const [checkingVerification, setCheckingVerification] = useState(false);
@@ -48,10 +49,7 @@ export default function VerifyEmailScreen() {
     try {
       await sendVerificationEmail();
       startCooldown();
-      showMessage(
-        'Verification Email Sent',
-        'A fresh verification link has been sent to your email address. Please check your inbox.',
-      );
+      toast.show('A fresh verification link has been sent. Check your inbox.');
     } catch (error: any) {
       setResendError(error?.message ?? 'Failed to resend verification email. Please try again.');
     } finally {
@@ -72,10 +70,7 @@ export default function VerifyEmailScreen() {
       // refreshed), so AuthGuard in _layout.tsx routes to account-setup.
       // No manual navigation here — avoids racing the guard.
       if (!verified) {
-        showMessage(
-          'Not Yet Verified',
-          "We couldn't confirm your email verification. Please open the link in your email and try again.",
-        );
+        toast.show("Not verified yet. Open the link in your email, then try again.", 'info');
       }
     } catch (error: any) {
       setCheckError(error?.message ?? 'Could not check verification status. Please try again.');

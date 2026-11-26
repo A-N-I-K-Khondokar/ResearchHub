@@ -749,6 +749,9 @@ service cloud.firestore {
     //   - tags: list (max 10), stage: 'Idea' | 'Literature Review' | 'Experiment' | 'Writing'.
     //   - externalUrl: http(s) string (max 500) | null.
     //   - status: 'published' (approved researchers can read) | 'draft' (author only).
+    //   - postType (optional, immutable): 'work' | 'collaboration'.
+    //   - lookingFor (optional, list max 10): skills / roles wanted; required (>= 1)
+    //     for collaboration posts.
     //   - createdAt (immutable) / updatedAt: request.time.
 
     function researchWorkHasValidKeys(data) {
@@ -764,6 +767,8 @@ service cloud.firestore {
         'stage',
         'externalUrl',
         'status',
+        'postType',
+        'lookingFor',
         'createdAt',
         'updatedAt'
       ]) && data.keys().hasAll([
@@ -797,6 +802,12 @@ service cloud.firestore {
         (data.externalUrl == null ||
           (isValidString(data.externalUrl, 8, 500) && data.externalUrl.matches('^https?://.+'))) &&
         data.status in ['published', 'draft'] &&
+        // Optional post kind (legacy documents have none = 'work').
+        (!('postType' in data) || data.postType in ['work', 'collaboration']) &&
+        (!('lookingFor' in data) || isValidList(data.lookingFor, 10)) &&
+        // Collaboration posts must say who they are looking for.
+        (data.get('postType', 'work') != 'collaboration' ||
+          ('lookingFor' in data && data.lookingFor.size() >= 1)) &&
         data.createdAt is timestamp &&
         data.updatedAt is timestamp;
     }
@@ -838,6 +849,7 @@ service cloud.firestore {
           'stage',
           'externalUrl',
           'status',
+          'lookingFor',
           'updatedAt'
         ]) &&
         request.resource.data.updatedAt == request.time;

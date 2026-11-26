@@ -13,10 +13,16 @@ import {
   ArrowRight,
   Layers,
   Bookmark,
+  Users,
 } from 'lucide-react-native';
 import { spacing, radius, typography, fontFamilies, shadows, floatingButtonTokens } from '@/constants';
 import { useTheme } from '@/context/ThemeContext';
 import { Topic } from '@/types';
+import { useAuth } from '@/context/AuthContext';
+import { SkeletonList } from '@/components/feedback/Skeleton';
+import { ResearcherCard } from '@/components/cards/ResearcherCard';
+import { tagMatchKey } from '@/utils/researchWork';
+import { FlatList } from 'react-native';
 import { TOPIC_TAXONOMY } from '@/utils/search';
 import { useResearchDirectory } from '@/hooks/useResearchDirectory';
 import { useConnections } from '@/hooks/useConnections';
@@ -47,6 +53,21 @@ export default function ExploreScreen() {
   const { isSaved, toggleSave } = useSavedItems();
 
   // Researchers with recently shared work first, then the rest of the directory
+  // People who share your research interests (computed on-device, no backend call)
+  const { userProfile } = useAuth();
+  const sharedInterestPeople = useMemo(() => {
+    const mine = new Set((userProfile?.researchInterests ?? []).map(tagMatchKey));
+    if (mine.size === 0) return [];
+    return directory.researchers
+      .map((r) => ({
+        researcher: r,
+        shared: (r.interests ?? []).filter((i) => mine.has(tagMatchKey(i))).length,
+      }))
+      .filter((x) => x.shared > 0)
+      .sort((a, b) => b.shared - a.shared)
+      .slice(0, 10);
+  }, [directory.researchers, userProfile?.researchInterests]);
+
   const featuredResearchers = useMemo(() => {
     const active = directory.researchers.filter((r) => (r.currentWorkIds?.length ?? 0) > 0);
     const others = directory.researchers.filter((r) => (r.currentWorkIds?.length ?? 0) === 0);
@@ -256,6 +277,41 @@ export default function ExploreScreen() {
           </View>
         )}
 
+        {/* 1b. PEOPLE WITH SHARED INTERESTS */}
+        {(selectedTypeFilter === 'all' || selectedTypeFilter === 'people') && sharedInterestPeople.length > 0 && (
+          <View style={styles.sectionContainer}>
+            <View style={styles.bentoHeaderRow}>
+              <View style={styles.bentoHeaderLeft}>
+                <Text style={[styles.bentoTitle, { color: colors.textPrimary }]} numberOfLines={1}>
+                  People With Shared Interests
+                </Text>
+                <Text style={[styles.bentoSubtitle, { color: colors.textSecondary }]} numberOfLines={1}>
+                  Researchers working on topics you follow
+                </Text>
+              </View>
+            </View>
+            <FlatList
+              horizontal
+              data={sharedInterestPeople}
+              keyExtractor={(item) => item.researcher.id}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: spacing.sm, paddingVertical: spacing.xs }}
+              renderItem={({ item }) => (
+                <ResearcherCard
+                  researcher={item.researcher}
+                  sharedInterestsCount={item.shared}
+                  connectionStatus={cardStatus(item.researcher.id)}
+                  onPress={() => router.push(`/(profile)/${item.researcher.id}` as any)}
+                  onConnectPress={() => {
+                    const profile = directory.profileByUid.get(item.researcher.id);
+                    if (profile) handleConnectPress(profile);
+                  }}
+                />
+              )}
+            />
+          </View>
+        )}
+
         {/* 2. FEATURED RESEARCHERS */}
         {(selectedTypeFilter === 'all' || selectedTypeFilter === 'people') && (
           <View style={styles.sectionContainer}>
@@ -299,7 +355,7 @@ export default function ExploreScreen() {
               {/* Cards List */}
               <View style={styles.featuredResearchersList}>
                 {directory.loading ? (
-                  <ActivityIndicator color={colors.primary} style={{ marginVertical: spacing.md }} />
+                  <SkeletonList count={2} variant="row" />
                 ) : featuredResearchers.length === 0 ? (
                   <Text style={[styles.currentWorkMeta, { color: colors.textSecondary }]}>
                     No other approved researchers yet.
@@ -380,6 +436,12 @@ export default function ExploreScreen() {
                     accessibilityRole="button"
                     accessibilityLabel={work.title}
                   >
+                    {work.postType === 'collaboration' ? (
+                      <View style={[styles.collabTag, { backgroundColor: colors.primaryMuted }]}>
+                        <Users size={11} color={colors.primary} />
+                        <Text style={[styles.collabTagText, { color: colors.primary }]}>Looking for collaborators</Text>
+                      </View>
+                    ) : null}
                     <Text
                       style={[styles.currentWorkTitle, { color: colors.primary }]}
                       numberOfLines={1}
@@ -467,6 +529,20 @@ export default function ExploreScreen() {
 }
 
 const styles = StyleSheet.create({
+  collabTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: radius.full,
+    marginBottom: 6,
+  },
+  collabTagText: {
+    ...typography.micro,
+    fontFamily: fontFamilies.sansSemiBold,
+  },
   safeArea: {
     flex: 1,
   },

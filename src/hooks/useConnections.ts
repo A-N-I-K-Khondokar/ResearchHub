@@ -9,7 +9,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Platform } from 'react-native';
-import { confirmAction, showMessage } from '@/utils/dialogs';
+import { confirmAction } from '@/utils/dialogs';
+import { useToast } from '@/context/ToastContext';
 import { useAuth } from '@/context/AuthContext';
 import {
   subscribeMyConnections,
@@ -37,6 +38,7 @@ export function useConnections() {
   const [connections, setConnections] = useState<Connection[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyUid, setBusyUid] = useState<string | null>(null);
+  const toast = useToast();
 
   useEffect(() => {
     if (!myUid) {
@@ -74,23 +76,24 @@ export function useConnections() {
     [connections, myUid],
   );
 
-  const run = useCallback(async (uid: string, action: () => Promise<void>, failMessage: string) => {
+  const run = useCallback(async (uid: string, action: () => Promise<void>, failMessage: string, successMessage?: string) => {
     setBusyUid(uid);
     try {
       await action();
+      if (successMessage) toast.show(successMessage);
     } catch (err) {
       console.error('[useConnections] Action failed:', err);
-      showMessage('Something went wrong', failMessage);
+      toast.show(failMessage, 'error');
     } finally {
       setBusyUid(null);
     }
-  }, []);
+  }, [toast]);
 
   const accept = useCallback(
     (connection: Connection) => {
       if (!userProfile) return Promise.resolve();
       const other = connection.requesterUid;
-      return run(other, () => respondToConnection(userProfile, connection, true), 'Could not accept the request.');
+      return run(other, () => respondToConnection(userProfile, connection, true), 'Could not accept the request.', `You're now connected with ${connection.requester.displayName}`);
     },
     [run, userProfile],
   );
@@ -99,7 +102,7 @@ export function useConnections() {
     (connection: Connection) => {
       if (!userProfile) return Promise.resolve();
       const other = connection.requesterUid;
-      return run(other, () => respondToConnection(userProfile, connection, false), 'Could not decline the request.');
+      return run(other, () => respondToConnection(userProfile, connection, false), 'Could not decline the request.', 'Request declined');
     },
     [run, userProfile],
   );
@@ -112,7 +115,7 @@ export function useConnections() {
 
       switch (state) {
         case 'none':
-          run(other.uid, () => sendConnectionRequest(userProfile, other), 'Could not send the connection request.');
+          run(other.uid, () => sendConnectionRequest(userProfile, other), 'Could not send the connection request.', `Connection request sent to ${other.displayName}`);
           break;
         case 'outgoing':
           confirmAction({
@@ -122,7 +125,7 @@ export function useConnections() {
             cancelLabel: 'Keep',
             destructive: true,
           }).then((ok) => {
-            if (ok) run(other.uid, () => removeConnection(connection!.id), 'Could not withdraw the request.');
+            if (ok) run(other.uid, () => removeConnection(connection!.id), 'Could not withdraw the request.', 'Request withdrawn');
           });
           break;
         case 'incoming':
@@ -150,7 +153,7 @@ export function useConnections() {
             confirmLabel: 'Remove',
             destructive: true,
           }).then((ok) => {
-            if (ok) run(other.uid, () => removeConnection(connection!.id), 'Could not remove the connection.');
+            if (ok) run(other.uid, () => removeConnection(connection!.id), 'Could not remove the connection.', 'Connection removed');
           });
           break;
         case 'rejected':
@@ -163,12 +166,12 @@ export function useConnections() {
               if (ok) run(other.uid, () => removeConnection(connection.id), 'Could not clear the request.');
             });
           } else {
-            showMessage('Request declined', `${other.displayName} declined your connection request.`);
+            toast.show(`${other.displayName} declined your connection request`, 'info');
           }
           break;
       }
     },
-    [accept, busyUid, decline, myUid, relationship, run, userProfile],
+    [accept, busyUid, decline, myUid, relationship, run, toast, userProfile],
   );
 
   return {

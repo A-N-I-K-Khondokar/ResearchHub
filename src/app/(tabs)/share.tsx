@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -32,7 +32,10 @@ import { SuccessModal } from '@/components/feedback/SuccessModal';
 import { useAuth } from '@/context/AuthContext';
 import { createResearchWork } from '@/services/research.service';
 import { formatResearchTag } from '@/utils/researchWork';
-import { RESEARCH_LIMITS, type ResearchStage } from '@/types/research.types';
+import { RESEARCH_LIMITS, type ResearchStage, type ResearchPostType } from '@/types/research.types';
+import { useLocalSearchParams } from 'expo-router';
+import { CurrentWorkCard } from '@/components/cards/CurrentWorkCard';
+import { Users, Eye } from 'lucide-react-native';
 
 // Common CSE Suggested Tags
 const SUGGESTED_TAGS = [
@@ -48,6 +51,18 @@ const SUGGESTED_TAGS = [
   '#Bioinformatics',
 ];
 
+// Common roles people look for in collaboration posts
+const SUGGESTED_ROLES = [
+  '#MLEngineer',
+  '#DataAnnotation',
+  '#BackendDeveloper',
+  '#FrontendDeveloper',
+  '#UIUXDesigner',
+  '#ResearchWriter',
+  '#Statistician',
+  '#HardwareEngineer',
+];
+
 // Project progression stages with minimalist line-art vector icons
 const RESEARCH_STAGES: { id: ResearchStage; label: string; icon: typeof Lightbulb }[] = [
   { id: 'Idea', label: 'Idea', icon: Lightbulb },
@@ -61,6 +76,33 @@ export default function ShareTab() {
   const insets = useSafeAreaInsets();
   const { userProfile } = useAuth();
   const authorName = userProfile?.displayName || 'CSE Researcher';
+  const params = useLocalSearchParams<{ mode?: string }>();
+
+  // One page, two kinds of post: share current work OR find collaborators
+  const [postType, setPostType] = useState<ResearchPostType>(
+    params.mode === 'collaboration' ? 'collaboration' : 'work',
+  );
+  useEffect(() => {
+    if (params.mode === 'collaboration' || params.mode === 'work') setPostType(params.mode);
+  }, [params.mode]);
+  const isCollab = postType === 'collaboration';
+
+  // "Looking for" roles (collaboration posts)
+  const [lookingFor, setLookingFor] = useState<string[]>([]);
+  const [roleInput, setRoleInput] = useState('');
+  const [roleError, setRoleError] = useState('');
+
+  const addRole = (raw: string) => {
+    const role = formatResearchTag(raw);
+    if (!role) return;
+    setLookingFor((prev) =>
+      prev.some((r) => r.toLowerCase() === role.toLowerCase()) || prev.length >= RESEARCH_LIMITS.lookingForMax
+        ? prev
+        : [...prev, role],
+    );
+    setRoleInput('');
+    setRoleError('');
+  };
 
   // Form State
   const [title, setTitle] = useState('');
@@ -192,6 +234,20 @@ export default function ShareTab() {
       isValid = false;
     }
 
+    let roles = lookingFor;
+    if (isCollab) {
+      const pendingRole = formatResearchTag(roleInput);
+      if (pendingRole && !roles.some((r) => r.toLowerCase() === pendingRole.toLowerCase())) {
+        roles = [...roles, pendingRole].slice(0, RESEARCH_LIMITS.lookingForMax);
+        setLookingFor(roles);
+        setRoleInput('');
+      }
+      if (roles.length === 0) {
+        setRoleError('Add at least one skill or role you are looking for.');
+        isValid = false;
+      }
+    }
+
     if (!isValid) return;
 
     if (!userProfile || userProfile.approvalStatus !== 'approved') {
@@ -207,6 +263,8 @@ export default function ShareTab() {
         tags,
         stage: selectedStage,
         externalUrl: trimmedUrl || null,
+        postType,
+        lookingFor: isCollab ? roles : undefined,
       });
       setShowSuccessModal(true);
     } catch (err: any) {
@@ -234,6 +292,9 @@ export default function ShareTab() {
     setDescError('');
     setUrlError('');
     setSubmitError('');
+    setLookingFor([]);
+    setRoleInput('');
+    setRoleError('');
   };
 
   return (
@@ -263,10 +324,44 @@ export default function ShareTab() {
                 {authorName}
               </Text>
               <Text style={[styles.statusText, { color: colors.textSecondary }]}>
-                Drafting a research update...
+                {isCollab ? 'Looking for collaborators...' : 'Drafting a research update...'}
               </Text>
             </View>
           </View>
+
+          {/* Post type toggle: Share Work | Find Collaborators */}
+          <View
+            style={[styles.segment, { backgroundColor: colors.surfaceSubtle, borderColor: colors.borderSubtle }]}
+            accessibilityRole="tablist"
+          >
+            {([
+              { key: 'work', label: 'Share Work', icon: PenLine },
+              { key: 'collaboration', label: 'Find Collaborators', icon: Users },
+            ] as const).map((opt) => {
+              const active = postType === opt.key;
+              const Icon = opt.icon;
+              return (
+                <TouchableOpacity
+                  key={opt.key}
+                  activeOpacity={0.85}
+                  onPress={() => setPostType(opt.key)}
+                  style={[styles.segmentOption, active && { backgroundColor: colors.surface, borderColor: colors.border }]}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: active }}
+                >
+                  <Icon size={15} strokeWidth={2} color={active ? colors.primary : colors.textSecondary} />
+                  <Text style={[styles.segmentText, { color: active ? colors.primary : colors.textSecondary }]} numberOfLines={1}>
+                    {opt.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+          <Text style={[styles.segmentHint, { color: colors.textSecondary }]}>
+            {isCollab
+              ? "Describe your project and the skills you need. Researchers can tap \"I'm interested\" to connect with you."
+              : 'Share what you are currently researching with the CSE community.'}
+          </Text>
 
           {/* Structural Divider */}
           <View
@@ -290,7 +385,7 @@ export default function ShareTab() {
               <View style={styles.labelRow}>
                 <PenLine size={15} strokeWidth={1.8} color={colors.textSecondary} />
                 <Text style={[styles.fieldLabel, { color: colors.textPrimary }]}>
-                  Research Title
+                  {isCollab ? 'Project Title' : 'Research Title'}
                 </Text>
               </View>
               <TextInput
@@ -299,7 +394,7 @@ export default function ShareTab() {
                   setTitle(val);
                   if (titleError) setTitleError('');
                 }}
-                placeholder="e.g., Optimizing Transformers for Bengali Dialects"
+                placeholder={isCollab ? 'e.g., Building a Bangla handwriting OCR dataset' : 'e.g., Optimizing Transformers for Bengali Dialects'}
                 placeholderTextColor={colors.textMuted}
                 style={[
                   styles.input,
@@ -311,9 +406,14 @@ export default function ShareTab() {
                 ]}
                 maxLength={120}
               />
-              {titleError ? (
-                <Text style={[styles.errorText, { color: colors.error }]}>{titleError}</Text>
-              ) : null}
+              <View style={styles.charCountRow}>
+                {titleError ? (
+                  <Text style={[styles.errorText, { color: colors.error }]}>{titleError}</Text>
+                ) : (
+                  <View />
+                )}
+                <Text style={[styles.charCount, { color: colors.textSecondary }]}>{title.length}/120</Text>
+              </View>
             </View>
 
             {/* Field: Abstract / Description */}
@@ -321,7 +421,7 @@ export default function ShareTab() {
               <View style={styles.labelRow}>
                 <AlignLeft size={15} strokeWidth={1.8} color={colors.textSecondary} />
                 <Text style={[styles.fieldLabel, { color: colors.textPrimary }]}>
-                  Abstract / Update Summary
+                  {isCollab ? 'Project & Help Needed' : 'Abstract / Update Summary'}
                 </Text>
               </View>
               <TextInput
@@ -330,7 +430,9 @@ export default function ShareTab() {
                   setDescription(val);
                   if (descError) setDescError('');
                 }}
-                placeholder="Briefly describe your methodology, recent findings, benchmarks, or peer collaboration goals..."
+                placeholder={isCollab
+                  ? 'What is the project, what is done so far, and what would a collaborator work on?'
+                  : 'Briefly describe your methodology, recent findings, benchmarks, or peer collaboration goals...'}
                 placeholderTextColor={colors.textMuted}
                 multiline
                 numberOfLines={4}
@@ -357,6 +459,91 @@ export default function ShareTab() {
                 </Text>
               </View>
             </View>
+
+            {/* Field: Looking For (collaboration posts only) */}
+            {isCollab ? (
+              <View style={styles.fieldBlock}>
+                <View style={styles.labelRow}>
+                  <Users size={15} strokeWidth={1.8} color={colors.textSecondary} />
+                  <Text style={[styles.fieldLabel, { color: colors.textPrimary }]}>
+                    Looking For <Text style={styles.optionalText}>({lookingFor.length}/{RESEARCH_LIMITS.lookingForMax})</Text>
+                  </Text>
+                </View>
+                <View
+                  style={[
+                    styles.input,
+                    styles.roleInputRow,
+                    {
+                      backgroundColor: isDark ? colors.surfaceSubtle : colors.background,
+                      borderColor: roleError ? colors.error : colors.borderSubtle,
+                    },
+                  ]}
+                >
+                  <TextInput
+                    value={roleInput}
+                    onChangeText={(text) => {
+                      if (text.includes(',')) text.split(',').forEach(addRole);
+                      else setRoleInput(text);
+                    }}
+                    onSubmitEditing={() => addRole(roleInput)}
+                    placeholder="Add a skill or role (e.g. ML Engineer)"
+                    placeholderTextColor={colors.textMuted}
+                    autoCorrect={false}
+                    returnKeyType="done"
+                    style={[styles.roleTextInput, { color: colors.textPrimary }]}
+                  />
+                  {roleInput.trim() ? (
+                    <TouchableOpacity
+                      onPress={() => addRole(roleInput)}
+                      hitSlop={{ top: 9, bottom: 9, left: 9, right: 9 }}
+                      style={[styles.tagAddBtn, { backgroundColor: colors.primary }]}
+                      accessibilityRole="button"
+                      accessibilityLabel="Add role"
+                    >
+                      <Plus size={14} color="#FFFFFF" strokeWidth={2.4} />
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
+                {roleError ? <Text style={[styles.errorText, { color: colors.error }]}>{roleError}</Text> : null}
+                {lookingFor.length > 0 ? (
+                  <View style={styles.tagsContainer}>
+                    {lookingFor.map((role) => (
+                      <TouchableOpacity
+                        key={role}
+                        activeOpacity={0.75}
+                        onPress={() => setLookingFor((prev) => prev.filter((r) => r !== role))}
+                        style={[styles.tagPill, { backgroundColor: colors.primaryMuted, borderColor: colors.primaryLight }]}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Remove role ${role}`}
+                      >
+                        <Text style={[styles.tagPillText, { color: colors.primary }]} numberOfLines={1}>
+                          {role}
+                        </Text>
+                        <View style={styles.tagCloseIconWrapper}>
+                          <X size={11} strokeWidth={2.2} color={colors.primary} />
+                        </View>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                ) : null}
+                <View style={styles.tagsContainer}>
+                  {SUGGESTED_ROLES.filter((r) => !lookingFor.some((x) => x.toLowerCase() === r.toLowerCase())).map((role) => (
+                    <TouchableOpacity
+                      key={role}
+                      activeOpacity={0.75}
+                      onPress={() => addRole(role)}
+                      style={[styles.suggestedPill, { backgroundColor: colors.surfaceSubtle, borderColor: colors.borderSubtle }]}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Add role ${role}`}
+                    >
+                      <Text style={[styles.suggestedPillText, { color: colors.textSecondary }]} numberOfLines={1}>
+                        + {role}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            ) : null}
 
             {/* Field: Hybrid Research Areas (Custom Tag Input + Clickable Suggestions) */}
             <View style={styles.fieldBlock}>
@@ -598,7 +785,7 @@ export default function ShareTab() {
 
             {/* Primary Action Button */}
             <Button
-              label="Post Update"
+              label={isCollab ? 'Post Collaboration Request' : 'Post Update'}
               onPress={handleSubmit}
               variant="primary"
               size="lg"
@@ -607,6 +794,38 @@ export default function ShareTab() {
               disabled={isSubmitting}
             />
           </View>
+
+          {/* Live preview — exactly how the post will look in the feed */}
+          {title.trim() || description.trim() ? (
+            <View style={styles.previewSection}>
+              <View style={styles.labelRow}>
+                <Eye size={15} strokeWidth={1.8} color={colors.textSecondary} />
+                <Text style={[styles.fieldLabel, { color: colors.textPrimary }]}>Preview</Text>
+              </View>
+              <View pointerEvents="none">
+                <CurrentWorkCard
+                  work={{
+                    id: 'preview',
+                    userId: userProfile?.uid ?? '',
+                    authorName,
+                    title: title.trim() || 'Your title',
+                    description: description.trim() || 'Your description will appear here.',
+                    topics: selectedTags,
+                    stage: selectedStage,
+                    postType,
+                    lookingFor: isCollab ? lookingFor : [],
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                  }}
+                  authorName={authorName}
+                  authorBatch="CSE"
+                  authorRole={userProfile?.designation}
+                  authorAvatar={userProfile?.photoURL}
+                  onCollaboratePress={isCollab ? () => {} : undefined}
+                />
+              </View>
+            </View>
+          ) : null}
         </ScrollView>
       </KeyboardAvoidingView>
 
@@ -614,8 +833,10 @@ export default function ShareTab() {
       <SuccessModal
         visible={showSuccessModal}
         onClose={handleModalClose}
-        title="Research Update Shared"
-        message="Your current work has been posted to the CSE departmental feed. Peers and faculty can now review and connect."
+        title={isCollab ? 'Collaboration Request Posted' : 'Research Update Shared'}
+        message={isCollab
+          ? 'Your project is now in the feed with a "Looking for collaborators" badge. Interested researchers can connect with you.'
+          : 'Your current work has been posted to the CSE departmental feed. Peers and faculty can now review and connect.'}
         buttonText="Back to Feed"
       />
     </View>
@@ -625,6 +846,51 @@ export default function ShareTab() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
+  },
+  segment: {
+    flexDirection: 'row',
+    borderWidth: 1,
+    borderRadius: radius.button,
+    padding: 4,
+    marginTop: spacing.md,
+    gap: 4,
+  },
+  segmentOption: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    minHeight: 40,
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    paddingHorizontal: 8,
+  },
+  segmentText: {
+    fontFamily: fontFamilies.sansSemiBold,
+    fontSize: 14,
+    flexShrink: 1,
+  },
+  segmentHint: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontFamily: fontFamilies.sansRegular,
+    marginTop: spacing.sm,
+  },
+  roleInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 0,
+  },
+  roleTextInput: {
+    flex: 1,
+    minHeight: 44,
+    fontSize: 14,
+    fontFamily: fontFamilies.sansRegular,
+  },
+  previewSection: {
+    marginTop: spacing.lg,
   },
   keyboardAvoid: {
     flex: 1,

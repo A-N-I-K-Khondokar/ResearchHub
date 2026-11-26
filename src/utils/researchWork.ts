@@ -48,6 +48,24 @@ export function buildResearchWorkDocument(
 
   const url = input.externalUrl?.trim();
 
+  // Collaboration-only fields are written ONLY for collaboration posts, so plain
+  // "work" posts keep the original document shape (backward compatible).
+  const collaboration: Record<string, unknown> = {};
+  if (input.postType === 'collaboration') {
+    const seenRoles = new Set<string>();
+    const lookingFor: string[] = [];
+    for (const raw of input.lookingFor ?? []) {
+      const role = formatResearchTag(raw);
+      const key = role.toLowerCase();
+      if (role && !seenRoles.has(key)) {
+        seenRoles.add(key);
+        lookingFor.push(role);
+      }
+    }
+    collaboration.postType = 'collaboration';
+    collaboration.lookingFor = lookingFor.slice(0, 10);
+  }
+
   return {
     authorUid: author.uid,
     authorName: author.displayName,
@@ -60,6 +78,7 @@ export function buildResearchWorkDocument(
     stage: input.stage,
     externalUrl: url ? url : null,
     status: input.status ?? 'published',
+    ...collaboration,
     createdAt: timestamp,
     updatedAt: timestamp,
   };

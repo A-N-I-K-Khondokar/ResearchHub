@@ -5,7 +5,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { showMessage } from '@/utils/dialogs';
+import { useToast } from '@/context/ToastContext';
 import { useAuth } from '@/context/AuthContext';
 import { saveWork, unsaveWork, subscribeSavedItems } from '@/services/saved.service';
 import type { ResearchWork } from '@/types/research.types';
@@ -18,6 +18,7 @@ export function useSavedItems() {
   const [items, setItems] = useState<SavedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const toast = useToast();
 
   useEffect(() => {
     if (!uid) {
@@ -49,11 +50,12 @@ export function useSavedItems() {
       if (!uid) return;
       try {
         await unsaveWork(uid, workId);
+        toast.show('Removed from Saved Items', 'info');
       } catch {
-        showMessage('Something went wrong', 'Could not remove this saved item.');
+        toast.show('Could not remove this saved item', 'error');
       }
     },
-    [uid],
+    [uid, toast],
   );
 
   const toggleSave = useCallback(
@@ -62,14 +64,16 @@ export function useSavedItems() {
       try {
         if (savedIds.has(work.id)) {
           await unsaveWork(uid, work.id);
+          toast.show('Removed from Saved Items', 'info');
         } else {
           await saveWork(uid, work);
+          toast.show('Saved to your library');
         }
       } catch {
-        showMessage('Something went wrong', 'Could not update your saved items.');
+        toast.show('Could not update your saved items', 'error');
       }
     },
-    [savedIds, uid],
+    [savedIds, uid, toast],
   );
 
   return { items, loading, error, isSaved, toggleSave, remove };

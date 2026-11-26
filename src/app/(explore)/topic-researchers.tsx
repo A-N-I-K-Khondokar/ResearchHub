@@ -19,6 +19,8 @@ import { EmptyState } from '@/components/feedback/EmptyState';
 import { getTopicDiscovery } from '@/utils/search';
 import { useResearchDirectory } from '@/hooks/useResearchDirectory';
 import { useConnections } from '@/hooks/useConnections';
+import { useCollaborate } from '@/hooks/useCollaborate';
+import { SkeletonList } from '@/components/feedback/Skeleton';
 import { useAuth } from '@/context/AuthContext';
 import { ActivityIndicator } from 'react-native';
 import { tagMatchKey } from '@/utils/researchWork';
@@ -37,6 +39,7 @@ export default function TopicResearchersScreen() {
   const { firebaseUser } = useAuth();
   const directory = useResearchDirectory();
   const { cardStatus, handleConnectPress } = useConnections();
+  const collaborate = useCollaborate();
 
   const discoveryData = useMemo(() => {
     return getTopicDiscovery(topicName, {
@@ -222,7 +225,7 @@ export default function TopicResearchersScreen() {
           />
 
           {directory.loading ? (
-            <ActivityIndicator color={colors.primary} style={{ marginVertical: 24 }} />
+            <SkeletonList count={3} variant="row" />
           ) : filteredResearchers.length === 0 ? (
             <EmptyState
               title="No researchers found"
@@ -273,6 +276,7 @@ export default function TopicResearchersScreen() {
                 authorAvatar={work.authorPhotoURL}
                 onPress={() => router.push(`/(research)/${work.id}` as any)}
                 onAuthorPress={() => openAuthor(work.userId)}
+                {...collaborate(work, directory.profileByUid.get(work.userId))}
                 onTopicPress={openTopic}
               />
             ))}

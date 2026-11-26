@@ -52,7 +52,10 @@ import { updateUserProfile } from '@/services/user.service';
 import { subscribeMyResearchWorks } from '@/services/research.service';
 import { useConnections } from '@/hooks/useConnections';
 import { useSavedItems } from '@/hooks/useSavedItems';
-import { confirmAction, showMessage } from '@/utils/dialogs';
+import { confirmAction } from '@/utils/dialogs';
+import { useToast } from '@/context/ToastContext';
+import { SkeletonList } from '@/components/feedback/Skeleton';
+import { TOPIC_TAXONOMY } from '@/utils/search';
 import type { ResearchWork } from '@/types/research.types';
 import type { UserSocialLinks } from '@/types/user.types';
 
@@ -108,12 +111,29 @@ export default function ProfileTab() {
   // Edit modal form state (identity fields are locked after approval)
   const [editName, setEditName] = useState(profileName);
   const [editBio, setEditBio] = useState(profileBio);
+  const [editInterests, setEditInterests] = useState<string[]>(researchInterests);
+  const [interestInput, setInterestInput] = useState('');
+  const [editLinks, setEditLinks] = useState<Record<string, string>>({});
+  const toast = useToast();
+
+  const addInterest = (raw: string) => {
+    const value = raw.trim();
+    if (!value) return;
+    setEditInterests((prev) =>
+      prev.some((i) => i.toLowerCase() === value.toLowerCase()) || prev.length >= 30 ? prev : [...prev, value],
+    );
+    setInterestInput('');
+  };
   const [isSaving, setIsSaving] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   const handleOpenEditModal = () => {
     setEditName(profileName);
     setEditBio(profileBio);
+    setEditInterests(researchInterests);
+    setInterestInput('');
+    const links = userProfile?.socialLinks ?? {};
+    setEditLinks(Object.fromEntries(LINK_META.map((m) => [m.key as string, String(links[m.key] ?? '')])));
     setIsEditModalVisible(true);
   };
 
@@ -123,22 +143,41 @@ export default function ProfileTab() {
     const bio = editBio.trim();
 
     if (!name || name.length > 100) {
-      showMessage('Check your name', 'Full name is required (max 100 characters).');
+      toast.show('Full name is required (max 100 characters)', 'error');
       return;
     }
     if (bio.length > 2000) {
-      showMessage('Bio too long', 'Bio must be 2000 characters or less.');
+      toast.show('Bio must be 2000 characters or less', 'error');
       return;
     }
 
     setIsSaving(true);
     try {
       // Only presentation fields; the profile listener refreshes the UI.
-      await updateUserProfile(userProfile, { displayName: name, bio: bio || null });
+      // Keep any link keys this screen does not edit, then apply edited ones.
+      const socialLinks: Record<string, string> = {};
+      Object.entries(userProfile.socialLinks ?? {}).forEach(([k, v]) => {
+        if (v && !LINK_META.some((m) => m.key === k)) socialLinks[k] = String(v);
+      });
+      LINK_META.forEach((m) => {
+        const v = (editLinks[m.key as string] ?? '').trim();
+        if (v) socialLinks[m.key as string] = v.slice(0, 300);
+      });
+      const pendingInterest = interestInput.trim();
+      const interests = pendingInterest && !editInterests.some((i) => i.toLowerCase() === pendingInterest.toLowerCase())
+        ? [...editInterests, pendingInterest].slice(0, 30)
+        : editInterests;
+      await updateUserProfile(userProfile, {
+        displayName: name,
+        bio: bio || null,
+        researchInterests: interests,
+        socialLinks,
+      });
       setIsEditModalVisible(false);
+      toast.show('Profile updated');
     } catch (err) {
       console.error('[Profile] Save failed:', err);
-      showMessage('Save failed', 'Could not update your profile. Please try again.');
+      toast.show('Could not update your profile. Please try again.', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -162,12 +201,12 @@ export default function ProfileTab() {
       // AuthGuard routes to the login screen as soon as sign-out starts.
     } catch {
       setIsSigningOut(false);
-      showMessage('Sign out failed', 'Please check your connection and try again.');
+      toast.show('Sign out failed. Check your connection and try again.', 'error');
     }
   };
 
   const handleOpenLink = (url: string) => {
-    Linking.openURL(url).catch(() => showMessage('Link Error', `Unable to open: ${url}`));
+    Linking.openURL(url).catch(() => toast.show('Unable to open this link', 'error'));
   };
 
   const openTopic = (topic: string) =>
@@ -198,6 +237,17 @@ export default function ProfileTab() {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userProfile?.socialLinks, colors.primary]);
+
+  // Profile completeness (own profile only)
+  const completenessChecks = [
+    { label: 'Add a profile photo (Google account photo)', done: Boolean(userProfile?.photoURL) },
+    { label: 'Write a short bio', done: Boolean(profileBio) },
+    { label: 'Add at least 3 research interests', done: researchInterests.length >= 3 },
+    { label: 'Add an academic link', done: Object.values(userProfile?.socialLinks ?? {}).some(Boolean) },
+    { label: 'Share your current work', done: myWorks.length > 0 },
+  ];
+  const completeness = Math.round((completenessChecks.filter((c) => c.done).length / completenessChecks.length) * 100);
+  const nextStep = completenessChecks.find((c) => !c.done);
 
   const libraryItems: ProfileListItem[] = [
     {
@@ -254,6 +304,30 @@ export default function ProfileTab() {
           ]}
         />
 
+        {/* Profile completeness */}
+        {completeness < 100 && nextStep ? (
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() =>
+              nextStep.label.startsWith('Share') ? router.push('/(tabs)/share' as any) : handleOpenEditModal()
+            }
+            style={[styles.meterCard, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}
+            accessibilityRole="button"
+            accessibilityLabel={`Profile ${completeness} percent complete. Next: ${nextStep.label}`}
+          >
+            <View style={styles.meterHeader}>
+              <Text style={[styles.meterTitle, { color: colors.textPrimary }]}>Profile strength</Text>
+              <Text style={[styles.meterPercent, { color: colors.primary }]}>{completeness}%</Text>
+            </View>
+            <View style={[styles.meterTrack, { backgroundColor: colors.surfaceSubtle }]}>
+              <View style={[styles.meterFill, { width: `${completeness}%`, backgroundColor: colors.primary }]} />
+            </View>
+            <Text style={[styles.meterNext, { color: colors.textSecondary }]}>
+              Next: {nextStep.label} →
+            </Text>
+          </TouchableOpacity>
+        ) : null}
+
         {/* Research interests */}
         <ProfileSection title="Research Interests">
           {researchInterests.length === 0 ? (
@@ -274,7 +348,7 @@ export default function ProfileTab() {
           onActionPress={() => router.push('/(tabs)/share' as any)}
         >
           {myWorksLoading ? (
-            <ActivityIndicator color={colors.primary} style={{ marginVertical: spacing.md }} />
+            <SkeletonList count={2} variant="row" />
           ) : myWorksError ? (
             <ProfileEmptyText text="Could not load your shared work. Please try again later." />
           ) : myWorks.length === 0 ? (
@@ -482,6 +556,59 @@ export default function ProfileTab() {
                     style={[styles.textInput, styles.bioInput, { backgroundColor: colors.surfaceSubtle, borderColor: colors.borderSubtle, color: colors.textPrimary }]}
                   />
                 </View>
+
+                {/* Research interests */}
+                <View style={styles.inputGroup}>
+                  <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>
+                    Research Interests ({editInterests.length}/30)
+                  </Text>
+                  {editInterests.length > 0 ? (
+                    <View style={styles.chipsRow}>
+                      {editInterests.map((interest) => (
+                        <TopicChip
+                          key={interest}
+                          label={interest}
+                          variant="teal"
+                          onRemove={() => setEditInterests((prev) => prev.filter((i) => i !== interest))}
+                        />
+                      ))}
+                    </View>
+                  ) : null}
+                  <TextInput
+                    value={interestInput}
+                    onChangeText={setInterestInput}
+                    onSubmitEditing={() => addInterest(interestInput)}
+                    placeholder="Add an interest and press enter"
+                    placeholderTextColor={colors.textMuted}
+                    returnKeyType="done"
+                    style={[styles.textInput, { backgroundColor: colors.surfaceSubtle, borderColor: colors.borderSubtle, color: colors.textPrimary }]}
+                  />
+                  <View style={styles.chipsRow}>
+                    {TOPIC_TAXONOMY.filter((t) => !editInterests.some((i) => i.toLowerCase() === t.name.toLowerCase()))
+                      .slice(0, 8)
+                      .map((t) => (
+                        <TopicChip key={t.id} label={`+ ${t.name}`} variant="outline" onPress={() => addInterest(t.name)} />
+                      ))}
+                  </View>
+                </View>
+
+                {/* Academic links */}
+                <View style={styles.inputGroup}>
+                  <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>Academic Links</Text>
+                  {LINK_META.map((m) => (
+                    <TextInput
+                      key={m.key as string}
+                      value={editLinks[m.key as string] ?? ''}
+                      onChangeText={(v) => setEditLinks((prev) => ({ ...prev, [m.key as string]: v }))}
+                      placeholder={`${m.name} URL`}
+                      placeholderTextColor={colors.textMuted}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      keyboardType="url"
+                      style={[styles.textInput, { backgroundColor: colors.surfaceSubtle, borderColor: colors.borderSubtle, color: colors.textPrimary }]}
+                    />
+                  ))}
+                </View>
               </View>
             </ScrollView>
           </View>
@@ -506,6 +633,37 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.sm,
+  },
+  meterCard: {
+    borderWidth: 1,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  meterHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  meterTitle: {
+    ...typography.sectionHeader,
+  },
+  meterPercent: {
+    ...typography.label,
+  },
+  meterTrack: {
+    height: 8,
+    borderRadius: radius.full,
+    overflow: 'hidden',
+  },
+  meterFill: {
+    height: 8,
+    borderRadius: radius.full,
+  },
+  meterNext: {
+    ...typography.bodySmall,
+    marginTop: spacing.sm,
   },
 
   // Settings modal
