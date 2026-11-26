@@ -11,6 +11,18 @@ import type { Timestamp } from 'firebase/firestore';
 
 /** Project progression stages offered by the Share Current Work screen. */
 export const RESEARCH_STAGE_IDS = ['Idea', 'Literature Review', 'Experiment', 'Writing'] as const;
+
+/** Common roles people look for in collaboration posts. */
+export const SUGGESTED_COLLAB_ROLES = [
+  '#MLEngineer',
+  '#DataAnnotation',
+  '#BackendDeveloper',
+  '#FrontendDeveloper',
+  '#UIUXDesigner',
+  '#ResearchWriter',
+  '#Statistician',
+  '#HardwareEngineer',
+];
 export type ResearchStage = (typeof RESEARCH_STAGE_IDS)[number];
 
 /**
@@ -53,6 +65,10 @@ export interface ResearchWork {
   postType: ResearchPostType;
   /** Skills / roles wanted (collaboration posts only, max 10), e.g. `#BackendDeveloper`. */
   lookingFor: string[];
+  /** Collaboration lifecycle: 'open' accepts applications; 'closed' = team formed. */
+  collabStatus: 'open' | 'closed';
+  /** Accepted collaborators (author-managed, max 20). */
+  team: { uid: string; displayName: string; photoURL: string | null; role: string }[];
 
   createdAt: Timestamp;
   updatedAt: Timestamp;

@@ -30,6 +30,11 @@ import { getPublicProfile } from '@/services/user.service';
 import { getPublishedWorksByAuthor } from '@/services/research.service';
 import { useConnections } from '@/hooks/useConnections';
 import { useToast } from '@/context/ToastContext';
+import { getContactCard } from '@/services/collab.service';
+import type { ContactCard } from '@/types/collab.types';
+import { Mail, MessageCircle, Lock } from 'lucide-react-native';
+import { contactActionFor } from '@/utils/contact';
+import { copyContact } from '@/components/common/ContactSheet';
 import type { PublicProfile } from '@/types/user.types';
 import type { ResearchWork } from '@/types/research.types';
 
@@ -54,6 +59,17 @@ export default function ResearcherProfileScreen() {
   const [profile, setProfile] = useState<PublicProfile | null>(null);
   const [works, setWorks] = useState<ResearchWork[]>([]);
   const [state, setState] = useState<LoadState>('loading');
+  const [contact, setContact] = useState<ContactCard | null>(null);
+  const isConnected = Boolean(id) && relationship(id as string).state === 'connected';
+
+  // Contact card is readable only once connected (enforced by the rules)
+  useEffect(() => {
+    if (!id || !isConnected) {
+      setContact(null);
+      return;
+    }
+    getContactCard(id).then(setContact).catch(() => setContact(null));
+  }, [id, isConnected]);
 
   // Your own profile lives in the Profile tab
   useEffect(() => {
@@ -174,6 +190,52 @@ export default function ResearcherProfileScreen() {
             ]}
           />
 
+          <ProfileSection title="Contact">
+            {isConnected ? (
+              contact && (contact.email || contact.preferredContact) ? (
+                <ProfileListCard
+                  items={[
+                    ...(contact.email
+                      ? [{
+                          id: 'email',
+                          label: contact.email,
+                          icon: <Mail size={18} color={colors.primary} strokeWidth={2} />,
+                          trailing: 'external' as const,
+                          onPress: () =>
+                            Linking.openURL(`mailto:${contact.email}`).catch(() => toast.show('Unable to open email app', 'error')),
+                        }]
+                      : []),
+                    ...(contact.preferredContact
+                      ? [{
+                          id: 'preferred',
+                          label: contact.preferredContact,
+                          icon: <MessageCircle size={18} color={colors.primary} strokeWidth={2} />,
+                          trailing: (contactActionFor(contact.preferredContact) ? 'external' : 'chevron') as 'external' | 'chevron',
+                          onPress: () => {
+                            const action = contactActionFor(contact.preferredContact);
+                            if (action) {
+                              Linking.openURL(action.url).catch(() => toast.show('Unable to open this app', 'error'));
+                            } else {
+                              copyContact(contact.preferredContact ?? '', () => toast.show('Copied', 'success')).catch(() => {});
+                            }
+                          },
+                        }]
+                      : []),
+                  ]}
+                />
+              ) : (
+                <ProfileEmptyText text={`${profile.displayName.split(' ')[0]} hasn't added contact details yet.`} />
+              )
+            ) : (
+              <View style={[styles.lockedContact, { backgroundColor: colors.surfaceSubtle }]}>
+                <Lock size={14} color={colors.textMuted} />
+                <Text style={[styles.lockedContactText, { color: colors.textSecondary }]}>
+                  Connect (or join one of their collaborations) to see contact details.
+                </Text>
+              </View>
+            )}
+          </ProfileSection>
+
           <ProfileSection title="Research Interests">
             {profile.researchInterests.length === 0 ? (
               <ProfileEmptyText text="No research interests listed." />
@@ -233,4 +295,12 @@ const styles = StyleSheet.create({
   retryText: { ...typography.label, fontFamily: fontFamilies.sansSemiBold },
   scrollContent: { padding: spacing.md, paddingBottom: spacing.xl },
   chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  lockedContact: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    padding: spacing.md,
+    borderRadius: radius.md,
+  },
+  lockedContactText: { ...typography.bodySmall, flex: 1 },
 });

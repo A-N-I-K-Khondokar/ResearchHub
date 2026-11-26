@@ -286,7 +286,7 @@ export default function GlobalSearchScreen() {
                       authorAvatar={work.authorPhotoURL}
                       onPress={() => router.push(`/(research)/${work.id}` as any)}
                       onAuthorPress={() => openAuthor(work.userId)}
-                      {...collaborate(work, directory.profileByUid.get(work.userId))}
+                      {...collaborate(work)}
                       onTopicPress={(topic) => handleTopicPress(topic)}
                     />
                   );

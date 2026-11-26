@@ -16,6 +16,7 @@ import {
   getDoc,
   getDocs,
   deleteDoc,
+  updateDoc,
   query,
   where,
   orderBy,
@@ -27,7 +28,7 @@ import {
   type Firestore,
 } from 'firebase/firestore';
 import { db } from '@/config/firebase';
-import { buildResearchWorkDocument } from '@/utils/researchWork';
+import { buildResearchWorkDocument, buildResearchWorkUpdate, type ResearchWorkEditInput } from '@/utils/researchWork';
 import { formatRelativeDate } from '@/utils/date';
 import type { UserProfile } from '@/types/user.types';
 import type { ResearchWork, CreateResearchWorkInput } from '@/types/research.types';
@@ -63,6 +64,8 @@ function toResearchWork(snap: DocumentSnapshot<DocumentData>): ResearchWork | nu
     status: data.status ?? 'published',
     postType: data.postType === 'collaboration' ? 'collaboration' : 'work',
     lookingFor: Array.isArray(data.lookingFor) ? data.lookingFor : [],
+    collabStatus: data.collabStatus === 'closed' ? 'closed' : 'open',
+    team: Array.isArray(data.team) ? data.team : [],
     createdAt: data.createdAt,
     updatedAt: data.updatedAt,
   };
@@ -203,6 +206,60 @@ export async function getPublishedWorksByAuthor(authorUid: string): Promise<Rese
 }
 
 // ---------------------------------------------------------------------------
+// Update (author only — enforced by the rules)
+// ---------------------------------------------------------------------------
+
+/** Edit my post's content (title, description, topics, stage, link, roles). */
+export async function updateResearchWork(
+  work: ResearchWork,
+  input: ResearchWorkEditInput,
+): Promise<void> {
+  const firestore = getFirestoreDb();
+  await updateDoc(
+    doc(firestore, COLLECTION, work.id),
+    buildResearchWorkUpdate(input, work.postType === 'collaboration', serverTimestamp()),
+  );
+}
+
+/** Quick stage change from the stage stepper. */
+export async function updateResearchStage(workId: string, stage: ResearchWork['stage']): Promise<void> {
+  await updateDoc(doc(getFirestoreDb(), COLLECTION, workId), { stage, updatedAt: serverTimestamp() });
+}
+
+/**
+ * Live copies of specific posts (e.g. collaborations I joined as a team
+ * member). Missing / unreadable posts are simply left out.
+ */
+export function subscribeWorksByIds(ids: string[], onUpdate: (works: ResearchWork[]) => void): () => void {
+  if (!db || ids.length === 0) {
+    onUpdate([]);
+    return () => {};
+  }
+  const latest = new Map<string, ResearchWork | null>();
+  const emit = () =>
+    onUpdate(
+      ids
+        .map((id) => latest.get(id))
+        .filter((w): w is ResearchWork => Boolean(w))
+        .sort((a, b) => toMillis(b.createdAt) - toMillis(a.createdAt)),
+    );
+  const unsubs = ids.map((id) =>
+    onSnapshot(
+      doc(db!, COLLECTION, id),
+      (snap) => {
+        latest.set(id, snap.exists() ? toResearchWork(snap) : null);
+        emit();
+      },
+      () => {
+        latest.set(id, null);
+        emit();
+      },
+    ),
+  );
+  return () => unsubs.forEach((u) => u());
+}
+
+// ---------------------------------------------------------------------------
 // Delete
 // ---------------------------------------------------------------------------
 
@@ -234,6 +291,8 @@ export function toCurrentWork(work: ResearchWork): CurrentWork {
     externalURL: work.externalUrl ?? undefined,
     postType: work.postType,
     lookingFor: work.lookingFor,
+    collabStatus: work.collabStatus,
+    team: work.team,
     likesCount: 0,
     commentsCount: 0,
     createdAt: created,

@@ -30,6 +30,53 @@ export function tagMatchKey(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
+/** Normalises a list of tags/roles: #CamelCase, no duplicates, capped. */
+export function normalizeTagList(raw: string[] | undefined, max: number): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const item of raw ?? []) {
+    const tag = formatResearchTag(item);
+    const key = tag.toLowerCase();
+    if (tag && !seen.has(key)) {
+      seen.add(key);
+      out.push(tag);
+    }
+  }
+  return out.slice(0, max);
+}
+
+export interface ResearchWorkEditInput {
+  title: string;
+  description: string;
+  tags: string[];
+  stage: CreateResearchWorkInput['stage'];
+  externalUrl?: string | null;
+  /** Collaboration posts only. */
+  lookingFor?: string[];
+}
+
+/**
+ * Author edit of an existing post. Only content fields the rules allow
+ * (title, description, tags, stage, externalUrl, lookingFor, updatedAt);
+ * author snapshot, postType, team and createdAt are never touched.
+ */
+export function buildResearchWorkUpdate(
+  input: ResearchWorkEditInput,
+  isCollaboration: boolean,
+  timestamp: unknown,
+): Record<string, unknown> {
+  const url = input.externalUrl?.trim();
+  return {
+    title: input.title.trim(),
+    description: input.description.trim(),
+    tags: normalizeTagList(input.tags, 10),
+    stage: input.stage,
+    externalUrl: url ? url : null,
+    ...(isCollaboration ? { lookingFor: normalizeTagList(input.lookingFor, 10) } : {}),
+    updatedAt: timestamp,
+  };
+}
+
 export function buildResearchWorkDocument(
   author: ResearchAuthorSnapshot,
   input: CreateResearchWorkInput,
@@ -64,6 +111,7 @@ export function buildResearchWorkDocument(
     }
     collaboration.postType = 'collaboration';
     collaboration.lookingFor = lookingFor.slice(0, 10);
+    collaboration.collabStatus = 'open';
   }
 
   return {

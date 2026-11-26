@@ -28,7 +28,7 @@ export interface CurrentWorkCardProps {
   onTopicPress?: (topic: string) => void;
   onBookmarkPress?: () => void;
   isBookmarked?: boolean;
-  /** Collaboration posts: "I'm interested" action (e.g. send a connection request). */
+  /** Collaboration posts: "I'm interested · Apply" action (see useCollaborate). */
   onCollaboratePress?: () => void;
   collaborateLabel?: string;
   collaborateDisabled?: boolean;
@@ -54,12 +54,14 @@ export const CurrentWorkCard: React.FC<CurrentWorkCardProps> = ({
   onBookmarkPress,
   isBookmarked = false,
   onCollaboratePress,
-  collaborateLabel = "I'm interested · Connect",
+  collaborateLabel = "I'm interested · Apply",
   collaborateDisabled = false,
 }) => {
   const { colors, isDark } = useTheme();
   const isCollaboration = work.postType === 'collaboration';
   const lookingFor = work.lookingFor ?? [];
+  const teamFormed = isCollaboration && work.collabStatus === 'closed';
+  const team = work.team ?? [];
 
   const handleShare = async () => {
     try {
@@ -103,9 +105,11 @@ export const CurrentWorkCard: React.FC<CurrentWorkCardProps> = ({
     >
       {/* Collaboration badge */}
       {isCollaboration ? (
-        <View style={[styles.collabBadge, { backgroundColor: colors.primaryMuted }]}>
-          <Users size={13} color={colors.primary} strokeWidth={2.2} />
-          <Text style={[styles.collabBadgeText, { color: colors.primary }]}>Looking for collaborators</Text>
+        <View style={[styles.collabBadge, { backgroundColor: teamFormed ? colors.successLight : colors.primaryMuted }]}>
+          <Users size={13} color={teamFormed ? colors.success : colors.primary} strokeWidth={2.2} />
+          <Text style={[styles.collabBadgeText, { color: teamFormed ? colors.success : colors.primary }]}>
+            {teamFormed ? 'Team formed' : 'Looking for collaborators'}
+          </Text>
         </View>
       ) : null}
 
@@ -145,8 +149,24 @@ export const CurrentWorkCard: React.FC<CurrentWorkCardProps> = ({
         {work.shortDescription || work.description}
       </Text>
 
+      {/* Team (accepted collaborators) */}
+      {isCollaboration && team.length > 0 ? (
+        <View style={styles.teamRow}>
+          <View style={styles.teamAvatars}>
+            {team.slice(0, 4).map((m, i) => (
+              <View key={m.uid} style={[styles.teamAvatar, { marginLeft: i === 0 ? 0 : -8, borderColor: colors.surface }]}>
+                <Avatar name={m.displayName} uri={m.photoURL} size="xs" />
+              </View>
+            ))}
+          </View>
+          <Text style={[styles.teamText, { color: colors.textSecondary }]} numberOfLines={1}>
+            Team: {team.map((m) => m.displayName.split(' ')[0]).join(', ')}
+          </Text>
+        </View>
+      ) : null}
+
       {/* Looking for (collaboration) */}
-      {isCollaboration && lookingFor.length > 0 ? (
+      {isCollaboration && lookingFor.length > 0 && !teamFormed ? (
         <View style={styles.lookingForBlock}>
           <Text style={[styles.lookingForLabel, { color: colors.textPrimary }]}>Looking for</Text>
           <View style={styles.topicsRow}>
@@ -331,6 +351,23 @@ const styles = StyleSheet.create({
     ...typography.bodyCompact,
     lineHeight: 21,
     marginBottom: spacing.sm + 4,
+  },
+  teamRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.sm + 4,
+  },
+  teamAvatars: {
+    flexDirection: 'row',
+  },
+  teamAvatar: {
+    borderWidth: 2,
+    borderRadius: 999,
+  },
+  teamText: {
+    ...typography.caption,
+    flexShrink: 1,
   },
   lookingForBlock: {
     marginBottom: spacing.xs,

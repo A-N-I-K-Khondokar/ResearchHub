@@ -1,6 +1,6 @@
 # Firestore Data Model & Security
 
-CSE Research Hub uses **Firebase Authentication** and **Cloud Firestore** (Spark plan, no Cloud Functions). Every rule below is enforced in [`firestore.rules`](../firestore.rules) and covered by the emulator suite in [`tests/firestore/firestore.rules.test.mjs`](../tests/firestore/firestore.rules.test.mjs) (150 tests).
+CSE Research Hub uses **Firebase Authentication** and **Cloud Firestore** (Spark plan, no Cloud Functions). Every rule below is enforced in [`firestore.rules`](../firestore.rules) and covered by the emulator suite in [`tests/firestore/firestore.rules.test.mjs`](../tests/firestore/firestore.rules.test.mjs) (177 tests).
 
 All timestamps written by clients must equal the server's `request.time` (`serverTimestamp()`); client-generated times are rejected.
 
@@ -16,6 +16,8 @@ All timestamps written by clients must equal the server's `request.time` (`serve
 | `connections/{uidA_uidB}` | One document per researcher pair | The two participants | Requester (create), recipient (accept / reject), participants (delete) |
 | `notifications/{id}` | In-app notifications | Recipient | Actor, only alongside the real connection change; recipient marks read / deletes |
 | `users/{uid}/saved_items/{workId}` | Private bookmarks | Owner | Approved owner |
+| `collab_requests/{workId_applicantUid}` | Applications to collaboration posts | Applicant, post author | Applicant (apply / withdraw pending), author (accept / decline) |
+| `contact_cards/{uid}` | Opt-in contact details | Owner, admins, **accepted connections** | Owner |
 | `admin_requests`, `notification_services` | Legacy, unused | Admins / service only | Deny-by-default for clients |
 
 Anything not listed is denied (`match /{document=**} { allow read, write: if false; }`).
@@ -81,7 +83,19 @@ Participants may cancel a pending request or remove a connection; a **rejected**
 
 ## `notifications/{id}`
 
-`recipientUid, actorUid, actorName, actorPhotoURL, type, connectionId, read, createdAt` where `type` is `connection_request` or `connection_accepted`. A notification can only be created **in the same batch** as the connection change it describes (verified with `get` / `getAfter`), so notifications cannot be forged or spammed. Recipients may only flip `read` to `true` or delete.
+`recipientUid, actorUid, actorName, actorPhotoURL, type, connectionId, read, createdAt` (+ `workTitle`, `role` for collaboration types) where `type` is `connection_request`, `connection_accepted`, `collab_request`, `collab_accepted` or `collab_declined` (`connectionId` then holds the application ID). A notification can only be created **in the same batch** as the connection change it describes (verified with `get` / `getAfter`), so notifications cannot be forged or spammed. Recipients may only flip `read` to `true` or delete.
+
+## Collaboration posts and `collab_requests/{workId_applicantUid}`
+
+A `research_works` document with `postType: 'collaboration'` lists `lookingFor` roles (1–10), an author-managed `collabStatus` (`open` | `closed` = "Team formed") and a `team` list (≤ 20 accepted members).
+
+An application (`workId, authorUid, applicantUid, applicant snapshot, workTitle, role, message, status`) can only be created for an **open, published collaboration post you did not write**, for one of its `lookingFor` roles, together with a `collab_request` notification to the author. One application per person per post (deterministic ID). The applicant may withdraw while pending; only the author accepts or declines.
+
+**Accepting** is one atomic batch: the application → `accepted`, the applicant is added to the post's `team`, the two researchers are **connected** (a connection created directly as `accepted` is allowed only with `viaCollabRequest` pointing at that accepted application), and a `collab_accepted` notification is sent.
+
+## `contact_cards/{uid}`
+
+`uid, email, preferredContact, updatedAt`. Opt-in contact details so collaborators can reach each other (there is no in-app chat). `email` may only be the owner's verified sign-in email. Readable **only** by the owner, admins and researchers with an **accepted connection** (checked with the sorted connection ID).
 
 ## `users/{uid}/saved_items/{workId}`
 

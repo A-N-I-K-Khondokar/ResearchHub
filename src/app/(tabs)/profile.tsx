@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
   Settings,
   Edit3,
@@ -32,6 +32,9 @@ import {
   LogOut,
   Linkedin,
   Bookmark,
+  IdCard,
+  Mail,
+  MessageCircle,
 } from 'lucide-react-native';
 import { spacing, radius, typography, fontFamilies, floatingButtonTokens } from '@/constants';
 import { useTheme, ThemeMode } from '@/context/ThemeContext';
@@ -49,12 +52,14 @@ import {
   type ProfileListItem,
 } from '@/components/profile';
 import { updateUserProfile } from '@/services/user.service';
-import { subscribeMyResearchWorks } from '@/services/research.service';
+import { subscribeMyResearchWorks, subscribeWorksByIds } from '@/services/research.service';
+import { useCollab } from '@/context/CollabContext';
 import { useConnections } from '@/hooks/useConnections';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { confirmAction } from '@/utils/dialogs';
 import { useToast } from '@/context/ToastContext';
 import { SkeletonList } from '@/components/feedback/Skeleton';
+import { useContactCard } from '@/context/ContactCardContext';
 import { TOPIC_TAXONOMY } from '@/utils/search';
 import type { ResearchWork } from '@/types/research.types';
 import type { UserSocialLinks } from '@/types/user.types';
@@ -71,6 +76,7 @@ export default function ProfileTab() {
   const { colors, themeMode, isDark, setThemeMode } = useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { edit: editParam } = useLocalSearchParams<{ edit?: string }>();
   const { userProfile, signOut } = useAuth();
   const { connected, incomingRequests } = useConnections();
   const { items: savedItems } = useSavedItems();
@@ -90,6 +96,23 @@ export default function ProfileTab() {
   const [myWorks, setMyWorks] = useState<ResearchWork[]>([]);
   const [myWorksLoading, setMyWorksLoading] = useState(true);
   const [myWorksError, setMyWorksError] = useState(false);
+
+  // Collaborations I joined as a team member (accepted applications)
+  const { myApplications } = useCollab();
+  const joined = useMemo(() => myApplications.filter((r) => r.status === 'accepted'), [myApplications]);
+  const joinedKey = joined.map((r) => r.workId).sort().join(',');
+  const [teamWorks, setTeamWorks] = useState<ResearchWork[]>([]);
+  useEffect(() => {
+    const ids = joinedKey ? joinedKey.split(',') : [];
+    return subscribeWorksByIds(ids, setTeamWorks);
+  }, [joinedKey]);
+  const roleFor = useMemo(() => new Map(joined.map((r) => [r.workId, r.role] as const)), [joined]);
+  const workingOn = useMemo(() => {
+    const own = new Set(myWorks.map((w) => w.id));
+    return [...myWorks, ...teamWorks.filter((w) => !own.has(w.id))].sort(
+      (a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0),
+    );
+  }, [myWorks, teamWorks]);
 
   useEffect(() => {
     if (!userProfile?.uid) return;
@@ -114,6 +137,8 @@ export default function ProfileTab() {
   const [editInterests, setEditInterests] = useState<string[]>(researchInterests);
   const [interestInput, setInterestInput] = useState('');
   const [editLinks, setEditLinks] = useState<Record<string, string>>({});
+  // Contact card (guided editor lives in ContactCardContext)
+  const { myCard, hasMyCard, openContactEditor } = useContactCard();
   const toast = useToast();
 
   const addInterest = (raw: string) => {
@@ -136,6 +161,14 @@ export default function ProfileTab() {
     setEditLinks(Object.fromEntries(LINK_META.map((m) => [m.key as string, String(links[m.key] ?? '')])));
     setIsEditModalVisible(true);
   };
+
+  // Deep link from a collaboration post: /(tabs)/profile?edit=contact
+  useEffect(() => {
+    if (editParam !== 'contact' || !userProfile) return;
+    openContactEditor();
+    router.setParams({ edit: '' });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editParam, userProfile?.uid]);
 
   const handleSaveProfile = async () => {
     if (!userProfile || isSaving) return;
@@ -245,6 +278,7 @@ export default function ProfileTab() {
     { label: 'Add at least 3 research interests', done: researchInterests.length >= 3 },
     { label: 'Add an academic link', done: Object.values(userProfile?.socialLinks ?? {}).some(Boolean) },
     { label: 'Share your current work', done: myWorks.length > 0 },
+    { label: 'Add a contact card so collaborators can reach you', done: hasMyCard !== false },
   ];
   const completeness = Math.round((completenessChecks.filter((c) => c.done).length / completenessChecks.length) * 100);
   const nextStep = completenessChecks.find((c) => !c.done);
@@ -258,10 +292,12 @@ export default function ProfileTab() {
       trailing: 'chevron',
     },
     {
-      id: 'requests',
-      label: `Pending Connection Requests (${incomingRequests.length})`,
+      id: 'network',
+      label: `My Network · ${connected.length} connection${connected.length === 1 ? '' : 's'}${
+        incomingRequests.length ? ` · ${incomingRequests.length} request${incomingRequests.length === 1 ? '' : 's'}` : ''
+      }`,
       icon: <Users size={18} color={colors.primary} strokeWidth={2} />,
-      onPress: () => router.push('/(tabs)/notifications' as any),
+      onPress: () => router.push('/(profile)/network' as any),
       trailing: 'chevron',
     },
   ];
@@ -309,7 +345,11 @@ export default function ProfileTab() {
           <TouchableOpacity
             activeOpacity={0.85}
             onPress={() =>
-              nextStep.label.startsWith('Share') ? router.push('/(tabs)/share' as any) : handleOpenEditModal()
+              nextStep.label.startsWith('Share')
+                ? router.push('/(tabs)/share' as any)
+                : nextStep.label.startsWith('Add a contact')
+                  ? openContactEditor()
+                  : handleOpenEditModal()
             }
             style={[styles.meterCard, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}
             accessibilityRole="button"
@@ -351,10 +391,57 @@ export default function ProfileTab() {
             <SkeletonList count={2} variant="row" />
           ) : myWorksError ? (
             <ProfileEmptyText text="Could not load your shared work. Please try again later." />
-          ) : myWorks.length === 0 ? (
+          ) : workingOn.length === 0 ? (
             <ProfileEmptyText text="Nothing shared yet — tap Share to post what you are researching." />
           ) : (
-            <WorkList works={myWorks} onOpen={(w) => router.push(`/(research)/${w.id}` as any)} />
+            <WorkList
+              works={workingOn}
+              onOpen={(w) => router.push(`/(research)/${w.id}` as any)}
+              badgeFor={(w) =>
+                w.authorUid !== userProfile?.uid ? `Team member · ${roleFor.get(w.id) ?? ''} · with ${w.authorName.split(' ')[0]}` : undefined
+              }
+            />
+          )}
+        </ProfileSection>
+
+        {/* Contact card */}
+        <ProfileSection title="Contact Card" actionLabel={hasMyCard ? 'Edit' : undefined} onActionPress={hasMyCard ? openContactEditor : undefined}>
+          {hasMyCard ? (
+            <ProfileListCard
+              items={[
+                ...(myCard?.email
+                  ? [{ id: 'email', label: myCard.email, icon: <Mail size={18} color={colors.primary} strokeWidth={2} />, onPress: openContactEditor, trailing: 'chevron' as const }]
+                  : []),
+                ...(myCard?.preferredContact
+                  ? [{
+                      id: 'preferred',
+                      label: myCard.preferredContact,
+                      icon: <MessageCircle size={18} color={colors.primary} strokeWidth={2} />,
+                      onPress: openContactEditor,
+                      trailing: 'chevron' as const,
+                    }]
+                  : []),
+              ]}
+            />
+          ) : (
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={openContactEditor}
+              style={[styles.contactCta, { backgroundColor: colors.primaryMuted, borderColor: colors.primaryLight }]}
+              accessibilityRole="button"
+              accessibilityLabel="Add your contact card"
+            >
+              <View style={[styles.contactCtaIcon, { backgroundColor: colors.surface }]}>
+                <IdCard size={20} color={colors.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.contactCtaTitle, { color: colors.textPrimary }]}>Add how collaborators can reach you</Text>
+                <Text style={[styles.contactCtaSub, { color: colors.textSecondary }]}>
+                  WhatsApp, Telegram, phone or email · takes 10 seconds
+                </Text>
+              </View>
+              <Text style={[styles.contactCtaAction, { color: colors.primary }]}>Add</Text>
+            </TouchableOpacity>
           )}
         </ProfileSection>
 
@@ -619,6 +706,18 @@ export default function ProfileTab() {
 }
 
 const styles = StyleSheet.create({
+  contactCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    borderWidth: 1,
+    borderRadius: radius.md,
+    padding: spacing.md,
+  },
+  contactCtaIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  contactCtaTitle: { ...typography.label, fontFamily: fontFamilies.sansSemiBold },
+  contactCtaSub: { ...typography.caption, marginTop: 2 },
+  contactCtaAction: { ...typography.label, fontFamily: fontFamilies.sansSemiBold },
   container: {
     flex: 1,
   },

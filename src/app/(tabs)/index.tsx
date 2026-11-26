@@ -134,7 +134,7 @@ export default function HomeFeedScreen() {
         authorAvatar={work.authorPhotoURL}
         authorRole={work.authorDesignation || undefined}
         isBookmarked={isBookmarked}
-        {...collaborate(work, directory.profileByUid.get(work.authorUid))}
+        {...collaborate(work)}
         onPress={() => router.push(`/(research)/${work.id}` as any)}
         onAuthorPress={() => handleAuthorPress(work.authorUid)}
         onTopicPress={(tag) => {

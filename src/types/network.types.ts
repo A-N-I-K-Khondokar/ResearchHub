@@ -53,7 +53,12 @@ export type RelationshipState =
 // In-app notifications
 // ---------------------------------------------------------------------------
 
-export type InAppNotificationType = 'connection_request' | 'connection_accepted';
+export type InAppNotificationType =
+  | 'connection_request'
+  | 'connection_accepted'
+  | 'collab_request'
+  | 'collab_accepted'
+  | 'collab_declined';
 
 export interface InAppNotification {
   id: string;
@@ -62,7 +67,11 @@ export interface InAppNotification {
   actorName: string;
   actorPhotoURL: string | null;
   type: InAppNotificationType;
+  /** Connection id, or the collaboration request id for collab_* types. */
   connectionId: string;
+  /** Collaboration notifications only. */
+  workTitle?: string;
+  role?: string;
   read: boolean;
   createdAt: Timestamp;
 }

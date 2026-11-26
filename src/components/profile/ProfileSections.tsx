@@ -30,7 +30,11 @@ export const ProfileEmptyText: React.FC<{ text: string }> = ({ text }) => {
 // Compact research-work rows (3 shown, "Show all" expands)
 // ---------------------------------------------------------------------------
 
-export const WorkListItem: React.FC<{ work: ResearchWork; onPress: () => void }> = ({ work, onPress }) => {
+export const WorkListItem: React.FC<{ work: ResearchWork; onPress: () => void; badge?: string }> = ({
+  work,
+  onPress,
+  badge,
+}) => {
   const { colors } = useTheme();
   return (
     <TouchableOpacity
@@ -41,7 +45,14 @@ export const WorkListItem: React.FC<{ work: ResearchWork; onPress: () => void }>
       accessibilityLabel={`Open ${work.title}`}
     >
       <View style={styles.workBody}>
-        {work.postType === 'collaboration' ? (
+        {badge ? (
+          <View style={[styles.collabTag, { backgroundColor: colors.successLight }]}>
+            <Users size={11} color={colors.success} />
+            <Text style={[styles.collabTagText, { color: colors.success }]} numberOfLines={1}>
+              {badge}
+            </Text>
+          </View>
+        ) : work.postType === 'collaboration' ? (
           <View style={[styles.collabTag, { backgroundColor: colors.primaryMuted }]}>
             <Users size={11} color={colors.primary} />
             <Text style={[styles.collabTagText, { color: colors.primary }]}>
@@ -80,14 +91,16 @@ export const WorkList: React.FC<{
   works: ResearchWork[];
   onOpen: (work: ResearchWork) => void;
   initialCount?: number;
-}> = ({ works, onOpen, initialCount = 3 }) => {
+  /** Optional per-item badge, e.g. "Team member · #MLEngineer". */
+  badgeFor?: (work: ResearchWork) => string | undefined;
+}> = ({ works, onOpen, initialCount = 3, badgeFor }) => {
   const { colors } = useTheme();
   const [expanded, setExpanded] = useState(false);
   const visible = expanded ? works : works.slice(0, initialCount);
   return (
     <View style={styles.workList}>
       {visible.map((work) => (
-        <WorkListItem key={work.id} work={work} onPress={() => onOpen(work)} />
+        <WorkListItem key={work.id} work={work} onPress={() => onOpen(work)} badge={badgeFor?.(work)} />
       ))}
       {works.length > initialCount ? (
         <TouchableOpacity

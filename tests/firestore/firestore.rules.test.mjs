@@ -30,13 +30,23 @@ import {
   orderBy,
   limit,
   getDocs,
+  arrayUnion,
 } from 'firebase/firestore';
 // Real payload builder used by src/services/user.service.ts (requires
 // `node --experimental-strip-types`, available in Node >= 22.6).
 import { buildPendingProfileDocuments, buildResubmissionUpdate } from '../../src/utils/pendingProfile.ts';
 import { buildPublicProfile as buildOwnerPublicProfile } from '../../src/utils/publicProfile.ts';
 import { buildPublicProfile as buildAdminPublicProfile } from '../../admin-portal/src/utils/publicProfile.ts';
-import { buildResearchWorkDocument } from '../../src/utils/researchWork.ts';
+import { buildResearchWorkDocument, buildResearchWorkUpdate } from '../../src/utils/researchWork.ts';
+import {
+  collabRequestId,
+  buildCollabRequest,
+  buildCollabResponse,
+  buildCollabNotification,
+  buildCollabConnection,
+  buildTeamMember,
+  buildContactCard,
+} from '../../src/utils/collab.ts';
 import {
   connectionIdFor,
   buildConnectionRequest,
@@ -2062,6 +2072,238 @@ describe('Firestore Security Rules Suite — CSE Research Hub', () => {
         orderBy('createdAt', 'desc'), limit(20),
       )));
       assert.deepEqual(snap.docs.map((d) => d.id).sort(), ['collab_2', 'work_2']);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // 15. Tier 1 collaboration workflow (TEST-157 to TEST-174)
+  // -------------------------------------------------------------------------
+  describe('15. Collaboration Requests, Teams and Contact Cards', () => {
+    const LENA_UID = 'user_lena_approved';
+    const LENA_EMAIL = 'lena@gmail.com';
+    const MAX_UID = 'user_max_approved';
+    const MAX_EMAIL = 'max@gmail.com';
+    const ctx = (uid, email) => testEnv.authenticatedContext(uid, { email, email_verified: true }).firestore();
+    const charlieDb = () => ctx(CHARLIE_UID, CHARLIE_EMAIL);
+    const lenaDb = () => ctx(LENA_UID, LENA_EMAIL);
+    const maxDb = () => ctx(MAX_UID, MAX_EMAIL);
+
+    const CHARLIE = { uid: CHARLIE_UID, displayName: 'Charlie Approved', photoURL: null, designation: 'Graduate Researcher' };
+    const LENA = { uid: LENA_UID, displayName: 'Lena Approved', photoURL: null, designation: 'Undergraduate Researcher' };
+    const CHARLIE_AUTHOR = { ...CHARLIE, department: 'Computer Science and Engineering' };
+    const COLLAB = {
+      title: 'Bangla OCR dataset', description: 'Looking for teammates to build a Bangla handwriting OCR dataset.',
+      tags: ['#BanglaNLP'], stage: 'Idea', externalUrl: null, postType: 'collaboration', lookingFor: ['#DataAnnotation', '#MLEngineer'],
+    };
+    const WORK = { id: 'collab_open', authorUid: CHARLIE_UID, title: COLLAB.title };
+    const reqId = collabRequestId('collab_open', LENA_UID);
+
+    const approvedUser = (uid, email, name, designation) => ({
+      uid, email, displayName: name, photoURL: null, department: 'Computer Science and Engineering',
+      program: null, batch: null, studentId: null, designation, bio: null, researchInterests: [], socialLinks: {},
+      approvalStatus: 'approved', requestedAt: Timestamp.now(), approvedAt: Timestamp.now(), approvedBy: ADMIN_UID,
+      rejectionReason: null, createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
+    });
+
+    beforeEach(async () => {
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        const db = context.firestore();
+        await setDoc(doc(db, 'users', LENA_UID), approvedUser(LENA_UID, LENA_EMAIL, 'Lena Approved', 'Undergraduate Researcher'));
+        await setDoc(doc(db, 'users', MAX_UID), approvedUser(MAX_UID, MAX_EMAIL, 'Max Approved', 'Research Assistant'));
+        await setDoc(doc(db, 'research_works', 'collab_open'), buildResearchWorkDocument(CHARLIE_AUTHOR, COLLAB, Timestamp.now()));
+        await setDoc(doc(db, 'research_works', 'collab_closed'),
+          { ...buildResearchWorkDocument(CHARLIE_AUTHOR, COLLAB, Timestamp.now()), collabStatus: 'closed' });
+        await setDoc(doc(db, 'research_works', 'plain_work'),
+          buildResearchWorkDocument(CHARLIE_AUTHOR, { ...COLLAB, postType: 'work' }, Timestamp.now()));
+      });
+    });
+
+    // Mirrors collab.service applyToCollaboration(): request + notification batch.
+    function applyBatch(db, applicant, work, role, overrides = {}) {
+      const { id, data } = buildCollabRequest(applicant, work, role, 'I have annotated 5k samples before.', serverTimestamp());
+      const batch = writeBatch(db);
+      batch.set(doc(db, 'collab_requests', overrides.__id || id), { ...data, ...(overrides.data || {}) });
+      batch.set(doc(collection(db, 'notifications')),
+        buildCollabNotification('collab_request', applicant, work.authorUid, id, work.title, role, serverTimestamp()));
+      return batch;
+    }
+    async function lenaApplies() {
+      await assertSucceeds(applyBatch(lenaDb(), LENA, WORK, '#DataAnnotation').commit());
+    }
+    // Mirrors collab.service respondToApplication(accept=true).
+    function acceptBatch(db) {
+      const batch = writeBatch(db);
+      batch.update(doc(db, 'collab_requests', reqId), buildCollabResponse(true, serverTimestamp()));
+      batch.update(doc(db, 'research_works', 'collab_open'), {
+        team: arrayUnion(buildTeamMember(LENA, '#DataAnnotation')), updatedAt: serverTimestamp(),
+      });
+      const conn = buildCollabConnection(CHARLIE, LENA, reqId, serverTimestamp());
+      batch.set(doc(db, 'connections', conn.id), conn.data);
+      batch.set(doc(collection(db, 'notifications')),
+        buildCollabNotification('collab_accepted', CHARLIE, LENA_UID, reqId, WORK.title, '#DataAnnotation', serverTimestamp()));
+      return batch;
+    }
+
+    it('TEST-157: Approved researcher applies with role + message (atomic with notification) → ALLOW', async () => {
+      await lenaApplies();
+    });
+
+    it('TEST-158: Applying twice to the same post → DENY', async () => {
+      await lenaApplies();
+      await assertFails(applyBatch(lenaDb(), LENA, WORK, '#MLEngineer').commit());
+    });
+
+    it('TEST-159: Applying to your own post → DENY', async () => {
+      await assertFails(applyBatch(charlieDb(), CHARLIE, WORK, '#DataAnnotation').commit());
+    });
+
+    it('TEST-160: Role not listed in the post, non-collaboration post or closed post → DENY', async () => {
+      await assertFails(applyBatch(lenaDb(), LENA, WORK, '#Astronaut').commit());
+      await assertFails(applyBatch(lenaDb(), LENA, { id: 'plain_work', authorUid: CHARLIE_UID, title: COLLAB.title }, '#DataAnnotation').commit());
+      await assertFails(applyBatch(lenaDb(), LENA, { id: 'collab_closed', authorUid: CHARLIE_UID, title: COLLAB.title }, '#DataAnnotation').commit());
+    });
+
+    it('TEST-161: Forged applicant snapshot or someone else\'s request ID → DENY', async () => {
+      await assertFails(applyBatch(lenaDb(), { ...LENA, displayName: 'Prof. Famous' }, WORK, '#DataAnnotation').commit());
+      await assertFails(applyBatch(lenaDb(), LENA, WORK, '#DataAnnotation', { __id: collabRequestId('collab_open', MAX_UID) }).commit());
+    });
+
+    it('TEST-162: Applicant and author read the request; a third researcher cannot → ALLOW/DENY', async () => {
+      await lenaApplies();
+      await assertSucceeds(getDoc(doc(lenaDb(), 'collab_requests', reqId)));
+      const applicants = await assertSucceeds(getDocs(query(collection(charlieDb(), 'collab_requests'),
+        where('authorUid', '==', CHARLIE_UID), where('workId', '==', 'collab_open'))));
+      assert.equal(applicants.size, 1);
+      await assertSucceeds(getDocs(query(collection(lenaDb(), 'collab_requests'), where('applicantUid', '==', LENA_UID))));
+      await assertFails(getDoc(doc(maxDb(), 'collab_requests', reqId)));
+    });
+
+    it('TEST-163: Author accepts: request + team + direct connection + notification (atomic) → ALLOW', async () => {
+      await lenaApplies();
+      await assertSucceeds(acceptBatch(charlieDb()).commit());
+      const work = await getDoc(doc(charlieDb(), 'research_works', 'collab_open'));
+      assert.equal(work.data().team.length, 1);
+      const conn = await getDoc(doc(lenaDb(), 'connections', buildCollabConnection(CHARLIE, LENA, reqId, null).id));
+      assert.equal(conn.data().status, 'accepted');
+    });
+
+    it('TEST-164: Applicant accepts their own application → DENY', async () => {
+      await lenaApplies();
+      await assertFails(updateDoc(doc(lenaDb(), 'collab_requests', reqId), buildCollabResponse(true, serverTimestamp())));
+    });
+
+    it('TEST-165: Author declines with notification → ALLOW; applicant cannot then delete it → DENY', async () => {
+      await lenaApplies();
+      const db = charlieDb();
+      const batch = writeBatch(db);
+      batch.update(doc(db, 'collab_requests', reqId), buildCollabResponse(false, serverTimestamp()));
+      batch.set(doc(collection(db, 'notifications')),
+        buildCollabNotification('collab_declined', CHARLIE, LENA_UID, reqId, WORK.title, '#DataAnnotation', serverTimestamp()));
+      await assertSucceeds(batch.commit());
+      await assertFails(deleteDoc(doc(lenaDb(), 'collab_requests', reqId)));
+    });
+
+    it('TEST-166: Applicant withdraws a pending application → ALLOW', async () => {
+      await lenaApplies();
+      await assertSucceeds(deleteDoc(doc(lenaDb(), 'collab_requests', reqId)));
+    });
+
+    it('TEST-175: Team member cannot apply again, or withdraw the accepted application to re-apply → DENY', async () => {
+      await lenaApplies();
+      await assertSucceeds(acceptBatch(charlieDb()).commit());
+      await assertFails(applyBatch(lenaDb(), LENA, WORK, '#MLEngineer').commit());
+      await assertFails(applyBatch(lenaDb(), LENA, WORK, '#DataAnnotation').commit());
+      await assertFails(deleteDoc(doc(lenaDb(), 'collab_requests', reqId)));
+    });
+
+    // Mirrors research.service updateResearchWork() / updateResearchStage().
+    const EDIT = {
+      title: 'Bangla OCR dataset v2', description: 'Updated plan: 10k handwriting samples and a baseline CRNN model.',
+      tags: ['Bangla NLP', '#OCR'], stage: 'Experiment', externalUrl: 'https://example.org/ocr', lookingFor: ['#MLEngineer', 'Statistician'],
+    };
+
+    it('TEST-176: Author edits a collaboration post (content, stage, roles) and changes the stage → ALLOW', async () => {
+      await assertSucceeds(updateDoc(doc(charlieDb(), 'research_works', 'collab_open'),
+        buildResearchWorkUpdate(EDIT, true, serverTimestamp())));
+      const work = (await getDoc(doc(charlieDb(), 'research_works', 'collab_open'))).data();
+      assert.equal(work.title, EDIT.title);
+      assert.deepEqual(work.lookingFor, ['#MLEngineer', '#Statistician']);
+      assert.equal(work.postType, 'collaboration');
+      await assertSucceeds(updateDoc(doc(charlieDb(), 'research_works', 'collab_open'),
+        { stage: 'Writing', updatedAt: serverTimestamp() }));
+      await assertSucceeds(updateDoc(doc(charlieDb(), 'research_works', 'plain_work'),
+        buildResearchWorkUpdate(EDIT, false, serverTimestamp())));
+    });
+
+    it('TEST-177: Team member or another researcher edits the post; collaboration post with no roles → DENY', async () => {
+      await lenaApplies();
+      await assertSucceeds(acceptBatch(charlieDb()).commit());
+      await assertFails(updateDoc(doc(lenaDb(), 'research_works', 'collab_open'),
+        buildResearchWorkUpdate(EDIT, true, serverTimestamp())));
+      await assertFails(updateDoc(doc(lenaDb(), 'research_works', 'collab_open'), { stage: 'Writing', updatedAt: serverTimestamp() }));
+      await assertFails(updateDoc(doc(maxDb(), 'research_works', 'collab_open'),
+        buildResearchWorkUpdate(EDIT, true, serverTimestamp())));
+      await assertFails(updateDoc(doc(charlieDb(), 'research_works', 'collab_open'),
+        buildResearchWorkUpdate({ ...EDIT, lookingFor: [] }, true, serverTimestamp())));
+      // The team survives an author edit
+      await assertSucceeds(updateDoc(doc(charlieDb(), 'research_works', 'collab_open'),
+        buildResearchWorkUpdate(EDIT, true, serverTimestamp())));
+      const work = (await getDoc(doc(lenaDb(), 'research_works', 'collab_open'))).data();
+      assert.equal(work.team.length, 1);
+    });
+
+    it('TEST-167: Direct "accepted" connection without an accepted application → DENY', async () => {
+      await lenaApplies();
+      const conn = buildCollabConnection(CHARLIE, LENA, reqId, serverTimestamp());
+      await assertFails(setDoc(doc(charlieDb(), 'connections', conn.id), conn.data));
+    });
+
+    it('TEST-168: Forged collaboration notifications (no matching change) → DENY', async () => {
+      await assertFails(setDoc(doc(collection(lenaDb(), 'notifications')),
+        buildCollabNotification('collab_request', LENA, CHARLIE_UID, reqId, WORK.title, '#DataAnnotation', serverTimestamp())));
+      await lenaApplies();
+      await assertFails(setDoc(doc(collection(charlieDb(), 'notifications')),
+        buildCollabNotification('collab_accepted', CHARLIE, LENA_UID, reqId, WORK.title, '#DataAnnotation', serverTimestamp())));
+    });
+
+    it('TEST-169: Owner saves a contact card with their own verified email → ALLOW; another email → DENY', async () => {
+      await assertSucceeds(setDoc(doc(lenaDb(), 'contact_cards', LENA_UID),
+        buildContactCard(LENA_UID, LENA_EMAIL, 'Telegram @lena', serverTimestamp())));
+      await assertFails(setDoc(doc(lenaDb(), 'contact_cards', LENA_UID),
+        buildContactCard(LENA_UID, 'someone@else.com', null, serverTimestamp())));
+    });
+
+    it('TEST-170: Accepted connection reads the contact card; unconnected researcher cannot → ALLOW/DENY', async () => {
+      await assertSucceeds(setDoc(doc(lenaDb(), 'contact_cards', LENA_UID),
+        buildContactCard(LENA_UID, LENA_EMAIL, 'Telegram @lena', serverTimestamp())));
+      await assertFails(getDoc(doc(charlieDb(), 'contact_cards', LENA_UID)));
+      await lenaApplies();
+      await assertSucceeds(acceptBatch(charlieDb()).commit());
+      await assertSucceeds(getDoc(doc(charlieDb(), 'contact_cards', LENA_UID)));
+      await assertFails(getDoc(doc(maxDb(), 'contact_cards', LENA_UID)));
+    });
+
+    it('TEST-171: Someone else writes your contact card → DENY', async () => {
+      await assertFails(setDoc(doc(charlieDb(), 'contact_cards', LENA_UID),
+        buildContactCard(LENA_UID, null, 'fake', serverTimestamp())));
+    });
+
+    it('TEST-172: Author marks a post "Team formed" → ALLOW; non-author → DENY', async () => {
+      await assertSucceeds(updateDoc(doc(charlieDb(), 'research_works', 'collab_open'),
+        { collabStatus: 'closed', updatedAt: serverTimestamp() }));
+      await assertFails(updateDoc(doc(lenaDb(), 'research_works', 'collab_open'),
+        { collabStatus: 'open', updatedAt: serverTimestamp() }));
+    });
+
+    it('TEST-173: Invalid collabStatus value → DENY', async () => {
+      await assertFails(updateDoc(doc(charlieDb(), 'research_works', 'collab_open'),
+        { collabStatus: 'archived', updatedAt: serverTimestamp() }));
+    });
+
+    it('TEST-174: Builder starts collaboration posts as "open" and creation is allowed → ALLOW', async () => {
+      const work = buildResearchWorkDocument(CHARLIE_AUTHOR, COLLAB, serverTimestamp());
+      assert.equal(work.collabStatus, 'open');
+      await assertSucceeds(setDoc(doc(collection(charlieDb(), 'research_works')), work));
     });
   });
 });

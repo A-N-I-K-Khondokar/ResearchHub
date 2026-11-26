@@ -56,6 +56,8 @@ export interface CurrentWork {
   /** 'collaboration' posts look for collaborators (see research.types.ts). */
   postType?: 'work' | 'collaboration';
   lookingFor?: string[];
+  collabStatus?: 'open' | 'closed';
+  team?: { uid: string; displayName: string; photoURL: string | null; role: string }[];
   likesCount?: number;
   commentsCount?: number;
   isBookmarked?: boolean;

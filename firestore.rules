@@ -769,6 +769,8 @@ service cloud.firestore {
         'status',
         'postType',
         'lookingFor',
+        'collabStatus',
+        'team',
         'createdAt',
         'updatedAt'
       ]) && data.keys().hasAll([
@@ -808,6 +810,9 @@ service cloud.firestore {
         // Collaboration posts must say who they are looking for.
         (data.get('postType', 'work') != 'collaboration' ||
           ('lookingFor' in data && data.lookingFor.size() >= 1)) &&
+        // Collaboration lifecycle (author-managed): open / closed and accepted team.
+        (!('collabStatus' in data) || data.collabStatus in ['open', 'closed']) &&
+        (!('team' in data) || isValidList(data.team, 20)) &&
         data.createdAt is timestamp &&
         data.updatedAt is timestamp;
     }
@@ -850,6 +855,8 @@ service cloud.firestore {
           'externalUrl',
           'status',
           'lookingFor',
+          'collabStatus',
+          'team',
           'updatedAt'
         ]) &&
         request.resource.data.updatedAt == request.time;
@@ -935,7 +942,7 @@ service cloud.firestore {
     function isValidConnectionCreate(connectionId, d) {
       return d.keys().hasOnly([
           'users', 'requesterUid', 'recipientUid', 'requester', 'recipient',
-          'status', 'createdAt', 'updatedAt', 'respondedAt'
+          'status', 'createdAt', 'updatedAt', 'respondedAt', 'viaCollabRequest'
         ]) &&
         d.keys().hasAll([
           'users', 'requesterUid', 'recipientUid', 'requester', 'recipient',
@@ -951,12 +958,25 @@ service cloud.firestore {
         d.users == (d.requesterUid < d.recipientUid
           ? [d.requesterUid, d.recipientUid]
           : [d.recipientUid, d.requesterUid]) &&
-        d.status == 'pending' &&
-        d.respondedAt == null &&
+        (
+          // Normal request: starts pending.
+          (d.status == 'pending' && d.respondedAt == null && !('viaCollabRequest' in d)) ||
+          // Post author accepting a collaboration application connects directly,
+          // only when that application is accepted in the same batch.
+          (d.status == 'accepted' && d.respondedAt == request.time &&
+            'viaCollabRequest' in d && isAcceptedCollabFor(d.viaCollabRequest, d.recipientUid))
+        ) &&
         d.createdAt == request.time &&
         d.updatedAt == request.time &&
         participantMatchesProfile(d.requester, d.requesterUid) &&
         participantMatchesProfile(d.recipient, d.recipientUid);
+    }
+
+    function isAcceptedCollabFor(requestId, applicantUid) {
+      let req = getAfter(/databases/$(database)/documents/collab_requests/$(requestId)).data;
+      return req.status == 'accepted' &&
+        req.authorUid == request.auth.uid &&
+        req.applicantUid == applicantUid;
     }
 
     match /connections/{connectionId} {
@@ -998,7 +1018,7 @@ service cloud.firestore {
       let actor = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
       return d.keys().hasOnly([
           'recipientUid', 'actorUid', 'actorName', 'actorPhotoURL',
-          'type', 'connectionId', 'read', 'createdAt'
+          'type', 'connectionId', 'read', 'createdAt', 'workTitle', 'role'
         ]) &&
         d.keys().hasAll([
           'recipientUid', 'actorUid', 'actorName', 'actorPhotoURL',
@@ -1024,7 +1044,31 @@ service cloud.firestore {
             get(connPath).data.status == 'pending' &&
             getAfter(connPath).data.status == 'accepted' &&
             getAfter(connPath).data.recipientUid == request.auth.uid &&
-            getAfter(connPath).data.requesterUid == d.recipientUid)
+            getAfter(connPath).data.requesterUid == d.recipientUid) ||
+          // Collaboration application / decision (connectionId = collab request id).
+          (d.type in ['collab_request', 'collab_accepted', 'collab_declined'] &&
+            isValidCollabNotification(d))
+        );
+    }
+
+    function isValidCollabNotification(d) {
+      let reqPath = /databases/$(database)/documents/collab_requests/$(d.connectionId);
+      let after = getAfter(reqPath).data;
+      return d.workTitle == after.workTitle &&
+        d.role == after.role &&
+        (
+          // New application, created in this same batch, notifies the post author.
+          (d.type == 'collab_request' &&
+            !exists(reqPath) &&
+            after.status == 'pending' &&
+            after.applicantUid == request.auth.uid &&
+            after.authorUid == d.recipientUid) ||
+          // Author's decision in this same batch notifies the applicant.
+          (d.type in ['collab_accepted', 'collab_declined'] &&
+            get(reqPath).data.status == 'pending' &&
+            after.status == (d.type == 'collab_accepted' ? 'accepted' : 'declined') &&
+            after.authorUid == request.auth.uid &&
+            after.applicantUid == d.recipientUid)
         );
     }
 
@@ -1040,6 +1084,84 @@ service cloud.firestore {
         request.resource.data.read == true;
 
       allow delete: if isAuthenticated() && resource.data.recipientUid == request.auth.uid;
+    }
+
+    // ===============================================================
+    // Rules: Collaboration Requests (/collab_requests/{workId_applicantUid})
+    // ===============================================================
+    //
+    // A researcher applies to an OPEN collaboration post for one of its
+    // "looking for" roles. One request per person per post (deterministic ID).
+    // Only the post author accepts / declines; the applicant may withdraw while pending.
+    function isValidCollabRequestCreate(requestId, d) {
+      let work = get(/databases/$(database)/documents/research_works/$(d.workId)).data;
+      return d.keys().hasOnly([
+          'workId', 'authorUid', 'applicantUid', 'applicant', 'workTitle', 'role',
+          'message', 'status', 'createdAt', 'updatedAt', 'respondedAt'
+        ]) &&
+        d.keys().hasAll([
+          'workId', 'authorUid', 'applicantUid', 'applicant', 'workTitle', 'role',
+          'message', 'status', 'createdAt', 'updatedAt', 'respondedAt'
+        ]) &&
+        d.workId is string &&
+        d.applicantUid == request.auth.uid &&
+        requestId == d.workId + '_' + request.auth.uid &&
+        work.get('postType', 'work') == 'collaboration' &&
+        work.status == 'published' &&
+        work.get('collabStatus', 'open') == 'open' &&
+        d.authorUid == work.authorUid &&
+        d.authorUid != request.auth.uid &&
+        d.workTitle == work.title &&
+        d.role in work.get('lookingFor', []) &&
+        (d.message == null || isValidString(d.message, 1, 500)) &&
+        d.status == 'pending' &&
+        d.respondedAt == null &&
+        d.createdAt == request.time &&
+        d.updatedAt == request.time &&
+        participantMatchesProfile(d.applicant, request.auth.uid);
+    }
+
+    match /collab_requests/{requestId} {
+      allow read: if isAdmin() ||
+        (isAuthenticated() &&
+          (resource.data.applicantUid == request.auth.uid || resource.data.authorUid == request.auth.uid));
+      allow create: if isApprovedUser() && isValidCollabRequestCreate(requestId, request.resource.data);
+      allow update: if isApprovedUser() &&
+        resource.data.authorUid == request.auth.uid &&
+        resource.data.status == 'pending' &&
+        request.resource.data.status in ['accepted', 'declined'] &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'respondedAt', 'updatedAt']) &&
+        request.resource.data.respondedAt == request.time &&
+        request.resource.data.updatedAt == request.time;
+      allow delete: if isAuthenticated() &&
+        resource.data.applicantUid == request.auth.uid &&
+        resource.data.status == 'pending';
+    }
+
+    // ===============================================================
+    // Rules: Contact Cards (/contact_cards/{uid})
+    // ===============================================================
+    //
+    // Opt-in contact details, readable ONLY by the owner, admins and accepted
+    // connections. `email` (if shared) must be the owner's verified sign-in email.
+    function isAcceptedConnection(a, b) {
+      let pair = /databases/$(database)/documents/connections/$(a < b ? a + '_' + b : b + '_' + a);
+      return exists(pair) && get(pair).data.status == 'accepted';
+    }
+
+    match /contact_cards/{uid} {
+      allow read: if isOwner(uid) || isAdmin() ||
+        (isAuthenticated() && isAcceptedConnection(request.auth.uid, uid));
+      allow create, update: if isOwner(uid) &&
+        isApprovedUser() &&
+        request.resource.data.keys().hasOnly(['uid', 'email', 'preferredContact', 'updatedAt']) &&
+        request.resource.data.keys().hasAll(['uid', 'email', 'preferredContact', 'updatedAt']) &&
+        request.resource.data.uid == uid &&
+        (request.resource.data.email == null || request.resource.data.email == request.auth.token.email) &&
+        (request.resource.data.preferredContact == null ||
+          isValidString(request.resource.data.preferredContact, 1, 200)) &&
+        request.resource.data.updatedAt == request.time;
+      allow delete: if isOwner(uid);
     }
 
     // ===============================================================

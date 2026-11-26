@@ -15,7 +15,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { encodeFields, decodeFields } = require('../demo/firebase-rest.cjs');
+const { encodeFields, decodeFields, commit: adminCommit } = require('../demo/firebase-rest.cjs');
 
 const ROOT = path.join(__dirname, '..', '..');
 const PROJECT = 'cse-research-hub';
@@ -198,14 +198,107 @@ const participant = (p) => ({ uid: p.uid, displayName: p.displayName, photoURL: 
   const conn = await get(nusrat, `connections/${connId}`);
   check('Connection status is accepted for both', conn.data?.status === 'accepted');
 
+  // ---- Tier 1 collaboration workflow ---------------------------------------
+  const collabId = `demo_qa_${crypto.randomBytes(4).toString('hex')}`;
+  const collabWork = { ...work, title: 'QA collaboration post', postType: 'collaboration', lookingFor: ['#DataAnnotation'], collabStatus: 'open' };
+  check('Collaboration: post "Find Collaborators"', (await commitAs(tahsin, [{
+    update: { name: name(`research_works/${collabId}`), fields: encodeFields(collabWork) },
+    updateTransforms: serverTime('createdAt', 'updatedAt'),
+    currentDocument: { exists: false },
+  }])) === 200);
+
+  const requestId = `${collabId}_${nusrat.uid}`;
+  const applyNotifId = `demo_qa_${crypto.randomBytes(4).toString('hex')}`;
+  check('Collaboration: apply with role + message (atomic with notification)', (await commitAs(nusrat, [
+    {
+      update: { name: name(`collab_requests/${requestId}`), fields: encodeFields({
+        workId: collabId, authorUid: tahsin.uid, applicantUid: nusrat.uid, applicant: participant(nProfile),
+        workTitle: collabWork.title, role: '#DataAnnotation', message: 'QA smoke test application', status: 'pending', respondedAt: null,
+      }) },
+      updateTransforms: serverTime('createdAt', 'updatedAt'),
+      currentDocument: { exists: false },
+    },
+    {
+      update: { name: name(`notifications/${applyNotifId}`), fields: encodeFields({
+        recipientUid: tahsin.uid, actorUid: nusrat.uid, actorName: nProfile.displayName, actorPhotoURL: nProfile.photoURL ?? null,
+        type: 'collab_request', connectionId: requestId, workTitle: collabWork.title, role: '#DataAnnotation', read: false,
+      }) },
+      updateTransforms: serverTime('createdAt'),
+    },
+  ])) === 200);
+  check('Collaboration: applying to your own post is denied', (await commitAs(tahsin, [{
+    update: { name: name(`collab_requests/${collabId}_${tahsin.uid}`), fields: encodeFields({
+      workId: collabId, authorUid: tahsin.uid, applicantUid: tahsin.uid, applicant: participant(tProfile),
+      workTitle: collabWork.title, role: '#DataAnnotation', message: null, status: 'pending', respondedAt: null,
+    }) },
+    updateTransforms: serverTime('createdAt', 'updatedAt'),
+    currentDocument: { exists: false },
+  }])) === 403);
+
+  const applicants = await query(tahsin, {
+    from: [{ collectionId: 'collab_requests' }],
+    where: { compositeFilter: { op: 'AND', filters: [eq('authorUid', tahsin.uid), eq('workId', collabId)] } },
+  });
+  check('Collaboration: author sees the applicant', applicants.docs.some((d) => d.id === requestId));
+
+  const acceptNotifId = `demo_qa_${crypto.randomBytes(4).toString('hex')}`;
+  const member = encodeFields({ m: { uid: nusrat.uid, displayName: nProfile.displayName, photoURL: nProfile.photoURL ?? null, role: '#DataAnnotation' } }).m;
+  check('Collaboration: author accepts → team + notification (atomic)', (await commitAs(tahsin, [
+    {
+      update: { name: name(`collab_requests/${requestId}`), fields: encodeFields({ status: 'accepted' }) },
+      updateMask: { fieldPaths: ['status'] },
+      updateTransforms: serverTime('respondedAt', 'updatedAt'),
+      currentDocument: { exists: true },
+    },
+    {
+      update: { name: name(`research_works/${collabId}`), fields: {} },
+      updateMask: { fieldPaths: [] },
+      updateTransforms: [{ fieldPath: 'team', appendMissingElements: { values: [member] } }, ...serverTime('updatedAt')],
+      currentDocument: { exists: true },
+    },
+    {
+      update: { name: name(`notifications/${acceptNotifId}`), fields: encodeFields({
+        recipientUid: nusrat.uid, actorUid: tahsin.uid, actorName: tProfile.displayName, actorPhotoURL: tProfile.photoURL ?? null,
+        type: 'collab_accepted', connectionId: requestId, workTitle: collabWork.title, role: '#DataAnnotation', read: false,
+      }) },
+      updateTransforms: serverTime('createdAt'),
+    },
+  ])) === 200);
+  const teamWork = await get(nusrat, `research_works/${collabId}`);
+  check('Collaboration: applicant appears on the team', (teamWork.data?.team || []).some((m) => m.uid === nusrat.uid));
+
+  const nusratEmail = 'demo.nusrat@researchhub.test';
+  check('Contact card: owner shares verified email', (await commitAs(nusrat, [{
+    update: { name: name(`contact_cards/${nusrat.uid}`), fields: encodeFields({ uid: nusrat.uid, email: nusratEmail, preferredContact: 'QA: Telegram @demo' }) },
+    updateTransforms: serverTime('updatedAt'),
+  }])) === 200);
+  check('Contact card: connected collaborator can read it', (await get(tahsin, `contact_cards/${nusrat.uid}`)).status === 200);
+
+  check('Collaboration: author marks "Team formed"', (await commitAs(tahsin, [{
+    update: { name: name(`research_works/${collabId}`), fields: encodeFields({ collabStatus: 'closed' }) },
+    updateMask: { fieldPaths: ['collabStatus'] },
+    updateTransforms: serverTime('updatedAt'),
+    currentDocument: { exists: true },
+  }])) === 200);
+
   // ---- Clean up -------------------------------------------------------------
   const cleanup = [
+    await commitAs(tahsin, [{ delete: name(`notifications/${applyNotifId}`) }]),
+    await commitAs(nusrat, [{ delete: name(`notifications/${acceptNotifId}`) }]),
+    await commitAs(nusrat, [{ delete: name(`contact_cards/${nusrat.uid}`) }]),
+    await commitAs(tahsin, [{ delete: name(`research_works/${collabId}`) }]),
     await commitAs(nusrat, [{ delete: name(`users/${nusrat.uid}/saved_items/${workId}`) }]),
     await commitAs(tahsin, [{ delete: name(`research_works/${workId}`) }]),
     await commitAs(tahsin, [{ delete: name(`notifications/${reqNotifId}`) }]),
     await commitAs(nusrat, [{ delete: name(`notifications/${accNotifId}`) }]),
   ];
   check('Clean up (author delete, owner unsave, recipients delete notifications)', cleanup.every((s) => s === 200));
+  try {
+    await adminCommit([{ delete: `collab_requests/${requestId}` }]);
+    check('Clean up accepted application (admin, via Firebase CLI login)', true);
+  } catch (err) {
+    check('Clean up accepted application (admin, via Firebase CLI login)', false, err.message);
+  }
 
   console.log(`\n${failed === 0 ? '✔' : '✖'} ${passed} passed, ${failed} failed\n`);
   process.exit(failed === 0 ? 0 : 1);

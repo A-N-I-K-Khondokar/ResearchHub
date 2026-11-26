@@ -16,6 +16,8 @@ import {
 import { ThemeProvider, useTheme } from '@/context/ThemeContext';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { ToastProvider } from '@/context/ToastContext';
+import { CollabProvider } from '@/context/CollabContext';
+import { ContactCardProvider } from '@/context/ContactCardContext';
 
 // Keep the native splash screen visible while fonts load
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -136,6 +138,7 @@ function RootNavigation() {
       <Stack.Screen name="(research)/[id]" />
       <Stack.Screen name="(profile)/[id]" />
       <Stack.Screen name="(profile)/saved" />
+      <Stack.Screen name="(profile)/network" />
       <Stack.Screen name="(explore)/search" />
       <Stack.Screen name="(explore)/topic-researchers" />
       <Stack.Screen name="+not-found" />
@@ -174,9 +177,13 @@ export default function RootLayout() {
       <ThemeProvider>
         <ToastProvider>
           <AuthProvider>
-            <AuthGuard>
-              <RootNavigation />
-            </AuthGuard>
+            <ContactCardProvider>
+              <CollabProvider>
+                <AuthGuard>
+                  <RootNavigation />
+                </AuthGuard>
+              </CollabProvider>
+            </ContactCardProvider>
           </AuthProvider>
         </ToastProvider>
       </ThemeProvider>

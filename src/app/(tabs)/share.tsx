@@ -32,7 +32,7 @@ import { SuccessModal } from '@/components/feedback/SuccessModal';
 import { useAuth } from '@/context/AuthContext';
 import { createResearchWork } from '@/services/research.service';
 import { formatResearchTag } from '@/utils/researchWork';
-import { RESEARCH_LIMITS, type ResearchStage, type ResearchPostType } from '@/types/research.types';
+import { RESEARCH_LIMITS, type ResearchStage, type ResearchPostType, SUGGESTED_COLLAB_ROLES } from '@/types/research.types';
 import { useLocalSearchParams } from 'expo-router';
 import { CurrentWorkCard } from '@/components/cards/CurrentWorkCard';
 import { Users, Eye } from 'lucide-react-native';
@@ -51,17 +51,7 @@ const SUGGESTED_TAGS = [
   '#Bioinformatics',
 ];
 
-// Common roles people look for in collaboration posts
-const SUGGESTED_ROLES = [
-  '#MLEngineer',
-  '#DataAnnotation',
-  '#BackendDeveloper',
-  '#FrontendDeveloper',
-  '#UIUXDesigner',
-  '#ResearchWriter',
-  '#Statistician',
-  '#HardwareEngineer',
-];
+const SUGGESTED_ROLES = SUGGESTED_COLLAB_ROLES;
 
 // Project progression stages with minimalist line-art vector icons
 const RESEARCH_STAGES: { id: ResearchStage; label: string; icon: typeof Lightbulb }[] = [
@@ -359,7 +349,7 @@ export default function ShareTab() {
           </View>
           <Text style={[styles.segmentHint, { color: colors.textSecondary }]}>
             {isCollab
-              ? "Describe your project and the skills you need. Researchers can tap \"I'm interested\" to connect with you."
+              ? "Describe your project and the skills you need. Researchers apply for a role; you accept them onto your team."
               : 'Share what you are currently researching with the CSE community.'}
           </Text>
 

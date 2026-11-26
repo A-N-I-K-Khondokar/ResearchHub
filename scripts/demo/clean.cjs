@@ -22,13 +22,15 @@ const isDemo = (v) => typeof v === 'string' && v.startsWith('demo_');
 (async () => {
   console.log(`\nCSE Research Hub demo cleanup — ${APPLY ? 'DELETING' : 'DRY RUN (add -- --yes to delete)'}\n`);
 
-  const [users, publicProfiles, works, connections, notifications, outbox] = await Promise.all([
+  const [users, publicProfiles, works, connections, notifications, outbox, collabRequests, contactCards] = await Promise.all([
     listDocs('users'),
     listDocs('public_profiles'),
     listDocs('research_works'),
     listDocs('connections'),
     listDocs('notifications'),
     listDocs('admin_email_outbox'),
+    listDocs('collab_requests'),
+    listDocs('contact_cards'),
   ]);
 
   const demoWorkIds = new Set(works.filter((w) => isDemo(w.id) || isDemo(w.data.authorUid)).map((w) => w.id));
@@ -53,10 +55,14 @@ const isDemo = (v) => typeof v === 'string' && v.startsWith('demo_');
   notifications
     .filter((n) => isDemo(n.id) || isDemo(n.data.actorUid) || isDemo(n.data.recipientUid))
     .forEach((n) => deletes.push(`notifications/${n.id}`));
+  collabRequests
+    .filter((r) => isDemo(r.data.applicantUid) || isDemo(r.data.authorUid) || demoWorkIds.has(r.data.workId))
+    .forEach((r) => deletes.push(`collab_requests/${r.id}`));
+  contactCards.filter((c) => isDemo(c.id)).forEach((c) => deletes.push(`contact_cards/${c.id}`));
 
   const count = (prefix) => deletes.filter((d) => d.startsWith(prefix)).length;
   console.log(`Documents to delete: ${deletes.length}`);
-  ['users/', 'public_profiles/', 'research_works/', 'connections/', 'notifications/', 'admin_email_outbox/'].forEach((p) =>
+  ['users/', 'public_profiles/', 'research_works/', 'connections/', 'notifications/', 'admin_email_outbox/', 'collab_requests/', 'contact_cards/'].forEach((p) =>
     console.log(`  ${p.replace('/', '')}: ${p === 'users/' ? deletes.filter((d) => /^users\/[^/]+$/.test(d)).length : count(p)}`),
   );
   console.log(`  saved_items: ${deletes.filter((d) => d.includes('/saved_items/')).length}`);

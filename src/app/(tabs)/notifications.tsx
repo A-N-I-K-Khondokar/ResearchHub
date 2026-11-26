@@ -20,6 +20,7 @@ import {
   Sparkles,
   Check,
   CheckCheck,
+  Users,
 } from 'lucide-react-native';
 import { spacing, radius, typography, fontFamilies, floatingButtonTokens } from '@/constants';
 import { useTheme } from '@/context/ThemeContext';
@@ -35,7 +36,7 @@ import {
 import { formatWorkDate } from '@/services/research.service';
 import type { InAppNotification } from '@/types/network.types';
 
-type AlertFilter = 'all' | 'unread' | 'connections';
+type AlertFilter = 'all' | 'unread' | 'connections' | 'collaborations';
 
 interface FilterOption {
   key: AlertFilter;
@@ -46,6 +47,7 @@ const FILTER_OPTIONS: FilterOption[] = [
   { key: 'all', label: 'All' },
   { key: 'unread', label: 'Unread' },
   { key: 'connections', label: 'Connections' },
+  { key: 'collaborations', label: 'Collaborations' },
 ];
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -96,11 +98,20 @@ export default function NotificationsTab() {
     setListenerKey((k) => k + 1);
   }, []);
 
-  // Mark single alert as read and open the actor's profile
+  // Collaboration request ids are `${workId}_${applicantUid}`
+  const workIdOf = (item: InAppNotification) => {
+    const applicantUid = item.type === 'collab_request' ? item.actorUid : item.recipientUid;
+    return item.connectionId.endsWith(`_${applicantUid}`)
+      ? item.connectionId.slice(0, -(applicantUid.length + 1))
+      : '';
+  };
+
+  // Mark as read and open the relevant screen (post for collaboration, else profile)
   const handleOpenAlert = useCallback(
     (item: InAppNotification) => {
       if (!item.read) markNotificationRead(item.id).catch(() => {});
-      router.push(`/(profile)/${item.actorUid}` as any);
+      const workId = item.type.startsWith('collab_') ? workIdOf(item) : '';
+      router.push((workId ? `/(research)/${workId}` : `/(profile)/${item.actorUid}`) as any);
     },
     [router],
   );
@@ -126,7 +137,9 @@ export default function NotificationsTab() {
   const filteredAlerts = useMemo(() => {
     return alerts.filter((alert) => {
       if (activeFilter === 'unread') return !alert.read;
-      return true; // every current notification type is connection-related
+      if (activeFilter === 'connections') return alert.type.startsWith('connection_');
+      if (activeFilter === 'collaborations') return alert.type.startsWith('collab_');
+      return true;
     });
   }, [alerts, activeFilter]);
 
@@ -151,6 +164,14 @@ export default function NotificationsTab() {
   // Render icon badge on avatar
   const renderBadgeIcon = (type: string) => {
     switch (type) {
+      case 'collab_request':
+      case 'collab_accepted':
+      case 'collab_declined':
+        return (
+          <View style={[styles.typeBadge, { backgroundColor: type === 'collab_declined' ? colors.textMuted : colors.success }]}>
+            <Users size={10} color="#FFFFFF" strokeWidth={2.4} />
+          </View>
+        );
       case 'connection_request':
       case 'connection_accepted':
         return (
@@ -188,6 +209,12 @@ export default function NotificationsTab() {
     const message =
       item.type === 'connection_request'
         ? 'sent you a connection request.'
+        : item.type === 'collab_request'
+        ? `applied to join "${item.workTitle}" as ${item.role}.`
+        : item.type === 'collab_accepted'
+        ? `accepted you to "${item.workTitle}" as ${item.role}. 🎉`
+        : item.type === 'collab_declined'
+        ? `declined your application to "${item.workTitle}".`
         : 'accepted your connection request.';
 
     return (
@@ -248,6 +275,21 @@ export default function NotificationsTab() {
               </Text>
             </Text>
           </View>
+
+          {/* Collaboration application: review on the post */}
+          {item.type === 'collab_request' ? (
+            <View style={styles.actionContainer}>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => handleOpenAlert(item)}
+                style={[styles.acceptButton, floatingButtonTokens.primary]}
+                accessibilityRole="button"
+                accessibilityLabel="Review application"
+              >
+                <Text style={styles.acceptButtonText}>Review applicants</Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
 
           {/* Actionable Connection Request Buttons */}
           {item.type === 'connection_request' && (
