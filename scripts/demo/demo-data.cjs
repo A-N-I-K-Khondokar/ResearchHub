@@ -9,10 +9,18 @@
 
 const DEPT = 'Computer Science and Engineering';
 
+/**
+ * Illustrated demo portraits (DiceBear "notionists", CC0 licence — no real
+ * people depicted). PNG so React Native <Image> can render it; the Avatar
+ * component falls back to initials if the image cannot load.
+ */
+const avatar = (seed, hair, bg, extra = '') =>
+  `https://api.dicebear.com/9.x/notionists/png?seed=${seed}&size=256&hair=${hair}&beardProbability=0&backgroundColor=${bg}${extra || '&glassesProbability=0'}`;
+
 /** login: true => a real email/password account is created for this researcher. */
 const RESEARCHERS = [
   {
-    uid: 'demo_tahsin', login: true, email: 'demo.tahsin@researchhub.test',
+    uid: 'demo_tahsin', photoURL: avatar('demo_tahsin', 'variant05', 'dbeafe'), login: true, email: 'demo.tahsin@researchhub.test',
     displayName: 'Tahsin Rahman', designation: 'Graduate Researcher', program: 'M.Sc. in CSE', batch: 'Batch 12',
     studentId: 'DEMO-1201', bio: 'Working on efficient vision transformers for low-power medical imaging devices.',
     researchInterests: ['Machine Learning', 'Computer Vision'],
@@ -20,7 +28,7 @@ const RESEARCHERS = [
     approvalStatus: 'approved', daysAgo: 40,
   },
   {
-    uid: 'demo_nusrat', login: true, email: 'demo.nusrat@researchhub.test',
+    uid: 'demo_nusrat', photoURL: avatar('demo_nusrat', 'variant02', 'fce7f3'), login: true, email: 'demo.nusrat@researchhub.test',
     displayName: 'Nusrat Jahan', designation: 'Undergraduate Researcher', program: 'B.Sc. in CSE', batch: 'Batch 14',
     studentId: 'DEMO-1402', bio: 'Building open Bangla language datasets and evaluating multilingual models.',
     researchInterests: ['Bangla NLP', 'Data Science'],
@@ -28,28 +36,28 @@ const RESEARCHERS = [
     approvalStatus: 'approved', daysAgo: 35,
   },
   {
-    uid: 'demo_farhan', displayName: 'Dr. Farhan Kabir', designation: 'Assistant Professor', program: null, batch: 'Faculty',
+    uid: 'demo_farhan', photoURL: avatar('demo_farhan', 'variant38', 'e0f2fe', '&glassesProbability=100&glasses=variant08'), displayName: 'Dr. Farhan Kabir', designation: 'Assistant Professor', program: null, batch: 'Faculty',
     studentId: 'DEMO-F01', bio: 'Supervises thesis groups on network security and fault-tolerant distributed systems.',
     researchInterests: ['Cybersecurity', 'Distributed Systems'],
     socialLinks: { website: 'https://example.com/farhan', googleScholar: 'https://scholar.google.com' },
     approvalStatus: 'approved', daysAgo: 60,
   },
   {
-    uid: 'demo_sadia', displayName: 'Sadia Islam', designation: 'Undergraduate Researcher', program: 'B.Sc. in CSE', batch: 'Batch 15',
+    uid: 'demo_sadia', photoURL: avatar('demo_sadia', 'variant08', 'dcfce7'), displayName: 'Sadia Islam', designation: 'Undergraduate Researcher', program: 'B.Sc. in CSE', batch: 'Batch 15',
     studentId: 'DEMO-1503', bio: 'Designing accessible campus apps and studying how students use research tools.',
     researchInterests: ['Human-Computer Interaction', 'Software Engineering'],
     socialLinks: { github: 'https://github.com/demo-sadia' },
     approvalStatus: 'approved', daysAgo: 28,
   },
   {
-    uid: 'demo_rakib', displayName: 'Rakib Hasan', designation: 'Graduate Researcher', program: 'M.Sc. in CSE', batch: 'Batch 11',
+    uid: 'demo_rakib', photoURL: avatar('demo_rakib', 'variant22', 'dcfce7'), displayName: 'Rakib Hasan', designation: 'Graduate Researcher', program: 'M.Sc. in CSE', batch: 'Batch 11',
     studentId: 'DEMO-1104', bio: 'Edge computing for smart agriculture sensors and small autonomous robots.',
     researchInterests: ['IoT', 'Robotics'],
     socialLinks: {},
     approvalStatus: 'approved', daysAgo: 50,
   },
   {
-    uid: 'demo_maliha', displayName: 'Maliha Chowdhury', designation: 'Research Assistant', program: 'B.Sc. in CSE', batch: 'Batch 13',
+    uid: 'demo_maliha', photoURL: avatar('demo_maliha', 'variant28', 'ede9fe'), displayName: 'Maliha Chowdhury', designation: 'Research Assistant', program: 'B.Sc. in CSE', batch: 'Batch 13',
     studentId: 'DEMO-1305', bio: 'Data pipelines and reproducible ML experiments for public health datasets.',
     researchInterests: ['Data Science', 'Machine Learning'],
     socialLinks: { researchGate: 'https://www.researchgate.net' },
@@ -57,19 +65,19 @@ const RESEARCHERS = [
   },
   // Admin-portal test applicants
   {
-    uid: 'demo_arif', displayName: 'Arif Hossain', designation: 'Undergraduate Student', program: 'B.Sc. in CSE', batch: 'Batch 16',
+    uid: 'demo_arif', photoURL: avatar('demo_arif', 'variant12', 'fef3c7'), displayName: 'Arif Hossain', designation: 'Undergraduate Student', program: 'B.Sc. in CSE', batch: 'Batch 16',
     studentId: 'DEMO-1606', bio: 'Interested in compilers and programming languages.',
     researchInterests: ['Software Engineering'], socialLinks: {},
     approvalStatus: 'pending', daysAgo: 2,
   },
   {
-    uid: 'demo_lamia', displayName: 'Lamia Akter', designation: 'Undergraduate Student', program: 'B.Sc. in CSE', batch: 'Batch 16',
+    uid: 'demo_lamia', photoURL: avatar('demo_lamia', 'variant58', 'fef3c7'), displayName: 'Lamia Akter', designation: 'Undergraduate Student', program: 'B.Sc. in CSE', batch: 'Batch 16',
     studentId: 'DEMO-1607', bio: 'Exploring computer vision for document digitisation.',
     researchInterests: ['Computer Vision'], socialLinks: {},
     approvalStatus: 'pending', daysAgo: 1,
   },
   {
-    uid: 'demo_imran', displayName: 'Imran Ali', designation: 'Undergraduate Student', program: 'B.Sc. in CSE', batch: 'Batch 15',
+    uid: 'demo_imran', photoURL: avatar('demo_imran', 'variant52', 'ede9fe'), displayName: 'Imran Ali', designation: 'Undergraduate Student', program: 'B.Sc. in CSE', batch: 'Batch 15',
     studentId: 'DEMO-1508', bio: 'Applying to join the IoT research group.',
     researchInterests: ['IoT'], socialLinks: {},
     approvalStatus: 'rejected', rejectionReason: 'Student ID could not be verified with department records (demo).',

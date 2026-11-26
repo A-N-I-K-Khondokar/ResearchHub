@@ -36,7 +36,7 @@ import {
   resetPassword,
   mapFirebaseError,
 } from '@/services/auth.service';
-import { subscribeUserProfile } from '@/services/user.service';
+import { subscribeUserProfile, ensurePublicProfile } from '@/services/user.service';
 import type { UserProfile } from '@/types/user.types';
 import type {
   AuthContextType,
@@ -256,6 +256,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return 'pending';
     }
   }, [firebaseUser, isSigningOut, emailVerified, profileError, isProfileLoading, userProfile]);
+
+  // ---------------------------------------------------------------------------
+  // Directory self-heal: an approved researcher always has a public profile
+  // ---------------------------------------------------------------------------
+
+  const profileVersion = userProfile?.updatedAt?.toMillis?.() ?? 0;
+  useEffect(() => {
+    if (accessState !== 'approved' || !userProfile) return;
+    ensurePublicProfile(userProfile).catch((err) => {
+      // Non-fatal: the admin portal's "Sync Public Directory" also repairs this.
+      console.warn('[AuthContext] Could not refresh public profile:', err?.code ?? err);
+    });
+    // Re-check when the account becomes approved or the profile document changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accessState, userProfile?.uid, profileVersion]);
 
   // ---------------------------------------------------------------------------
   // Actions

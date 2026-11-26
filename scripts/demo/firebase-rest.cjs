@@ -118,14 +118,23 @@ function decodeFields(fields) {
 
 const docName = (relPath) => `${DB}/${relPath}`;
 
-/** Atomic commit; writes = [{ set: 'col/id', data }] | [{ delete: 'col/id' }] (max 500). */
+/**
+ * Atomic commit (max 500 per request). Writes:
+ *   { set: 'col/id', data }                — create / overwrite the document
+ *   { set: 'col/id', data, mask: [paths] } — update ONLY these field paths
+ *   { delete: 'col/id' }
+ */
 async function commit(writes) {
   for (let i = 0; i < writes.length; i += 400) {
-    const chunk = writes.slice(i, i + 400).map((w) =>
-      w.delete
-        ? { delete: docName(w.delete) }
-        : { update: { name: docName(w.set), fields: encodeFields(w.data) } },
-    );
+    const chunk = writes.slice(i, i + 400).map((w) => {
+      if (w.delete) return { delete: docName(w.delete) };
+      const write = { update: { name: docName(w.set), fields: encodeFields(w.data) } };
+      if (w.mask) {
+        write.updateMask = { fieldPaths: w.mask };
+        write.currentDocument = { exists: true };
+      }
+      return write;
+    });
     await api('POST', `${FIRESTORE}:commit`, { writes: chunk });
   }
 }

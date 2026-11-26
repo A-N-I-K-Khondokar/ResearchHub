@@ -375,6 +375,36 @@ export async function updateUserProfile(
   await batch.commit();
 }
 
+/**
+ * Self-healing directory entry: makes sure an APPROVED researcher's sanitised
+ * `public_profiles/{uid}` mirror exists and matches their profile. Covers
+ * researchers approved before the mirror existed, or approved without a sync.
+ * One read per call; writes only when missing or out of date.
+ * Rules allow the approved owner to write a mirror that equals users/{uid}.
+ *
+ * @returns `true` when the mirror was (re)written.
+ */
+export async function ensurePublicProfile(profile: UserProfile): Promise<boolean> {
+  if (profile.approvalStatus !== 'approved') return false;
+  const firestore = getFirestoreDb();
+  const ref = doc(firestore, 'public_profiles', profile.uid);
+  const expected = buildPublicProfile(profile, serverTimestamp());
+
+  const snap = await getDoc(ref);
+  if (snap.exists()) {
+    const current = snap.data();
+    const scalarKeys = ['displayName', 'photoURL', 'department', 'program', 'batch', 'designation', 'bio'];
+    const same =
+      scalarKeys.every((k) => (current[k] ?? null) === (expected[k] ?? null)) &&
+      JSON.stringify(current.researchInterests ?? []) === JSON.stringify(expected.researchInterests) &&
+      JSON.stringify(current.socialLinks ?? {}) === JSON.stringify(expected.socialLinks);
+    if (same) return false;
+  }
+
+  await setDoc(ref, expected);
+  return true;
+}
+
 // ---------------------------------------------------------------------------
 // 6. Rejected Application Resubmission
 // ---------------------------------------------------------------------------

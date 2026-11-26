@@ -1987,5 +1987,15 @@ describe('Firestore Security Rules Suite — CSE Research Hub', () => {
       await assertFails(updateDoc(doc(db, 'users', CHARLIE_UID), { role: 'admin', updatedAt: serverTimestamp() }));
       await assertFails(getDocs(collection(db, 'admins')));
     });
+    it('TEST-150: Approved owner self-heals a missing mirror (standalone write, ensurePublicProfile) → ALLOW', async () => {
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        await deleteDoc(doc(context.firestore(), 'public_profiles', CHARLIE_UID));
+      });
+      await assertSucceeds(setDoc(doc(charlieDb(), 'public_profiles', CHARLIE_UID),
+        buildOwnerPublicProfile(CHARLIE_SOURCE, serverTimestamp())));
+      // A pending user still cannot self-publish
+      await assertFails(setDoc(doc(ctx(PAUL_UID, PAUL_EMAIL), 'public_profiles', PAUL_UID),
+        buildOwnerPublicProfile(PAUL_SOURCE, serverTimestamp())));
+    });
   });
 });

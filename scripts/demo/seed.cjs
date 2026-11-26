@@ -4,6 +4,9 @@
  *
  *   npm run demo:seed            # dry run: prints what would be written
  *   npm run demo:seed -- --yes   # writes (safe to re-run; only demo_ documents)
+ *   npm run demo:seed -- --photos-only --yes
+ *       # updates ONLY demo profile-picture fields everywhere they appear
+ *       # (keeps your test state: accepted requests, read notifications, ...)
  *
  * Creates: users + public_profiles for demo researchers, research_works,
  * connections + notifications (incl. incoming requests to every real approved
@@ -18,6 +21,7 @@ const { commit, listDocs, upsertAuthUser } = require('./firebase-rest.cjs');
 const { DEPT, RESEARCHERS, WORKS } = require('./demo-data.cjs');
 
 const APPLY = process.argv.includes('--yes');
+const PHOTOS_ONLY = process.argv.includes('--photos-only');
 const CRED_FILE = path.join(__dirname, '.demo-credentials.json');
 const MAX_REAL_TARGETS = 5;
 
@@ -38,7 +42,7 @@ function userDoc(r, adminUid) {
     uid: r.uid,
     email: r.email || `${r.uid.replace('_', '.')}@researchhub.test`,
     displayName: r.displayName,
-    photoURL: null,
+    photoURL: r.photoURL ?? null,
     department: DEPT,
     program: r.program ?? null,
     batch: r.batch ?? null,
@@ -93,8 +97,45 @@ function notification(id, type, actor, recipientUid, connectionId, ageDays, read
   };
 }
 
+/** Field-masked photo updates for every existing document that shows a demo researcher. */
+async function photosOnly() {
+  const photo = Object.fromEntries(RESEARCHERS.map((r) => [r.uid, r.photoURL ?? null]));
+  const known = (uid) => typeof uid === 'string' && uid in photo;
+  const [users, profiles, works, connections, notifications] = await Promise.all([
+    listDocs('users'), listDocs('public_profiles'), listDocs('research_works'),
+    listDocs('connections'), listDocs('notifications'),
+  ]);
+  const writes = [];
+  users.filter((d) => known(d.id)).forEach((d) =>
+    writes.push({ set: `users/${d.id}`, data: { photoURL: photo[d.id] }, mask: ['photoURL'] }));
+  profiles.filter((d) => known(d.id)).forEach((d) =>
+    writes.push({ set: `public_profiles/${d.id}`, data: { photoURL: photo[d.id] }, mask: ['photoURL'] }));
+  works.filter((d) => known(d.data.authorUid)).forEach((d) =>
+    writes.push({ set: `research_works/${d.id}`, data: { authorPhotoURL: photo[d.data.authorUid] }, mask: ['authorPhotoURL'] }));
+  connections.forEach((d) => {
+    const data = {}; const mask = [];
+    if (known(d.data.requesterUid)) { data.requester = { photoURL: photo[d.data.requesterUid] }; mask.push('requester.photoURL'); }
+    if (known(d.data.recipientUid)) { data.recipient = { photoURL: photo[d.data.recipientUid] }; mask.push('recipient.photoURL'); }
+    if (mask.length) writes.push({ set: `connections/${d.id}`, data, mask });
+  });
+  notifications.filter((d) => known(d.data.actorUid)).forEach((d) =>
+    writes.push({ set: `notifications/${d.id}`, data: { actorPhotoURL: photo[d.data.actorUid] }, mask: ['actorPhotoURL'] }));
+
+  const count = (prefix) => writes.filter((w) => w.set.startsWith(prefix)).length;
+  console.log(`Photo-field updates: ${writes.length}`);
+  ['users/', 'public_profiles/', 'research_works/', 'connections/', 'notifications/'].forEach((p) =>
+    console.log(`  ${p.replace('/', '')}: ${count(p)}`));
+  if (!APPLY) {
+    console.log('\nDry run only — nothing was written.');
+    return;
+  }
+  await commit(writes);
+  console.log(`\n✔ Updated demo profile pictures in ${writes.length} documents (no other fields changed).`);
+}
+
 (async () => {
-  console.log(`\nCSE Research Hub demo seed — ${APPLY ? 'APPLYING' : 'DRY RUN (add -- --yes to write)'}\n`);
+  console.log(`\nCSE Research Hub demo seed — ${PHOTOS_ONLY ? 'PHOTOS ONLY, ' : ''}${APPLY ? 'APPLYING' : 'DRY RUN (add -- --yes to write)'}\n`);
+  if (PHOTOS_ONLY) return photosOnly();
 
   const admins = await listDocs('admins');
   const adminUid = admins[0]?.id || 'demo_seed';
