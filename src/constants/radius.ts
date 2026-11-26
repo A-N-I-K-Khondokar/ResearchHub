@@ -12,6 +12,7 @@ export const radius = {
   xl: 32,     // Prominent hero cards, modals & floating trays (2rem)
   xxl: 48,    // Large modal surfaces (3rem)
   full: 9999, // Full capsule pill buttons, topic chips, circular avatars
+  button: 12, // Every rectangular button (shared control scale)
 } as const;
 
 export type RadiusToken = keyof typeof radius;

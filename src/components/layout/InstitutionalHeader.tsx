@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
   },
   brandTitle: {
     fontFamily: fontFamilies.sansBold,
-    fontSize: 16,
+    fontSize: 15,
     lineHeight: 20,
     fontWeight: '700',
     letterSpacing: -0.2,

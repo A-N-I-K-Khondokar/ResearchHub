@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
     // Color set dynamically via inline style on the View
   },
   countText: {
-    fontSize: 10,
+    fontSize: 11,
     fontFamily: fontFamilies.sansBold,
   },
 });

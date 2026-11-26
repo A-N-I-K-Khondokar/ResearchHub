@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: fontFamilies.serifBold,
-    fontSize: 27,
+    fontSize: 28,
     fontWeight: '700',
     lineHeight: 34,
     textAlign: 'center',
@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontFamily: fontFamilies.sansRegular,
-    fontSize: 14.5,
+    fontSize: 15,
     lineHeight: 22,
     textAlign: 'center',
     marginTop: spacing.xs,

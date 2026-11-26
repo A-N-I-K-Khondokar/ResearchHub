@@ -365,10 +365,12 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   rolePill: {
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: radius.full,
     borderWidth: 1,
+    minHeight: 32,
+    justifyContent: 'center',
   },
   roleText: {
     ...typography.caption,
@@ -384,7 +386,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: spacing.sm + 2,
     paddingVertical: 6,
-    borderRadius: radius.sm,
+    borderRadius: radius.button,
+    minHeight: 32,
   },
   sortButtonText: {
     ...typography.caption,

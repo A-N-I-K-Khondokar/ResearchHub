@@ -87,11 +87,12 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   button: {
-    borderRadius: 12,
+    borderRadius: radius.button,
     paddingVertical: 12,
     paddingHorizontal: 20,
     alignItems: 'center',
     justifyContent: 'center',
+    minHeight: 44,
   },
   buttonContent: {
     flexDirection: 'row',

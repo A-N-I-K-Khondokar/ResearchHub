@@ -392,6 +392,7 @@ export default function ShareTab() {
                   <TouchableOpacity
                     activeOpacity={0.7}
                     onPress={() => handleAddTag()}
+                    hitSlop={{ top: 9, bottom: 9, left: 9, right: 9 }}
                     style={[styles.tagAddBtn, { backgroundColor: colors.primary }]}
                     accessibilityRole="button"
                     accessibilityLabel="Add custom tag"
@@ -641,21 +642,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
-  avatarBorder: {
-    borderWidth: 1,
-  },
   identityTextCol: {
     flex: 1,
     justifyContent: 'center',
   },
   userName: {
-    fontSize: 16,
+    fontSize: 15,
     fontFamily: fontFamilies.sansSemiBold,
     letterSpacing: 0.1,
     marginBottom: 2,
   },
   statusText: {
-    fontSize: 13.5,
+    fontSize: 14,
     fontFamily: fontFamilies.sansRegular,
   },
   headerDivider: {
@@ -682,7 +680,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   fieldLabel: {
-    fontSize: 13.5,
+    fontSize: 14,
     fontFamily: fontFamilies.sansSemiBold,
     letterSpacing: 0.1,
   },
@@ -712,7 +710,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   charCount: {
-    fontSize: 11.5,
+    fontSize: 12,
     fontFamily: fontFamilies.sansRegular,
   },
   errorText: {
@@ -752,7 +750,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: radius.full,
     borderWidth: 1,
@@ -760,7 +758,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   tagPillText: {
-    fontSize: 12.5,
+    fontSize: 13,
     fontFamily: fontFamilies.sansMedium,
     flexShrink: 1,
   },
@@ -782,7 +780,7 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   suggestedPill: {
-    paddingHorizontal: 11,
+    paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: radius.full,
     borderWidth: 1,
@@ -790,7 +788,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   suggestedPillText: {
-    fontSize: 12,
+    fontSize: 13,
     flexShrink: 1,
   },
   stagesGrid: {
@@ -802,7 +800,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: radius.full,
     borderWidth: 1,
@@ -814,7 +812,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   stagePillText: {
-    fontSize: 12,
+    fontSize: 13,
     flexShrink: 1,
   },
 });

@@ -9,7 +9,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Bookmark, Layers, Trash2 } from 'lucide-react-native';
+import { Bookmark, Layers, Trash2 } from 'lucide-react-native';
+import { ScreenHeader } from '../../components/layout/ScreenHeader';
 import { spacing, radius, typography, fontFamilies } from '../../constants';
 import { useTheme } from '@/hooks/useTheme';
 import { useSavedItems } from '@/hooks/useSavedItems';
@@ -23,13 +24,7 @@ export default function SavedItemsScreen() {
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
-      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton} accessibilityLabel="Go back">
-          <ArrowLeft size={22} color={colors.textPrimary} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Saved Items</Text>
-        <View style={{ width: 40 }} />
-      </View>
+      <ScreenHeader title="Saved Items" />
 
       {loading ? (
         <View style={styles.centered}>
@@ -102,22 +97,6 @@ export default function SavedItemsScreen() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: { ...typography.titleSmall },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.xl },
   iconContainer: {
     width: 64,
@@ -129,8 +108,8 @@ const styles = StyleSheet.create({
   },
   emptyTitle: { ...typography.titleSmall, textAlign: 'center', marginBottom: 4 },
   emptyText: { ...typography.bodySmall, textAlign: 'center' },
-  cta: { marginTop: spacing.md, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, borderRadius: radius.full },
-  ctaText: { fontFamily: fontFamilies.sansSemiBold, fontSize: 14 },
+  cta: { marginTop: spacing.md, paddingHorizontal: spacing.lg, minHeight: spacing.secondaryButtonHeight, justifyContent: 'center', borderRadius: radius.button },
+  ctaText: { ...typography.label },
   list: { padding: spacing.md, gap: spacing.sm },
   card: {
     flexDirection: 'row',

@@ -253,11 +253,11 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontFamily: fontFamilies.sansRegular,
-    fontSize: 14.5,
+    fontSize: 15,
   },
   createAccountText: {
     fontFamily: fontFamilies.sansSemiBold,
-    fontSize: 14.5,
+    fontSize: 15,
     fontWeight: '600',
   },
 });

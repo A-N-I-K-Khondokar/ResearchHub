@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
   },
   title: {
     ...typography.display,
-    fontSize: 26,
+    fontSize: 28,
     lineHeight: 34,
     textAlign: 'center',
     marginBottom: spacing.sm,

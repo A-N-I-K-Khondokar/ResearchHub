@@ -17,8 +17,10 @@ export const spacing = {
   screenVertical: 16,
   cardPadding: 16,
   inputHeight: 48,
-  buttonHeight: 48,
-  compactButtonHeight: 36,
+  buttonHeight: 48,         // Primary actions (form submit, main CTA)
+  secondaryButtonHeight: 44, // Secondary actions, toolbar buttons, minimum tap target
+  compactButtonHeight: 36,  // Compact actions inside cards and list rows
+  minTouchTarget: 44,
 } as const;
 
 export type SpacingToken = keyof typeof spacing;

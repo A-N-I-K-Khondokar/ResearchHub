@@ -1792,7 +1792,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     ...typography.headline,
-    fontSize: 24,
+    fontSize: 22,
     marginBottom: 4,
   },
   headerSubtitle: {
@@ -1815,7 +1815,7 @@ const styles = StyleSheet.create({
   },
   identityName: {
     fontFamily: fontFamilies.sansSemiBold,
-    fontSize: 16,
+    fontSize: 15,
     marginBottom: 2,
   },
   emailRow: {
@@ -1940,7 +1940,7 @@ const styles = StyleSheet.create({
   addTagButton: {
     height: 48,
     paddingHorizontal: 16,
-    borderRadius: radius.sm,
+    borderRadius: radius.button,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

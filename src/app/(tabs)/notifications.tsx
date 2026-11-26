@@ -362,7 +362,7 @@ export default function NotificationsTab() {
         <View style={styles.titleRow}>
           <View style={styles.titleWithBadge}>
             <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>
-              Alerts
+              Notifications
             </Text>
             {unreadCount > 0 && (
               <View
@@ -590,17 +590,21 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   filterPill: {
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: radius.full,
     borderWidth: 1,
     maxWidth: '100%',
     flexShrink: 1,
+    minHeight: 32,
+    justifyContent: 'center',
   },
   filterPillText: {
     ...typography.caption,
     fontFamily: fontFamilies.sansMedium,
     flexShrink: 1,
+    fontSize: 13,
+    lineHeight: 18,
   },
   filterPillTextActive: {
     fontFamily: fontFamilies.sansSemiBold,
@@ -669,7 +673,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   senderName: {
-    fontSize: 14.5,
+    fontSize: 15,
     fontFamily: fontFamilies.sansSemiBold,
   },
   actionText: {
@@ -685,26 +689,28 @@ const styles = StyleSheet.create({
   },
   acceptButton: {
     paddingHorizontal: spacing.md,
-    paddingVertical: 7,
-    borderRadius: 12,
+    paddingVertical: 8,
+    borderRadius: radius.button,
     alignItems: 'center',
     justifyContent: 'center',
+    minHeight: 36,
   },
   acceptButtonText: {
-    fontSize: 12.5,
+    fontSize: 13,
     fontFamily: fontFamilies.sansSemiBold,
     color: '#FFFFFF',
   },
   declineButton: {
     paddingHorizontal: spacing.md,
-    paddingVertical: 7,
-    borderRadius: 12,
+    paddingVertical: 8,
+    borderRadius: radius.button,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    minHeight: 36,
   },
   declineButtonText: {
-    fontSize: 12.5,
+    fontSize: 13,
     fontFamily: fontFamilies.sansSemiBold,
     fontWeight: '600',
   },
@@ -714,7 +720,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   statusConfirmedText: {
-    fontSize: 12.5,
+    fontSize: 13,
     fontFamily: fontFamilies.sansSemiBold,
   },
   statusDeclinedText: {
@@ -723,7 +729,7 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   timestamp: {
-    fontSize: 11.5,
+    fontSize: 12,
     fontFamily: fontFamilies.sansMedium,
     marginLeft: spacing.xs,
     paddingTop: 2,
@@ -751,7 +757,7 @@ const styles = StyleSheet.create({
   },
   emptySubtitle: {
     ...typography.caption,
-    fontSize: 13.5,
+    fontSize: 14,
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: spacing.lg,
@@ -761,6 +767,8 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: radius.full,
     borderWidth: 1,
+    minHeight: 36,
+    justifyContent: 'center',
   },
   resetFilterText: {
     fontSize: 13,

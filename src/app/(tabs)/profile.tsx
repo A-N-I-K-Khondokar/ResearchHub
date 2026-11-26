@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -13,16 +13,15 @@ import {
   Platform,
   ActivityIndicator,
 } from 'react-native';
-import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import { useRouter } from 'expo-router';
 import {
   Settings,
   Edit3,
   GraduationCap,
   Check,
   Users,
-  Layers,
   ExternalLink,
   Globe,
   Code2,
@@ -30,43 +29,59 @@ import {
   Moon,
   Smartphone,
   X,
-  Camera,
   Lock,
   LogOut,
   Linkedin,
   Bookmark,
-  ChevronRight,
 } from 'lucide-react-native';
 import { spacing, radius, typography, fontFamilies, floatingButtonTokens } from '@/constants';
 import { useTheme, ThemeMode } from '@/context/ThemeContext';
-import { Avatar } from '@/components/common/Avatar';
 import { useAuth } from '@/context/AuthContext';
+import { Avatar } from '@/components/common/Avatar';
+import { TopicChip } from '@/components/common/TopicChip';
+import {
+  ProfileHero,
+  HeroActionButton,
+  HeroIconButton,
+  ProfileSection,
+  ProfileEmptyText,
+  WorkList,
+  ProfileListCard,
+  type ProfileListItem,
+} from '@/components/profile';
 import { updateUserProfile } from '@/services/user.service';
-import { subscribeMyResearchWorks, formatWorkDate } from '@/services/research.service';
-import type { ResearchWork } from '@/types/research.types';
-import type { UserSocialLinks } from '@/types/user.types';
+import { subscribeMyResearchWorks } from '@/services/research.service';
 import { useConnections } from '@/hooks/useConnections';
 import { useSavedItems } from '@/hooks/useSavedItems';
+import type { ResearchWork } from '@/types/research.types';
+import type { UserSocialLinks } from '@/types/user.types';
+
+const LINK_META: { key: keyof UserSocialLinks; name: string }[] = [
+  { key: 'googleScholar', name: 'Google Scholar' },
+  { key: 'researchGate', name: 'ResearchGate' },
+  { key: 'github', name: 'GitHub' },
+  { key: 'linkedin', name: 'LinkedIn' },
+  { key: 'website', name: 'Website' },
+];
 
 export default function ProfileTab() {
   const { colors, themeMode, isDark, setThemeMode } = useTheme();
   const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const { userProfile, signOut } = useAuth();
+  const { connected, incomingRequests } = useConnections();
+  const { items: savedItems } = useSavedItems();
 
   const [isSettingsModalVisible, setIsSettingsModalVisible] = useState(false);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
 
-  const router = useRouter();
-  const { userProfile, signOut } = useAuth();
-
-  // Profile Data — authoritative Firestore profile (users/{uid}) via AuthContext
+  // Profile data — authoritative Firestore profile (users/{uid}) via AuthContext
   const profileName = userProfile?.displayName || 'CSE Researcher';
   const profileDepartment = userProfile?.department || '';
-  const profileBatch = userProfile?.batch || userProfile?.designation || '';
+  const profileBatch = userProfile?.batch || '';
   const profileBio = userProfile?.bio || '';
-  const profilePhotoUri = userProfile?.photoURL || null;
   const researchInterests = userProfile?.researchInterests ?? [];
-  const { connected, incomingRequests } = useConnections();
-  const { items: savedItems } = useSavedItems();
+  const credentials = [userProfile?.designation, profileDepartment, profileBatch].filter(Boolean).join(' • ');
 
   // My shared research work (research_works where authorUid == uid)
   const [myWorks, setMyWorks] = useState<ResearchWork[]>([]);
@@ -76,7 +91,7 @@ export default function ProfileTab() {
   useEffect(() => {
     if (!userProfile?.uid) return;
     setMyWorksLoading(true);
-    const unsubscribe = subscribeMyResearchWorks(
+    return subscribeMyResearchWorks(
       userProfile.uid,
       (works) => {
         setMyWorks(works);
@@ -88,19 +103,16 @@ export default function ProfileTab() {
         setMyWorksError(true);
       },
     );
-    return unsubscribe;
   }, [userProfile?.uid]);
 
-  // Edit Modal Form State
+  // Edit modal form state (identity fields are locked after approval)
   const [editName, setEditName] = useState(profileName);
-  const [editDepartment, setEditDepartment] = useState(profileDepartment);
   const [editBio, setEditBio] = useState(profileBio);
   const [isSaving, setIsSaving] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   const handleOpenEditModal = () => {
     setEditName(profileName);
-    setEditDepartment(profileDepartment);
     setEditBio(profileBio);
     setIsEditModalVisible(true);
   };
@@ -121,12 +133,8 @@ export default function ProfileTab() {
 
     setIsSaving(true);
     try {
-      // Only allowlisted, user-editable fields; the profile listener refreshes the UI.
-      // Department / batch are locked after approval (admin correction only).
-      await updateUserProfile(userProfile, {
-        displayName: name,
-        bio: bio || null,
-      });
+      // Only presentation fields; the profile listener refreshes the UI.
+      await updateUserProfile(userProfile, { displayName: name, bio: bio || null });
       setIsEditModalVisible(false);
     } catch (err) {
       console.error('[Profile] Save failed:', err);
@@ -157,513 +165,165 @@ export default function ProfileTab() {
     ]);
   };
 
-  const handleCancelEdit = () => {
-    setIsEditModalVisible(false);
-  };
-
-  const handleChangePhoto = () => {
-    Alert.alert(
-      'Change Photo',
-      'Device photo library selection hook triggered. Photo selection will be enabled in future phases.',
-      [{ text: 'OK' }]
-    );
-    console.log('Photo picker requested');
-  };
-
-  // Theme Picker Options
-  const themeOptions: { mode: ThemeMode; label: string; icon: React.ReactNode; desc: string }[] = [
-    {
-      mode: 'light',
-      label: 'Light',
-      icon: <Sun size={18} color={themeMode === 'light' ? '#FFFFFF' : colors.textPrimary} />,
-      desc: 'Crisp Scholarly',
-    },
-    {
-      mode: 'dark',
-      label: 'Dark',
-      icon: <Moon size={18} color={themeMode === 'dark' ? '#FFFFFF' : colors.textPrimary} />,
-      desc: 'Deep Slate Navy',
-    },
-    {
-      mode: 'system',
-      label: 'System',
-      icon: <Smartphone size={18} color={themeMode === 'system' ? '#FFFFFF' : colors.textPrimary} />,
-      desc: 'Auto Sync',
-    },
-  ];
-
   const handleOpenLink = (url: string) => {
-    Linking.openURL(url).catch(() => {
-      Alert.alert('Link Error', `Unable to open: ${url}`);
-    });
+    Linking.openURL(url).catch(() => Alert.alert('Link Error', `Unable to open: ${url}`));
   };
 
-  const LINK_META: { key: keyof UserSocialLinks; name: string; icon: React.ReactNode }[] = [
-    { key: 'googleScholar', name: 'Google Scholar', icon: <GraduationCap size={18} color={colors.primary} strokeWidth={2} /> },
-    { key: 'researchGate', name: 'ResearchGate', icon: <Globe size={18} color={colors.primary} strokeWidth={2} /> },
-    { key: 'github', name: 'GitHub', icon: <Code2 size={18} color={colors.primary} strokeWidth={2} /> },
-    { key: 'linkedin', name: 'LinkedIn', icon: <Linkedin size={18} color={colors.primary} strokeWidth={2} /> },
-    { key: 'website', name: 'Website', icon: <ExternalLink size={18} color={colors.primary} strokeWidth={2} /> },
+  const openTopic = (topic: string) =>
+    router.push({ pathname: '/(explore)/topic-researchers' as any, params: { topic } });
+
+  // Theme picker options
+  const themeOptions: { mode: ThemeMode; label: string; icon: React.ReactNode; desc: string }[] = [
+    { mode: 'light', label: 'Light', icon: <Sun size={18} color={themeMode === 'light' ? '#FFFFFF' : colors.textPrimary} />, desc: 'Crisp Scholarly' },
+    { mode: 'dark', label: 'Dark', icon: <Moon size={18} color={themeMode === 'dark' ? '#FFFFFF' : colors.textPrimary} />, desc: 'Deep Slate Navy' },
+    { mode: 'system', label: 'System', icon: <Smartphone size={18} color={themeMode === 'system' ? '#FFFFFF' : colors.textPrimary} />, desc: 'Auto Sync' },
   ];
 
-  const socialLinks: UserSocialLinks = userProfile?.socialLinks ?? {};
-  const academicLinks = LINK_META.filter((meta) => Boolean(socialLinks[meta.key])).map((meta) => {
-    const raw = String(socialLinks[meta.key]);
-    return {
-      id: meta.key as string,
-      name: meta.name,
-      url: /^https?:\/\//i.test(raw) ? raw : `https://${raw}`,
-      icon: meta.icon,
-    };
-  });
+  const linkIcon = (key: keyof UserSocialLinks) => {
+    const props = { size: 18, color: colors.primary, strokeWidth: 2 };
+    if (key === 'googleScholar') return <GraduationCap {...props} />;
+    if (key === 'researchGate') return <Globe {...props} />;
+    if (key === 'github') return <Code2 {...props} />;
+    if (key === 'linkedin') return <Linkedin {...props} />;
+    return <ExternalLink {...props} />;
+  };
+
+  const academicLinks: ProfileListItem[] = useMemo(() => {
+    const links: UserSocialLinks = userProfile?.socialLinks ?? {};
+    return LINK_META.filter((m) => Boolean(links[m.key])).map((m) => {
+      const raw = String(links[m.key]);
+      const url = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+      return { id: m.key as string, label: m.name, icon: linkIcon(m.key), onPress: () => handleOpenLink(url), trailing: 'external' as const };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userProfile?.socialLinks, colors.primary]);
+
+  const libraryItems: ProfileListItem[] = [
+    {
+      id: 'saved',
+      label: `Saved Items (${savedItems.length})`,
+      icon: <Bookmark size={18} color={colors.primary} strokeWidth={2} />,
+      onPress: () => router.push('/(profile)/saved' as any),
+      trailing: 'chevron',
+    },
+    {
+      id: 'requests',
+      label: `Pending Connection Requests (${incomingRequests.length})`,
+      icon: <Users size={18} color={colors.primary} strokeWidth={2} />,
+      onPress: () => router.push('/(tabs)/notifications' as any),
+      trailing: 'chevron',
+    },
+  ];
 
   return (
-    <View
-      style={[
-        styles.container,
-        {
-          backgroundColor: colors.background,
-          paddingTop: insets.top + 16, // CRITICAL: Standardized Top Clearance
-        },
-      ]}
-    >
+    <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top + 16 }]}>
       <StatusBar style={isDark ? 'light' : 'dark'} backgroundColor={colors.background} />
 
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: 32 }]}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* ======================================================== */}
-        {/* SECTION 1: THE HERO CARD (CENTERED VERTICAL STACK)       */}
-        {/* ======================================================== */}
-        <View
-          style={[
-            styles.heroCard,
-            {
-              backgroundColor: colors.surface,
-              borderColor: colors.borderSubtle,
-            },
-          ]}
-        >
-          {/* Centered Top Stack: Avatar -> Info */}
-          <View style={styles.heroCenteredTop}>
-            {/* Avatar First (88x88 with Verified Badge) */}
-            <View style={styles.avatarContainer}>
-              <Avatar
-                name={profileName}
-                uri={profilePhotoUri}
-                size="xl"
-                style={styles.avatarImage}
+        {/* Hero */}
+        <ProfileHero
+          name={profileName}
+          photoURL={userProfile?.photoURL}
+          credentials={credentials}
+          bio={profileBio}
+          emptyBioPrompt="Add a short bio about your research focus"
+          onEmptyBioPress={handleOpenEditModal}
+          actions={
+            <>
+              <HeroActionButton
+                label="Edit Profile"
+                icon={<Edit3 size={15} color={colors.textPrimary} strokeWidth={2} />}
+                onPress={handleOpenEditModal}
               />
-              {/* Verified Badge */}
-              <View
-                style={[
-                  styles.verifiedBadge,
-                  {
-                    backgroundColor: colors.primary,
-                    borderColor: colors.surface,
-                  },
-                ]}
-              >
-                <Check size={11} color="#FFFFFF" strokeWidth={3} />
-              </View>
+              <HeroIconButton
+                label="Open settings and theme options"
+                icon={<Settings size={20} color={colors.textSecondary} strokeWidth={2} />}
+                onPress={() => setIsSettingsModalVisible(true)}
+              />
+            </>
+          }
+          stats={[
+            { label: 'Connections', value: connected.length },
+            { label: 'Shared Work', value: myWorks.filter((w) => w.status === 'published').length },
+            { label: 'Interests', value: researchInterests.length },
+          ]}
+        />
+
+        {/* Research interests */}
+        <ProfileSection title="Research Interests">
+          {researchInterests.length === 0 ? (
+            <ProfileEmptyText text="No research interests added yet." />
+          ) : (
+            <View style={styles.chipsRow}>
+              {researchInterests.map((interest) => (
+                <TopicChip key={interest} label={interest} variant="teal" onPress={() => openTopic(interest)} />
+              ))}
             </View>
+          )}
+        </ProfileSection>
 
-            {/* Info Underneath (Centered Text) */}
-            <View style={styles.heroInfoCentered}>
-              <Text style={[styles.heroName, { color: colors.textPrimary }]}>
-                {profileName}
-              </Text>
-
-              <View style={styles.credentialsRow}>
-                <GraduationCap
-                  size={14}
-                  color={colors.textSecondary}
-                  strokeWidth={2}
-                  style={styles.credentialsIcon}
-                />
-                <Text
-                  style={[styles.credentialsText, { color: colors.textSecondary }]}
-                >
-                  {profileDepartment ? `${profileDepartment} • ${profileBatch}` : profileBatch}
-                </Text>
-              </View>
-
-              <Text style={[styles.bioText, { color: colors.textSecondary }]}>
-                {profileBio}
-              </Text>
-            </View>
-          </View>
-
-          {/* Middle Row: Self-Profile Action Buttons */}
-          <View style={styles.heroActionRow}>
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={handleOpenEditModal}
-              style={[
-                styles.editProfileButton,
-                {
-                  borderColor: isDark ? colors.borderSubtle : '#D4D8E2',
-                  backgroundColor: isDark ? colors.surfaceContainer : colors.surface,
-                },
-                floatingButtonTokens.secondary,
-              ]}
-              accessibilityRole="button"
-              accessibilityLabel="Edit Profile"
-            >
-              <Edit3 size={15} color={colors.textPrimary} strokeWidth={2} />
-              <Text style={[styles.editProfileText, { color: colors.textPrimary }]}>
-                Edit Profile
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={() => setIsSettingsModalVisible(true)}
-              style={[
-                styles.settingsButton,
-                {
-                  borderColor: isDark ? colors.borderSubtle : '#D4D8E2',
-                  backgroundColor: isDark ? colors.surfaceContainer : colors.surface,
-                },
-                floatingButtonTokens.secondary,
-              ]}
-              accessibilityRole="button"
-              accessibilityLabel="Open settings and theme options"
-            >
-              <Settings size={20} color={colors.textSecondary} strokeWidth={2} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Bottom Row: Stats Strip */}
-          <View
-            style={[
-              styles.statsStrip,
-              { borderTopColor: colors.borderSubtle },
-            ]}
-          >
-            <View style={styles.statColumn}>
-              <Text style={[styles.statValue, { color: colors.textPrimary }]}>
-                {connected.length}
-              </Text>
-              <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
-                Connections
-              </Text>
-            </View>
-
-            <View
-              style={[
-                styles.statDivider,
-                { backgroundColor: colors.borderSubtle },
-              ]}
-            />
-
-            <View style={styles.statColumn}>
-              <Text style={[styles.statValue, { color: colors.textPrimary }]}>
-                {myWorks.filter((w) => w.status === 'published').length}
-              </Text>
-              <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
-                Shared Work
-              </Text>
-            </View>
-
-            <View
-              style={[
-                styles.statDivider,
-                { backgroundColor: colors.borderSubtle },
-              ]}
-            />
-
-            <View style={styles.statColumn}>
-              <Text style={[styles.statValue, { color: colors.textPrimary }]}>
-                {researchInterests.length}
-              </Text>
-              <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
-                Interests
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* ======================================================== */}
-        {/* SECTION 2: INTERESTS / TOPIC PILLS                       */}
-        {/* ======================================================== */}
-        <View style={styles.sectionContainer}>
-          <Text style={[styles.sectionHeading, { color: colors.textPrimary }]}>
-            Research Interests
-          </Text>
-          <View style={styles.topicPillsRow}>
-            {researchInterests.length === 0 ? (
-              <Text style={[styles.projectMetaText, { color: colors.textMuted }]}>
-                No research interests added yet.
-              </Text>
-            ) : null}
-            {researchInterests.map((interest) => `#${interest.replace(/^#/, '').replace(/\s+/g, '')}`).map(
-              (topic) => (
-                <View
-                  key={topic}
-                  style={[
-                    styles.topicChip,
-                    {
-                      backgroundColor: colors.surfaceSubtle,
-                      borderColor: colors.borderSubtle,
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[styles.topicChipText, { color: colors.primary }]}
-                    numberOfLines={1}
-                    ellipsizeMode="tail"
-                  >
-                    {topic}
-                  </Text>
-                </View>
-              )
-            )}
-          </View>
-        </View>
-
-        {/* ======================================================== */}
-        {/* SECTION 3: CURRENTLY WORKING ON (LIVE research_works)    */}
-        {/* ======================================================== */}
-        <View style={styles.sectionContainer}>
-          <Text style={[styles.sectionHeading, { color: colors.textPrimary }]}>
-            Currently Working On
-          </Text>
-
+        {/* Currently working on (live research_works) */}
+        <ProfileSection
+          title="Currently Working On"
+          actionLabel="Share"
+          onActionPress={() => router.push('/(tabs)/share' as any)}
+        >
           {myWorksLoading ? (
             <ActivityIndicator color={colors.primary} style={{ marginVertical: spacing.md }} />
           ) : myWorksError ? (
-            <Text style={[styles.projectDescription, { color: colors.textSecondary }]}>
-              Could not load your shared work. Please try again later.
-            </Text>
+            <ProfileEmptyText text="Could not load your shared work. Please try again later." />
           ) : myWorks.length === 0 ? (
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={() => router.push('/(tabs)/share' as any)}
-              style={[
-                styles.projectCard,
-                { backgroundColor: colors.surface, borderColor: colors.borderSubtle },
-              ]}
-              accessibilityRole="button"
-              accessibilityLabel="Share your current work"
-            >
-              <Text style={[styles.projectTitle, { color: colors.textPrimary }]}>
-                Nothing shared yet
-              </Text>
-              <Text style={[styles.projectDescription, { color: colors.textSecondary }]}>
-                Tap to share what you are currently researching with the CSE community.
-              </Text>
-            </TouchableOpacity>
+            <ProfileEmptyText text="Nothing shared yet — tap Share to post what you are researching." />
           ) : (
-            myWorks.slice(0, 5).map((work) => (
-              <TouchableOpacity
-                key={work.id}
-                activeOpacity={0.85}
-                onPress={() => router.push(`/(research)/${work.id}` as any)}
-                style={[
-                  styles.projectCard,
-                  {
-                    backgroundColor: colors.surface,
-                    borderColor: colors.borderSubtle,
-                    marginBottom: spacing.sm,
-                  },
-                ]}
-              >
-                {/* Card Header: Title + Status Pill */}
-                <View style={styles.projectHeaderRow}>
-                  <Text
-                    style={[styles.projectTitle, { color: colors.textPrimary }]}
-                    numberOfLines={2}
-                  >
-                    {work.title}
-                  </Text>
-                  <View style={[styles.statusBadge, { backgroundColor: colors.primaryMuted }]}>
-                    <View style={[styles.statusIndicatorDot, { backgroundColor: colors.primary }]} />
-                    <Text
-                      style={[styles.statusBadgeText, { color: colors.primary }]}
-                      numberOfLines={1}
-                      ellipsizeMode="tail"
-                    >
-                      {work.status === 'draft' ? 'Draft' : 'Published'}
-                    </Text>
-                  </View>
-                </View>
-
-                <Text
-                  style={[styles.projectDescription, { color: colors.textSecondary }]}
-                  numberOfLines={3}
-                >
-                  {work.description}
-                </Text>
-
-                {/* Bottom Row: Date & Stage Metadata */}
-                <View style={[styles.projectFooterRow, { borderTopColor: colors.borderSubtle }]}>
-                  <View style={styles.projectMetaItem}>
-                    <Users size={14} color={colors.textSecondary} strokeWidth={2} />
-                    <Text style={[styles.projectMetaText, { color: colors.textSecondary }]}>
-                      {formatWorkDate(work.createdAt)}
-                    </Text>
-                  </View>
-                  <View style={styles.projectMetaItem}>
-                    <Layers size={14} color={colors.textSecondary} strokeWidth={2} />
-                    <Text style={[styles.projectMetaText, { color: colors.textSecondary }]}>
-                      {work.stage}
-                    </Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            ))
+            <WorkList works={myWorks} onOpen={(w) => router.push(`/(research)/${w.id}` as any)} />
           )}
-        </View>
+        </ProfileSection>
 
-        {/* ======================================================== */}
-        {/* LIBRARY: SAVED ITEMS & PENDING REQUESTS                  */}
-        {/* ======================================================== */}
-        <View style={styles.sectionContainer}>
-          <Text style={[styles.sectionHeading, { color: colors.textPrimary }]}>
-            Library
-          </Text>
-          <View
-            style={[
-              styles.academicLinksCard,
-              { backgroundColor: colors.surface, borderColor: colors.borderSubtle },
-            ]}
-          >
-            <TouchableOpacity
-              activeOpacity={0.7}
-              onPress={() => router.push('/(profile)/saved' as any)}
-              style={[styles.linkRow, { borderBottomWidth: 1, borderBottomColor: colors.borderSubtle }]}
-              accessibilityRole="button"
-              accessibilityLabel="Open saved items"
-            >
-              <View style={styles.linkIconWrapper}>
-                <Bookmark size={18} color={colors.primary} strokeWidth={2} />
-              </View>
-              <Text style={[styles.linkLabel, { color: colors.textPrimary }]}>
-                Saved Items ({savedItems.length})
-              </Text>
-              <ChevronRight size={16} color={colors.textMuted} strokeWidth={2} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              activeOpacity={0.7}
-              onPress={() => router.push('/(tabs)/notifications' as any)}
-              style={styles.linkRow}
-              accessibilityRole="button"
-              accessibilityLabel="Open connection requests"
-            >
-              <View style={styles.linkIconWrapper}>
-                <Users size={18} color={colors.primary} strokeWidth={2} />
-              </View>
-              <Text style={[styles.linkLabel, { color: colors.textPrimary }]}>
-                Pending Connection Requests ({incomingRequests.length})
-              </Text>
-              <ChevronRight size={16} color={colors.textMuted} strokeWidth={2} />
-            </TouchableOpacity>
-          </View>
-        </View>
+        {/* Library */}
+        <ProfileSection title="Library">
+          <ProfileListCard items={libraryItems} />
+        </ProfileSection>
 
-        {/* ======================================================== */}
-        {/* SECTION 5: ACADEMIC LINKS (UNIFIED VERTICAL CARD)        */}
-        {/* ======================================================== */}
-        <View style={styles.sectionContainer}>
-          <Text style={[styles.sectionHeading, { color: colors.textPrimary }]}>
-            Academic Links
-          </Text>
-
-          <View
-            style={[
-              styles.academicLinksCard,
-              {
-                backgroundColor: colors.surface,
-                borderColor: colors.borderSubtle,
-              },
-            ]}
-          >
-            {academicLinks.length === 0 ? (
-              <Text style={[styles.projectMetaText, { color: colors.textMuted, padding: spacing.md }]}>
-                No academic links added yet.
-              </Text>
-            ) : null}
-            {academicLinks.map((link, index) => {
-              const isLast = index === academicLinks.length - 1;
-              return (
-                <TouchableOpacity
-                  key={link.id}
-                  activeOpacity={0.7}
-                  onPress={() => handleOpenLink(link.url)}
-                  style={[
-                    styles.linkRow,
-                    !isLast && {
-                      borderBottomWidth: 1,
-                      borderBottomColor: colors.borderSubtle,
-                    },
-                  ]}
-                  accessibilityRole="link"
-                  accessibilityLabel={`Open ${link.name}`}
-                >
-                  <View style={styles.linkIconWrapper}>{link.icon}</View>
-                  <Text
-                    style={[styles.linkLabel, { color: colors.textPrimary }]}
-                  >
-                    {link.name}
-                  </Text>
-                  <ExternalLink
-                    size={16}
-                    color={colors.textMuted}
-                    strokeWidth={2}
-                  />
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
+        {/* Academic links */}
+        <ProfileSection title="Academic Links">
+          {academicLinks.length === 0 ? (
+            <ProfileEmptyText text="No academic links added yet." />
+          ) : (
+            <ProfileListCard items={academicLinks} />
+          )}
+        </ProfileSection>
       </ScrollView>
 
-      {/* ======================================================== */}
-      {/* SETTINGS & THEME MODAL                                   */}
-      {/* ======================================================== */}
+      {/* Settings & theme modal */}
       <Modal
         visible={isSettingsModalVisible}
         animationType="fade"
-        transparent={true}
+        transparent
         onRequestClose={() => setIsSettingsModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View
-            style={[
-              styles.modalCard,
-              {
-                backgroundColor: colors.surface,
-                borderColor: colors.borderSubtle,
-              },
-            ]}
-          >
-            {/* Modal Header */}
+          <View style={[styles.modalCard, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}>
             <View style={styles.modalHeaderRow}>
-              <View>
-                <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
-                  Appearance & Settings
-                </Text>
-                <Text style={[styles.modalSubtitle, { color: colors.textSecondary }]}>
-                  CSE Research Hub Preferences
-                </Text>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Appearance & Settings</Text>
+                <Text style={[styles.modalSubtitle, { color: colors.textSecondary }]}>CSE Research Hub Preferences</Text>
               </View>
               <TouchableOpacity
                 onPress={() => setIsSettingsModalVisible(false)}
+                hitSlop={8}
                 style={[styles.modalCloseBtn, { backgroundColor: colors.surfaceSubtle }]}
                 accessibilityRole="button"
-                accessibilityLabel="Close settings modal"
+                accessibilityLabel="Close settings"
               >
                 <X size={18} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
 
-            {/* Theme Picker Grid */}
-            <Text style={[styles.modalSectionLabel, { color: colors.textPrimary }]}>
-              Theme Mode
-            </Text>
+            <Text style={[styles.modalSectionLabel, { color: colors.textPrimary }]}>Theme Mode</Text>
             <View style={styles.themeOptionsGrid}>
               {themeOptions.map((opt) => {
                 const isSelected = themeMode === opt.mode;
@@ -679,22 +339,14 @@ export default function ProfileTab() {
                         borderColor: isSelected ? colors.primary : colors.borderSubtle,
                       },
                     ]}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: isSelected }}
                   >
                     <View style={styles.themeIconBox}>{opt.icon}</View>
-                    <Text
-                      style={[
-                        styles.themeOptionTitle,
-                        { color: isSelected ? '#FFFFFF' : colors.textPrimary },
-                      ]}
-                    >
+                    <Text style={[styles.themeOptionTitle, { color: isSelected ? '#FFFFFF' : colors.textPrimary }]}>
                       {opt.label}
                     </Text>
-                    <Text
-                      style={[
-                        styles.themeOptionDesc,
-                        { color: isSelected ? '#FFFFFF' : colors.textMuted },
-                      ]}
-                    >
+                    <Text style={[styles.themeOptionDesc, { color: isSelected ? '#FFFFFF' : colors.textMuted }]}>
                       {opt.desc}
                     </Text>
                   </TouchableOpacity>
@@ -702,100 +354,70 @@ export default function ProfileTab() {
               })}
             </View>
 
-            {/* Sign Out */}
             <TouchableOpacity
               activeOpacity={0.8}
               onPress={handleSignOut}
               disabled={isSigningOut}
-              style={[
-                styles.signOutBtn,
-                { borderColor: colors.error, backgroundColor: colors.errorLight },
-              ]}
+              style={[styles.modalButton, styles.signOutBtn, { borderColor: colors.error, backgroundColor: colors.errorLight }]}
               accessibilityRole="button"
               accessibilityLabel="Sign out"
             >
               <LogOut size={16} color={colors.error} strokeWidth={2.2} />
-              <Text style={[styles.signOutText, { color: colors.error }]}>
+              <Text style={[styles.modalButtonText, { color: colors.error }]}>
                 {isSigningOut ? 'Signing out...' : 'Sign Out'}
               </Text>
             </TouchableOpacity>
 
-            {/* Done Button */}
             <TouchableOpacity
               activeOpacity={0.8}
               onPress={() => setIsSettingsModalVisible(false)}
-              style={[
-                styles.modalDoneBtn,
-                floatingButtonTokens.primary,
-              ]}
+              style={[styles.modalButton, floatingButtonTokens.primary]}
               accessibilityRole="button"
               accessibilityLabel="Done"
             >
               <Check size={16} color="#FFFFFF" strokeWidth={2.4} />
-              <Text style={styles.modalDoneBtnText}>Done</Text>
+              <Text style={[styles.modalButtonText, { color: '#FFFFFF' }]}>Done</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
 
-      {/* ======================================================== */}
-      {/* EDIT PROFILE MODAL                                       */}
-      {/* ======================================================== */}
+      {/* Edit profile modal */}
       <Modal
         visible={isEditModalVisible}
         animationType="slide"
-        transparent={true}
-        onRequestClose={handleCancelEdit}
+        transparent
+        onRequestClose={() => setIsEditModalVisible(false)}
       >
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.editModalOverlay}
         >
-          <View
-            style={[
-              styles.editModalCard,
-              {
-                backgroundColor: colors.surface,
-                borderColor: colors.borderSubtle,
-              },
-            ]}
-          >
-            {/* Header: Cancel, Title, Save */}
-            <View
-              style={[
-                styles.editModalHeaderRow,
-                { borderBottomColor: colors.borderSubtle },
-              ]}
-            >
+          <View style={[styles.editModalCard, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}>
+            <View style={[styles.editModalHeaderRow, { borderBottomColor: colors.borderSubtle }]}>
               <TouchableOpacity
-                onPress={handleCancelEdit}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                onPress={() => setIsEditModalVisible(false)}
+                style={styles.editHeaderSide}
                 accessibilityRole="button"
                 accessibilityLabel="Cancel editing profile"
               >
-                <Text style={[styles.editModalCancelText, { color: colors.textSecondary }]}>
-                  Cancel
-                </Text>
+                <Text style={[styles.editModalCancelText, { color: colors.textSecondary }]}>Cancel</Text>
               </TouchableOpacity>
 
-              <Text style={[styles.editModalTitle, { color: colors.textPrimary }]}>
-                Edit Profile
-              </Text>
+              <Text style={[styles.editModalTitle, { color: colors.textPrimary }]}>Edit Profile</Text>
 
-              <TouchableOpacity
-                onPress={handleSaveProfile}
-                disabled={isSaving}
-                activeOpacity={0.8}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                style={[
-                  styles.editModalSaveBtn,
-                  floatingButtonTokens.primary,
-                ]}
-                accessibilityRole="button"
-                accessibilityLabel="Save profile changes"
-              >
-                <Text style={styles.editModalSaveText}>{isSaving ? 'Saving...' : 'Save'}</Text>
-              </TouchableOpacity>
+              <View style={[styles.editHeaderSide, { alignItems: 'flex-end' }]}>
+                <TouchableOpacity
+                  onPress={handleSaveProfile}
+                  disabled={isSaving}
+                  activeOpacity={0.8}
+                  style={[styles.editModalSaveBtn, floatingButtonTokens.primary]}
+                  accessibilityRole="button"
+                  accessibilityLabel="Save profile changes"
+                >
+                  <Text style={styles.editModalSaveText}>{isSaving ? 'Saving...' : 'Save'}</Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
             <ScrollView
@@ -803,158 +425,60 @@ export default function ProfileTab() {
               contentContainerStyle={styles.editModalScrollContent}
               keyboardShouldPersistTaps="handled"
             >
-              {/* Photo Picker Hook */}
-              <View style={styles.photoPickerContainer}>
-                <View style={styles.photoPickerAvatarWrapper}>
-                  <Avatar
-                    name={editName || profileName}
-                    uri={profilePhotoUri}
-                    size="xl"
-                    style={styles.avatarImage}
-                  />
-                  <TouchableOpacity
-                    activeOpacity={0.85}
-                    onPress={handleChangePhoto}
-                    style={[
-                      styles.photoPickerBadge,
-                      {
-                        backgroundColor: colors.primary,
-                        borderColor: colors.surface,
-                      },
-                    ]}
-                    accessibilityRole="button"
-                    accessibilityLabel="Change profile photo"
-                  >
-                    <Camera size={13} color="#FFFFFF" strokeWidth={2.2} />
-                  </TouchableOpacity>
-                </View>
-
-                <TouchableOpacity
-                  activeOpacity={0.7}
-                  onPress={handleChangePhoto}
-                  style={[
-                    styles.changePhotoBtn,
-                    {
-                      backgroundColor: colors.surfaceSubtle,
-                      borderColor: colors.borderSubtle,
-                    },
-                  ]}
-                  accessibilityRole="button"
-                  accessibilityLabel="Change Photo"
-                >
-                  <Camera size={13} color={colors.primary} strokeWidth={2} />
-                  <Text style={[styles.changePhotoText, { color: colors.primary }]}>
-                    Change Photo
-                  </Text>
-                </TouchableOpacity>
+              {/* Current photo (upload is not available yet) */}
+              <View style={styles.photoPreview}>
+                <Avatar name={editName || profileName} uri={userProfile?.photoURL} size="xl" />
               </View>
 
-              {/* Form Fields */}
               <View style={styles.editFormFields}>
-                {/* Field 1: Name */}
                 <View style={styles.inputGroup}>
-                  <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>
-                    Full Name
-                  </Text>
+                  <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>Full Name</Text>
                   <TextInput
                     value={editName}
                     onChangeText={setEditName}
                     placeholder="Enter your full name"
                     placeholderTextColor={colors.textMuted}
-                    style={[
-                      styles.textInput,
-                      {
-                        backgroundColor: colors.surfaceSubtle,
-                        borderColor: colors.borderSubtle,
-                        color: colors.textPrimary,
-                      },
-                    ]}
+                    maxLength={100}
+                    style={[styles.textInput, { backgroundColor: colors.surfaceSubtle, borderColor: colors.borderSubtle, color: colors.textPrimary }]}
                   />
                 </View>
 
-                {/* Field 2: Department (Locked after approval — admin correction only) */}
-                <View style={styles.inputGroup}>
-                  <View style={styles.inputLabelRow}>
-                    <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>
-                      Department
-                    </Text>
-                    <View style={styles.lockedBadge}>
-                      <Lock size={10} color={colors.textMuted} strokeWidth={2.4} />
-                      <Text style={[styles.lockedText, { color: colors.textMuted }]}>
-                        Locked
-                      </Text>
+                {[
+                  { label: 'Department', value: profileDepartment },
+                  { label: 'Batch / Cohort', value: profileBatch || 'Not specified' },
+                ].map((field) => (
+                  <View key={field.label} style={styles.inputGroup}>
+                    <View style={styles.inputLabelRow}>
+                      <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>{field.label}</Text>
+                      <View style={styles.lockedBadge}>
+                        <Lock size={10} color={colors.textMuted} strokeWidth={2.4} />
+                        <Text style={[styles.lockedText, { color: colors.textMuted }]}>Locked</Text>
+                      </View>
                     </View>
+                    <TextInput
+                      value={field.value}
+                      editable={false}
+                      selectTextOnFocus={false}
+                      style={[styles.textInput, styles.disabledInput, { backgroundColor: colors.surfaceSubtle, borderColor: colors.borderSubtle, color: colors.textMuted }]}
+                    />
                   </View>
-                  <TextInput
-                    value={editDepartment}
-                    editable={false}
-                    selectTextOnFocus={false}
-                    style={[
-                      styles.textInput,
-                      styles.disabledInput,
-                      {
-                        backgroundColor: colors.surfaceSubtle,
-                        borderColor: colors.borderSubtle,
-                        color: colors.textMuted,
-                      },
-                    ]}
-                  />
-                  <Text style={[styles.lockedText, { color: colors.textMuted, marginTop: 4 }]}>
-                    Department, batch, designation and student ID are verified at approval. Contact the department administrator to change them.
-                  </Text>
-                </View>
+                ))}
+                <Text style={[styles.lockedText, { color: colors.textMuted }]}>
+                  Department, batch, designation and student ID are verified at approval. Contact the department administrator to change them.
+                </Text>
 
-                {/* Field 3: Batch (Locked / Read-only) */}
                 <View style={styles.inputGroup}>
-                  <View style={styles.inputLabelRow}>
-                    <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>
-                      Batch / Cohort
-                    </Text>
-                    <View style={styles.lockedBadge}>
-                      <Lock size={10} color={colors.textMuted} strokeWidth={2.4} />
-                      <Text style={[styles.lockedText, { color: colors.textMuted }]}>
-                        Locked
-                      </Text>
-                    </View>
-                  </View>
-                  <TextInput
-                    value={profileBatch}
-                    editable={false}
-                    selectTextOnFocus={false}
-                    style={[
-                      styles.textInput,
-                      styles.disabledInput,
-                      {
-                        backgroundColor: colors.surfaceSubtle,
-                        borderColor: colors.borderSubtle,
-                        color: colors.textMuted,
-                      },
-                    ]}
-                  />
-                </View>
-
-                {/* Field 4: Bio (Multiline) */}
-                <View style={styles.inputGroup}>
-                  <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>
-                    Bio & Research Focus
-                  </Text>
+                  <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>Bio & Research Focus</Text>
                   <TextInput
                     value={editBio}
                     onChangeText={setEditBio}
                     placeholder="Write a brief overview of your academic focus..."
                     placeholderTextColor={colors.textMuted}
-                    multiline={true}
+                    multiline
                     numberOfLines={4}
+                    maxLength={2000}
                     textAlignVertical="top"
-                    style={[
-                      styles.textInput,
-                      styles.bioInput,
-                      {
-                        backgroundColor: colors.surfaceSubtle,
-                        borderColor: colors.borderSubtle,
-                        color: colors.textPrimary,
-                      },
-                    ]}
+                    style={[styles.textInput, styles.bioInput, { backgroundColor: colors.surfaceSubtle, borderColor: colors.borderSubtle, color: colors.textPrimary }]}
                   />
                 </View>
               </View>
@@ -970,348 +494,53 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  signOutBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.xs,
-    borderWidth: 1,
-    borderRadius: radius.md,
-    paddingVertical: spacing.sm,
-    marginTop: spacing.md,
-  },
-  signOutText: {
-    fontFamily: fontFamilies.sansSemiBold,
-    fontSize: 14,
-  },
   scroll: {
     flex: 1,
   },
   scrollContent: {
     paddingHorizontal: spacing.screenHorizontal,
+    paddingBottom: spacing.xl,
   },
-
-  // Section 1: Hero Card
-  heroCard: {
-    borderRadius: 16,
-    borderWidth: 1,
-    padding: spacing.md,
-    marginBottom: spacing.lg,
-  },
-  heroCenteredTop: {
-    alignItems: 'center',
-    paddingVertical: spacing.xs,
-  },
-  avatarContainer: {
-    position: 'relative',
-    width: 88,
-    height: 88,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarImage: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-  },
-  verifiedBadge: {
-    position: 'absolute',
-    bottom: -1,
-    right: -1,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  heroInfoCentered: {
-    alignItems: 'center',
-    marginTop: 12,
-    gap: 4,
-    width: '100%',
-    paddingHorizontal: spacing.xs,
-  },
-  heroName: {
-    fontSize: 24,
-    lineHeight: 30,
-    fontFamily: fontFamilies.serifBold,
-    textAlign: 'center',
-  },
-  credentialsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  credentialsIcon: {
-    marginRight: 5,
-  },
-  credentialsText: {
-    fontSize: 14,
-    fontFamily: fontFamilies.sansMedium,
-    lineHeight: 20,
-    textAlign: 'center',
-  },
-  bioText: {
-    fontSize: 14,
-    fontFamily: fontFamilies.sansRegular,
-    lineHeight: 20,
-    textAlign: 'center',
-    paddingHorizontal: spacing.sm,
-    marginTop: 2,
-  },
-
-  // Hero Self-Profile Actions
-  heroActionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginTop: 14,
-  },
-  editProfileButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 10,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  editProfileText: {
-    fontSize: 14,
-    fontFamily: fontFamilies.sansSemiBold,
-  },
-  settingsButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  // Hero Stats Strip (Bottom Row)
-  statsStrip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
-    borderTopWidth: 1,
-    paddingTop: 12,
-    marginTop: 14,
-  },
-  statColumn: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  statValue: {
-    fontSize: 17,
-    fontFamily: fontFamilies.sansBold,
-    lineHeight: 22,
-  },
-  statLabel: {
-    fontSize: 12,
-    fontFamily: fontFamilies.sansMedium,
-    marginTop: 2,
-  },
-  statDivider: {
-    width: 1,
-    height: 24,
-  },
-
-  // Section Headers
-  sectionContainer: {
-    marginBottom: spacing.lg,
-  },
-  sectionHeading: {
-    fontSize: 18,
-    fontFamily: fontFamilies.serifBold,
-    lineHeight: 24,
-    marginBottom: 10,
-  },
-
-  // Section 2: Interests / Topic Chips
-  topicPillsRow: {
+  chipsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
-  },
-  topicChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: radius.full,
-    borderWidth: 1,
-    maxWidth: '100%',
-    flexShrink: 1,
-  },
-  topicChipText: {
-    fontSize: 12.5,
-    fontFamily: fontFamilies.sansMedium,
-    letterSpacing: 0.1,
-    flexShrink: 1,
+    gap: spacing.sm,
   },
 
-  // Section 3: Currently Working On
-  projectCard: {
-    borderRadius: 16,
-    borderWidth: 1,
-    padding: spacing.md,
-  },
-  projectHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    gap: 8,
-  },
-  projectTitle: {
-    fontSize: 16,
-    lineHeight: 22,
-    fontFamily: fontFamilies.sansSemiBold,
-    flex: 1,
-  },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: radius.full,
-    flexShrink: 0,
-  },
-  statusIndicatorDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  statusBadgeText: {
-    fontSize: 11,
-    fontFamily: fontFamilies.sansSemiBold,
-    letterSpacing: 0.2,
-  },
-  projectDescription: {
-    fontSize: 14,
-    fontFamily: fontFamilies.sansRegular,
-    lineHeight: 20,
-    marginVertical: 10,
-  },
-  projectFooterRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-    borderTopWidth: 1,
-    paddingTop: 10,
-  },
-  projectMetaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-  },
-  projectMetaText: {
-    fontSize: 12.5,
-    fontFamily: fontFamilies.sansMedium,
-  },
-
-  // Section 4: Research & Publications
-  publicationsList: {
-    gap: 10,
-  },
-  publicationItemCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 14,
-    borderWidth: 1,
-    padding: 12,
-    gap: 12,
-  },
-  pubIconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  pubInfoColumn: {
-    flex: 1,
-  },
-  pubTitle: {
-    fontSize: 14.5,
-    fontFamily: fontFamilies.sansSemiBold,
-    lineHeight: 20,
-  },
-  pubSubtitle: {
-    fontSize: 12,
-    fontFamily: fontFamilies.sansRegular,
-    marginTop: 3,
-  },
-  pubLinkArrow: {
-    flexShrink: 0,
-  },
-
-  // Section 5: Academic Links (Unified Vertical Card)
-  academicLinksCard: {
-    borderRadius: 16,
-    borderWidth: 1,
-    overflow: 'hidden',
-  },
-  linkRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: 14,
-  },
-  linkIconWrapper: {
-    marginRight: 12,
-    width: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  linkLabel: {
-    fontSize: 14,
-    fontFamily: fontFamilies.sansMedium,
-    flex: 1,
-  },
-
-  // Settings Modal
+  // Settings modal
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    backgroundColor: 'rgba(0,0,0,0.45)',
     justifyContent: 'center',
-    alignItems: 'center',
     paddingHorizontal: spacing.lg,
   },
   modalCard: {
     width: '100%',
-    borderRadius: radius.lg,
     borderWidth: 1,
+    borderRadius: radius.lg,
     padding: spacing.lg,
   },
   modalHeaderRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'flex-start',
     marginBottom: spacing.md,
   },
   modalTitle: {
     ...typography.title,
-    fontSize: 18,
-    fontFamily: fontFamilies.sansBold,
   },
   modalSubtitle: {
-    fontSize: 12,
-    fontFamily: fontFamilies.sansRegular,
+    ...typography.caption,
     marginTop: 2,
   },
   modalCloseBtn: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: radius.full,
     alignItems: 'center',
     justifyContent: 'center',
   },
   modalSectionLabel: {
-    fontSize: 13,
-    fontFamily: fontFamilies.sansSemiBold,
+    ...typography.label,
     marginBottom: spacing.sm,
   },
   themeOptionsGrid: {
@@ -1321,118 +550,89 @@ const styles = StyleSheet.create({
   },
   themeOptionBtn: {
     flex: 1,
-    paddingVertical: spacing.md,
-    paddingHorizontal: 4,
-    borderRadius: radius.md,
-    borderWidth: 1.5,
     alignItems: 'center',
-    justifyContent: 'center',
+    borderWidth: 1,
+    borderRadius: radius.button,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xs,
   },
   themeIconBox: {
     marginBottom: 6,
   },
   themeOptionTitle: {
-    fontSize: 12,
+    ...typography.caption,
     fontFamily: fontFamilies.sansSemiBold,
   },
   themeOptionDesc: {
-    fontSize: 10,
+    ...typography.micro,
     marginTop: 2,
-    textAlign: 'center',
-    fontFamily: fontFamilies.sansRegular,
   },
-  modalDoneBtn: {
+  modalButton: {
+    height: spacing.secondaryButtonHeight,
+    borderRadius: radius.button,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 12,
-    borderRadius: 14,
+    gap: spacing.sm,
   },
-  modalDoneBtnText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontFamily: fontFamilies.sansSemiBold,
+  signOutBtn: {
+    borderWidth: 1,
+    marginBottom: spacing.sm,
+  },
+  modalButtonText: {
+    ...typography.label,
   },
 
-  // Edit Profile Modal
+  // Edit modal
   editModalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    backgroundColor: 'rgba(0,0,0,0.45)',
     justifyContent: 'flex-end',
   },
   editModalCard: {
     maxHeight: '90%',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: radius.lg,
+    borderTopRightRadius: radius.lg,
     borderWidth: 1,
-    borderBottomWidth: 0,
-    overflow: 'hidden',
+    paddingBottom: spacing.xl,
   },
   editModalHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
-    paddingVertical: 14,
+    paddingVertical: spacing.sm,
     borderBottomWidth: 1,
   },
+  editHeaderSide: {
+    minWidth: 80,
+    minHeight: spacing.minTouchTarget,
+    justifyContent: 'center',
+  },
   editModalCancelText: {
-    fontSize: 15,
-    fontFamily: fontFamilies.sansRegular,
+    ...typography.body,
   },
   editModalTitle: {
-    fontSize: 17,
-    fontFamily: fontFamilies.sansBold,
+    ...typography.title,
   },
   editModalSaveBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 7,
-    borderRadius: 12,
-  },
-  editModalSaveText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontFamily: fontFamilies.sansSemiBold,
-  },
-  editModalScrollContent: {
+    minHeight: spacing.compactButtonHeight,
     paddingHorizontal: spacing.md,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.xxl,
-  },
-  photoPickerContainer: {
-    alignItems: 'center',
-    marginBottom: spacing.lg,
-  },
-  photoPickerAvatarWrapper: {
-    position: 'relative',
-    width: 88,
-    height: 88,
-    marginBottom: 8,
-  },
-  photoPickerBadge: {
-    position: 'absolute',
-    bottom: -2,
-    right: -2,
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    borderWidth: 2,
+    borderRadius: radius.button,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  changePhotoBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: radius.full,
-    borderWidth: 1,
+  editModalSaveText: {
+    ...typography.label,
+    color: '#FFFFFF',
   },
-  changePhotoText: {
-    fontSize: 12.5,
-    fontFamily: fontFamilies.sansSemiBold,
+  editModalScrollContent: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.lg,
+  },
+  photoPreview: {
+    alignItems: 'center',
+    marginBottom: spacing.lg,
   },
   editFormFields: {
     gap: spacing.md,
@@ -1446,7 +646,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   inputLabel: {
-    fontSize: 13,
+    ...typography.bodySmall,
     fontFamily: fontFamilies.sansSemiBold,
   },
   lockedBadge: {
@@ -1455,21 +655,20 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   lockedText: {
-    fontSize: 11,
-    fontFamily: fontFamilies.sansMedium,
+    ...typography.micro,
   },
   textInput: {
-    padding: 12,
-    borderRadius: 8,
+    ...typography.bodyCompact,
     borderWidth: 1,
-    fontSize: 14,
-    fontFamily: fontFamilies.sansRegular,
+    borderRadius: radius.sm,
+    paddingHorizontal: 12,
+    minHeight: spacing.inputHeight,
   },
   disabledInput: {
-    opacity: 0.7,
+    opacity: 0.8,
   },
   bioInput: {
-    minHeight: 88,
+    minHeight: 110,
     paddingTop: 12,
   },
 });

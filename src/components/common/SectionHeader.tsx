@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   badgeText: {
-    fontSize: 12.5,
+    fontSize: 13,
     fontFamily: fontFamilies.sansMedium,
   },
   actionButton: {

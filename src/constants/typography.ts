@@ -110,6 +110,25 @@ export const typography: Record<string, TextStyle> = {
     lineHeight: 18,
     fontWeight: '400',
   },
+  bodyCompact: {
+    fontFamily: fontFamilies.sansRegular,
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '400',
+  },
+  label: {
+    fontFamily: fontFamilies.sansSemiBold,
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '600',
+  },
+  micro: {
+    fontFamily: fontFamilies.sansMedium,
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: '500',
+    letterSpacing: 0.2,
+  },
   caption: {
     fontFamily: fontFamilies.sansMedium,
     fontSize: 12,

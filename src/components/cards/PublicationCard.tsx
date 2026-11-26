@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   venueYearText: {
-    fontSize: 12.5,
+    fontSize: 13,
     fontFamily: fontFamilies.sansSemiBold,
     letterSpacing: 0.2,
     flexShrink: 1,
@@ -254,7 +254,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   overview: {
-    fontSize: 13.5,
+    fontSize: 14,
     fontFamily: fontFamilies.sansRegular,
     lineHeight: 20,
     marginBottom: spacing.sm + 4,
@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   topicPillText: {
-    fontSize: 11.5,
+    fontSize: 12,
     fontFamily: fontFamilies.sansMedium,
     flexShrink: 1,
   },
@@ -307,7 +307,7 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   viewLinkText: {
-    fontSize: 12.5,
+    fontSize: 13,
     fontFamily: fontFamilies.sansSemiBold,
   },
   actionIcon: {

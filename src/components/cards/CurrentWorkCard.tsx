@@ -333,8 +333,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm + 4,
   },
   topicPill: {
-    paddingHorizontal: 12,
-    paddingVertical: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     borderRadius: 9999,
     borderWidth: 1,
     maxWidth: '100%',

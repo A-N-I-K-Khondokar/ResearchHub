@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { UserPlus, Check, Clock, FlaskConical } from 'lucide-react-native';
 import { UserProfile, CurrentWork } from '@/types';
-import { typography, fontFamilies, floatingButtonTokens } from '@/constants';
+import { typography, fontFamilies, floatingButtonTokens, radius } from '@/constants';
 import { useTheme } from '@/context/ThemeContext';
 import { Avatar } from '../common/Avatar';
 
@@ -346,7 +346,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   name: {
-    fontSize: 16.5,
+    fontSize: 17,
     fontFamily: fontFamilies.sansBold,
     fontWeight: '700',
     flexShrink: 1,
@@ -365,7 +365,7 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   statusBadgeText: {
-    fontSize: 11.5,
+    fontSize: 12,
     fontFamily: fontFamilies.sansSemiBold,
     fontWeight: '600',
     letterSpacing: 0.1,
@@ -391,19 +391,19 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   activeResearchLabel: {
-    fontSize: 10.5,
+    fontSize: 11,
     fontFamily: fontFamilies.sansBold,
     fontWeight: '700',
     letterSpacing: 0.5,
   },
   activeResearchTitle: {
-    fontSize: 13.5,
+    fontSize: 14,
     fontFamily: fontFamilies.sansSemiBold,
     fontWeight: '600',
     lineHeight: 18,
   },
   activeResearchSummary: {
-    fontSize: 12.5,
+    fontSize: 13,
     fontFamily: fontFamilies.sansRegular,
     lineHeight: 17,
     marginTop: 3,
@@ -416,14 +416,14 @@ const styles = StyleSheet.create({
   },
   tagPill: {
     paddingHorizontal: 10,
-    paddingVertical: 3.5,
+    paddingVertical: 4,
     borderRadius: 9999,
     borderWidth: 0,
     maxWidth: '100%',
     flexShrink: 1,
   },
   tagPillText: {
-    fontSize: 11.5,
+    fontSize: 12,
     fontFamily: fontFamilies.sansSemiBold,
     fontWeight: '600',
     flexShrink: 1,
@@ -439,10 +439,10 @@ const styles = StyleSheet.create({
   connectButton: {
     flex: 1,
     flexShrink: 1,
-    minHeight: 38,
-    paddingVertical: 8,
+    minHeight: 36,
+    paddingVertical: 6,
     paddingHorizontal: 12,
-    borderRadius: 12,
+    borderRadius: radius.button,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -473,10 +473,10 @@ const styles = StyleSheet.create({
   viewProfileButton: {
     flex: 1,
     flexShrink: 1,
-    minHeight: 38,
-    paddingVertical: 8,
+    minHeight: 36,
+    paddingVertical: 6,
     paddingHorizontal: 12,
-    borderRadius: 12,
+    borderRadius: radius.button,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',

@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
   },
   countText: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '600',
   },
 });

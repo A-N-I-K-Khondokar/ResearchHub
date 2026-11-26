@@ -11,11 +11,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, BookOpen, Layers, Calendar, ExternalLink, Trash2, Bookmark } from 'lucide-react-native';
+import { BookOpen, Layers, Calendar, ExternalLink, Trash2, Bookmark } from 'lucide-react-native';
 import { spacing, radius, typography, fontFamilies } from '../../constants';
 import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
 import { Avatar } from '../../components/common/Avatar';
+import { ScreenHeader } from '../../components/layout/ScreenHeader';
 import { Button } from '../../components/common/Button';
 import {
   getResearchWork,
@@ -123,37 +124,25 @@ export default function ResearchDetailScreen() {
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
-      <View
-        style={[
-          styles.header,
-          { backgroundColor: colors.surface, borderBottomColor: colors.border },
-        ]}
-      >
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.backButton}
-          accessibilityLabel="Go back"
-        >
-          <ArrowLeft size={22} color={colors.textPrimary} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Research Details</Text>
-        {state === 'ready' && work && work.status === 'published' ? (
-          <TouchableOpacity
-            onPress={() => toggleSave(work)}
-            style={styles.backButton}
-            accessibilityRole="button"
-            accessibilityLabel={isSaved(work.id) ? 'Remove from saved items' : 'Save research'}
-          >
-            <Bookmark
-              size={20}
-              color={isSaved(work.id) ? colors.primary : colors.textPrimary}
-              fill={isSaved(work.id) ? colors.primary : 'transparent'}
-            />
-          </TouchableOpacity>
-        ) : (
-          <View style={{ width: 40 }} />
-        )}
-      </View>
+      <ScreenHeader
+        title="Research Details"
+        right={
+          state === 'ready' && work && work.status === 'published' ? (
+            <TouchableOpacity
+              onPress={() => toggleSave(work)}
+              hitSlop={6}
+              accessibilityRole="button"
+              accessibilityLabel={isSaved(work.id) ? 'Remove from saved items' : 'Save research'}
+            >
+              <Bookmark
+                size={20}
+                color={isSaved(work.id) ? colors.primary : colors.textPrimary}
+                fill={isSaved(work.id) ? colors.primary : 'transparent'}
+              />
+            </TouchableOpacity>
+          ) : null
+        }
+      />
 
       {state !== 'ready' || !work ? (
         renderStatus()
@@ -254,24 +243,6 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    ...typography.titleSmall,
-  },
   centered: {
     flex: 1,
     alignItems: 'center',
@@ -327,7 +298,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: radius.full,
   },
@@ -362,7 +333,7 @@ const styles = StyleSheet.create({
   tag: {
     borderWidth: 1,
     borderRadius: radius.full,
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: 10,
     paddingVertical: 4,
     maxWidth: '100%',
     flexShrink: 1,

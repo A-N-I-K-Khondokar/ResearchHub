@@ -347,14 +347,18 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   categoryChip: {
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: radius.full,
     borderWidth: 1,
+    minHeight: 32,
+    justifyContent: 'center',
   },
   categoryText: {
     ...typography.caption,
     fontFamily: fontFamilies.sansMedium,
+    fontSize: 13,
+    lineHeight: 18,
   },
   categoryTextSelected: {
     fontFamily: fontFamilies.sansSemiBold,
@@ -373,7 +377,7 @@ const styles = StyleSheet.create({
     ...shadows.card,
   },
   suggestedTitle: {
-    ...typography.title,
+    ...typography.sectionHeader,
     marginBottom: 2,
   },
   suggestedSubtitle: {

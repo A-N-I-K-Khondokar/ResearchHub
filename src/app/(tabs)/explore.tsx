@@ -484,17 +484,21 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   filterPill: {
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: radius.full,
     borderWidth: 1,
     maxWidth: '100%',
     flexShrink: 1,
+    minHeight: 32,
+    justifyContent: 'center',
   },
   filterPillText: {
     ...typography.caption,
     fontFamily: fontFamilies.sansMedium,
     flexShrink: 1,
+    fontSize: 13,
+    lineHeight: 18,
   },
   filterPillTextActive: {
     fontFamily: fontFamilies.sansSemiBold,
@@ -510,16 +514,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     marginBottom: spacing.md,
   },
-  bentoContainer: {
-    borderRadius: 16,
-    borderWidth: 1,
-    padding: 24,
-    elevation: 2,
-    shadowColor: '#172033',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-  },
   bentoHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -531,16 +525,8 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     marginRight: spacing.sm,
   },
-  bentoIconTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
   bentoTitle: {
-    fontSize: 18,
-    fontFamily: fontFamilies.serif,
-    fontWeight: '600',
-    letterSpacing: -0.2,
+    ...typography.sectionHeader,
   },
   bentoSubtitle: {
     fontSize: 13,
@@ -559,9 +545,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: fontFamilies.sansSemiBold,
     fontWeight: '600',
-  },
-  bentoCardsList: {
-    gap: 16,
   },
   featuredResearchersContainer: {
     // Un-nested section container without redundant outer borders or background
@@ -589,14 +572,15 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   solidTopicChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
     borderRadius: 9999,
     borderWidth: 0,
     maxWidth: '100%',
     flexShrink: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    minHeight: 32,
   },
   solidTopicChipLabel: {
     fontSize: 13,
@@ -623,7 +607,7 @@ const styles = StyleSheet.create({
     marginBottom: 3,
   },
   currentWorkMeta: {
-    fontSize: 12.5,
+    fontSize: 13,
     fontFamily: fontFamilies.sansRegular,
     lineHeight: 18,
     marginBottom: 8,
@@ -639,14 +623,14 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   currentWorkStatText: {
-    fontSize: 11.5,
+    fontSize: 12,
     fontFamily: fontFamilies.sansSemiBold,
     fontWeight: '600',
   },
   viewActivityFeedBtn: {
     marginTop: 12,
-    height: 42,
-    borderRadius: 12,
+    height: 44,
+    borderRadius: radius.button,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
@@ -655,62 +639,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: fontFamilies.sansSemiBold,
     fontWeight: '600',
-  },
-  papersGrid: {
-    gap: 12,
-  },
-  paperCard: {
-    borderRadius: 12,
-    borderWidth: 1,
-    padding: 16,
-    shadowColor: '#071A3E',
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 4,
-  },
-  paperHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  paperYear: {
-    fontSize: 11.5,
-    fontFamily: fontFamilies.sansSemiBold,
-    fontWeight: '600',
-  },
-  paperTitle: {
-    fontSize: 14,
-    fontFamily: fontFamilies.sansSemiBold,
-    fontWeight: '600',
-    lineHeight: 20,
-    marginBottom: 6,
-  },
-  paperAuthors: {
-    fontSize: 12.5,
-    fontFamily: fontFamilies.sansRegular,
-    lineHeight: 16,
-    marginBottom: 6,
-  },
-  paperVenue: {
-    fontSize: 12,
-    fontFamily: fontFamilies.sansRegular,
-    lineHeight: 16,
-    marginBottom: 10,
-  },
-  paperCitationsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-  },
-  paperCitationsText: {
-    fontSize: 11.5,
-    fontFamily: fontFamilies.sansSemiBold,
-    fontWeight: '600',
-  },
-  topicChipItem: {
-    marginBottom: spacing.xs,
-    maxWidth: '100%',
-    flexShrink: 1,
   },
   bottomSpacer: {
     height: 48,

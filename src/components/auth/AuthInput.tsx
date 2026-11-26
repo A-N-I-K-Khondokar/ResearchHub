@@ -140,7 +140,7 @@ const styles = StyleSheet.create({
   },
   rightActionLabel: {
     fontFamily: fontFamilies.sansSemiBold,
-    fontSize: 12.5,
+    fontSize: 13,
     fontWeight: '600',
   },
   inputWrapper: {
@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: '100%',
     fontFamily: fontFamilies.sansRegular,
-    fontSize: 14.5,
+    fontSize: 15,
     paddingVertical: 0,
   },
   passwordToggle: {

@@ -227,20 +227,20 @@ const styles = StyleSheet.create({
     marginLeft: spacing.sm,
   },
 
-  // Sizes
+  // Sizes — shared control scale: 36 compact / 44 secondary / 48 primary (radius 12)
   size_sm: {
-    height: 36,
-    borderRadius: 12,
+    height: spacing.compactButtonHeight,
+    borderRadius: radius.button,
     paddingHorizontal: spacing.md,
   },
   size_md: {
-    height: 48,
-    borderRadius: 14,
+    height: spacing.buttonHeight,
+    borderRadius: radius.button,
     paddingHorizontal: spacing.lg,
   },
   size_lg: {
-    height: 50,
-    borderRadius: 14,
+    height: spacing.buttonHeight,
+    borderRadius: radius.button,
     paddingHorizontal: spacing.xl,
   },
 
@@ -258,8 +258,5 @@ const styles = StyleSheet.create({
   },
   textSize_lg: {
     ...typography.button,
-    fontSize: 15.5,
-    fontFamily: fontFamilies.sansSemiBold,
-    fontWeight: '600',
   },
 });
