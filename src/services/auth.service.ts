@@ -71,22 +71,52 @@ const FIREBASE_ERROR_MAP: Record<string, string> = {
     'An account already exists with this email using a different sign-in method. Please use your original sign-in method.',
 };
 
+// Native Google Sign-In (Android / iOS) status codes from
+// @react-native-google-signin/google-signin (numeric codes arrive as strings).
+const GOOGLE_ERROR_MAP: Record<string, string> = {
+  '10':
+    'Google Sign-In is not configured for this app build (DEVELOPER_ERROR 10). The app signing certificate (SHA-1) or OAuth client does not match the Firebase project.',
+  '12500':
+    'Google Sign-In failed (12500). Check that the Google account is allowed for this app and the OAuth consent screen is configured, then try again.',
+  '12501': 'Google Sign-In was cancelled.',
+  '7': 'Network error during Google Sign-In. Please check your connection and try again.',
+  '8': 'Google Sign-In hit an internal error (8). Please try again.',
+  SIGN_IN_CANCELLED: 'Google Sign-In was cancelled.',
+  IN_PROGRESS: 'Google Sign-In is already in progress.',
+  PLAY_SERVICES_NOT_AVAILABLE:
+    'Google Play Services is missing or out of date on this device. Update it and try again.',
+  NULL_PRESENTER: 'Google Sign-In could not open. Please try again.',
+};
+
+/**
+ * Converts any auth-related error into a user-facing { code, message }.
+ * - Firebase codes  -> friendly mapped message
+ * - Google codes    -> friendly mapped message (code included for support)
+ * - App-defined `google/*` / `firebase/*` errors keep their own message
+ * - Anything else   -> generic message that still shows the code, so the
+ *                      real cause is never hidden.
+ */
 export function mapFirebaseError(error: unknown): AuthError {
   if (
     typeof error === 'object' &&
     error !== null &&
     'code' in error &&
-    typeof (error as { code: unknown }).code === 'string'
+    (typeof (error as { code: unknown }).code === 'string' ||
+      typeof (error as { code: unknown }).code === 'number')
   ) {
-    const code = (error as { code: string }).code;
-    return {
-      code,
-      message: FIREBASE_ERROR_MAP[code] ?? 'An unexpected error occurred. Please try again.',
-    };
+    const code = String((error as { code: string | number }).code);
+    const ownMessage = (error as { message?: unknown }).message;
+    if (FIREBASE_ERROR_MAP[code]) return { code, message: FIREBASE_ERROR_MAP[code] };
+    if (GOOGLE_ERROR_MAP[code]) return { code, message: GOOGLE_ERROR_MAP[code] };
+    if ((code.startsWith('google/') || code.startsWith('firebase/')) && typeof ownMessage === 'string' && ownMessage) {
+      return { code, message: ownMessage };
+    }
+    return { code, message: `An unexpected error occurred (code: ${code}). Please try again.` };
   }
+  const detail = error instanceof Error && error.message ? ` (${error.message.slice(0, 120)})` : '';
   return {
     code: 'unknown',
-    message: 'An unexpected error occurred. Please try again.',
+    message: `An unexpected error occurred${detail}. Please try again.`,
   };
 }
 
@@ -316,14 +346,17 @@ async function googleSignInNative(): Promise<User> {
       } satisfies AuthError;
     }
 
+    // Log the raw native error for debugging (visible in device logs / Metro).
+    console.warn('[auth.service] Native Google Sign-In error:', error?.code, error?.message);
+
     const mapped = mapFirebaseError(error);
     if (mapped.code !== 'unknown') {
       throw mapped;
     }
 
     throw {
-      code: error?.code ?? 'google/native-sign-in-failed',
-      message: error?.message ?? 'Google Sign-In failed on this device.',
+      code: 'google/native-sign-in-failed',
+      message: `Google Sign-In failed on this device${error?.message ? `: ${String(error.message).slice(0, 120)}` : '.'}`,
     } satisfies AuthError;
   }
 }
