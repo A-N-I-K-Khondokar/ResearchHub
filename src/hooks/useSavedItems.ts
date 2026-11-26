@@ -5,7 +5,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert } from 'react-native';
+import { showMessage } from '@/utils/dialogs';
 import { useAuth } from '@/context/AuthContext';
 import { saveWork, unsaveWork, subscribeSavedItems } from '@/services/saved.service';
 import type { ResearchWork } from '@/types/research.types';
@@ -50,7 +50,7 @@ export function useSavedItems() {
       try {
         await unsaveWork(uid, workId);
       } catch {
-        Alert.alert('Something went wrong', 'Could not remove this saved item.');
+        showMessage('Something went wrong', 'Could not remove this saved item.');
       }
     },
     [uid],
@@ -66,7 +66,7 @@ export function useSavedItems() {
           await saveWork(uid, work);
         }
       } catch {
-        Alert.alert('Something went wrong', 'Could not update your saved items.');
+        showMessage('Something went wrong', 'Could not update your saved items.');
       }
     },
     [savedIds, uid],

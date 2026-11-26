@@ -32,7 +32,9 @@ export default function HomeFeedScreen() {
   const router = useRouter();
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
-  const { firebaseUser } = useAuth();
+  const { firebaseUser, userProfile } = useAuth();
+  // Feed listener only runs for an approved session (stops cleanly on sign-out)
+  const feedEnabled = userProfile?.approvalStatus === 'approved';
   const [refreshing, setRefreshing] = useState(false);
   const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
 
@@ -43,6 +45,7 @@ export default function HomeFeedScreen() {
   const [feedKey, setFeedKey] = useState(0);
 
   useEffect(() => {
+    if (!feedEnabled) return;
     setFeedLoading(true);
     setFeedError(null);
     const unsubscribe = subscribePublishedFeed(
@@ -63,7 +66,7 @@ export default function HomeFeedScreen() {
       },
     );
     return unsubscribe;
-  }, [feedKey]);
+  }, [feedKey, feedEnabled]);
 
   // Likes are local-only (no likes model in scope); bookmarks persist as Saved Items
   const [likedWorkIds, setLikedWorkIds] = useState<Set<string>>(() => new Set());

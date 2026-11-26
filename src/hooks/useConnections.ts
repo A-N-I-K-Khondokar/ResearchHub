@@ -8,7 +8,8 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert } from 'react-native';
+import { Alert, Platform } from 'react-native';
+import { confirmAction, showMessage } from '@/utils/dialogs';
 import { useAuth } from '@/context/AuthContext';
 import {
   subscribeMyConnections,
@@ -79,7 +80,7 @@ export function useConnections() {
       await action();
     } catch (err) {
       console.error('[useConnections] Action failed:', err);
-      Alert.alert('Something went wrong', failMessage);
+      showMessage('Something went wrong', failMessage);
     } finally {
       setBusyUid(null);
     }
@@ -114,43 +115,55 @@ export function useConnections() {
           run(other.uid, () => sendConnectionRequest(userProfile, other), 'Could not send the connection request.');
           break;
         case 'outgoing':
-          Alert.alert('Cancel request?', `Withdraw your connection request to ${other.displayName}?`, [
-            { text: 'Keep', style: 'cancel' },
-            {
-              text: 'Withdraw',
-              style: 'destructive',
-              onPress: () => run(other.uid, () => removeConnection(connection!.id), 'Could not withdraw the request.'),
-            },
-          ]);
+          confirmAction({
+            title: 'Cancel request?',
+            message: `Withdraw your connection request to ${other.displayName}?`,
+            confirmLabel: 'Withdraw',
+            cancelLabel: 'Keep',
+            destructive: true,
+          }).then((ok) => {
+            if (ok) run(other.uid, () => removeConnection(connection!.id), 'Could not withdraw the request.');
+          });
           break;
         case 'incoming':
-          Alert.alert('Connection request', `${other.displayName} wants to connect with you.`, [
-            { text: 'Later', style: 'cancel' },
-            { text: 'Decline', style: 'destructive', onPress: () => decline(connection!) },
-            { text: 'Accept', onPress: () => accept(connection!) },
-          ]);
+          if (Platform.OS === 'web') {
+            // Browsers only offer OK/Cancel; Decline remains on the Notifications tab.
+            confirmAction({
+              title: 'Connection request',
+              message: `${other.displayName} wants to connect with you. Accept the request?`,
+              confirmLabel: 'Accept',
+            }).then((ok) => {
+              if (ok) accept(connection!);
+            });
+          } else {
+            Alert.alert('Connection request', `${other.displayName} wants to connect with you.`, [
+              { text: 'Later', style: 'cancel' },
+              { text: 'Decline', style: 'destructive', onPress: () => decline(connection!) },
+              { text: 'Accept', onPress: () => accept(connection!) },
+            ]);
+          }
           break;
         case 'connected':
-          Alert.alert('Remove connection?', `You and ${other.displayName} will no longer be connected.`, [
-            { text: 'Cancel', style: 'cancel' },
-            {
-              text: 'Remove',
-              style: 'destructive',
-              onPress: () => run(other.uid, () => removeConnection(connection!.id), 'Could not remove the connection.'),
-            },
-          ]);
+          confirmAction({
+            title: 'Remove connection?',
+            message: `You and ${other.displayName} will no longer be connected.`,
+            confirmLabel: 'Remove',
+            destructive: true,
+          }).then((ok) => {
+            if (ok) run(other.uid, () => removeConnection(connection!.id), 'Could not remove the connection.');
+          });
           break;
         case 'rejected':
           if (connection?.recipientUid === myUid) {
-            Alert.alert('Request declined', `You declined ${other.displayName}'s request. Clear it so you can connect?`, [
-              { text: 'Cancel', style: 'cancel' },
-              {
-                text: 'Clear',
-                onPress: () => run(other.uid, () => removeConnection(connection.id), 'Could not clear the request.'),
-              },
-            ]);
+            confirmAction({
+              title: 'Request declined',
+              message: `You declined ${other.displayName}'s request. Clear it so you can connect?`,
+              confirmLabel: 'Clear',
+            }).then((ok) => {
+              if (ok) run(other.uid, () => removeConnection(connection.id), 'Could not clear the request.');
+            });
           } else {
-            Alert.alert('Request declined', `${other.displayName} declined your connection request.`);
+            showMessage('Request declined', `${other.displayName} declined your connection request.`);
           }
           break;
       }

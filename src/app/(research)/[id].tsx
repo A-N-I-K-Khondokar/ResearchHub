@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
-  Alert,
   Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -25,6 +24,7 @@ import {
 } from '@/services/research.service';
 import type { ResearchWork } from '@/types/research.types';
 import { useSavedItems } from '@/hooks/useSavedItems';
+import { confirmAction, showMessage } from '@/utils/dialogs';
 
 type LoadState = 'loading' | 'ready' | 'not-found' | 'error';
 
@@ -62,7 +62,7 @@ export default function ResearchDetailScreen() {
   const isOwner = Boolean(work && firebaseUser && work.authorUid === firebaseUser.uid);
 
   const handleOpenLink = (url: string) => {
-    Linking.openURL(url).catch(() => Alert.alert('Link Error', `Unable to open: ${url}`));
+    Linking.openURL(url).catch(() => showMessage('Link Error', `Unable to open: ${url}`));
   };
 
   const handleAuthorPress = () => {
@@ -70,25 +70,23 @@ export default function ResearchDetailScreen() {
     router.push((isOwner ? '/(tabs)/profile' : `/(profile)/${work.authorUid}`) as any);
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!work) return;
-    Alert.alert('Delete research update?', 'This permanently removes it from the feed.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          setIsDeleting(true);
-          try {
-            await deleteResearchWork(work.id);
-            router.back();
-          } catch {
-            setIsDeleting(false);
-            Alert.alert('Delete failed', 'Could not delete this update. Please try again.');
-          }
-        },
-      },
-    ]);
+    const ok = await confirmAction({
+      title: 'Delete research update?',
+      message: 'This permanently removes it from the feed.',
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (!ok) return;
+    setIsDeleting(true);
+    try {
+      await deleteResearchWork(work.id);
+      router.back();
+    } catch {
+      setIsDeleting(false);
+      showMessage('Delete failed', 'Could not delete this update. Please try again.');
+    }
   };
 
   const renderStatus = () => {

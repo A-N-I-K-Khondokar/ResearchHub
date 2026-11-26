@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   Modal,
-  Alert,
   Linking,
   TextInput,
   KeyboardAvoidingView,
@@ -53,6 +52,7 @@ import { updateUserProfile } from '@/services/user.service';
 import { subscribeMyResearchWorks } from '@/services/research.service';
 import { useConnections } from '@/hooks/useConnections';
 import { useSavedItems } from '@/hooks/useSavedItems';
+import { confirmAction, showMessage } from '@/utils/dialogs';
 import type { ResearchWork } from '@/types/research.types';
 import type { UserSocialLinks } from '@/types/user.types';
 
@@ -123,11 +123,11 @@ export default function ProfileTab() {
     const bio = editBio.trim();
 
     if (!name || name.length > 100) {
-      Alert.alert('Check your name', 'Full name is required (max 100 characters).');
+      showMessage('Check your name', 'Full name is required (max 100 characters).');
       return;
     }
     if (bio.length > 2000) {
-      Alert.alert('Bio too long', 'Bio must be 2000 characters or less.');
+      showMessage('Bio too long', 'Bio must be 2000 characters or less.');
       return;
     }
 
@@ -138,35 +138,36 @@ export default function ProfileTab() {
       setIsEditModalVisible(false);
     } catch (err) {
       console.error('[Profile] Save failed:', err);
-      Alert.alert('Save failed', 'Could not update your profile. Please try again.');
+      showMessage('Save failed', 'Could not update your profile. Please try again.');
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleSignOut = () => {
-    Alert.alert('Sign out?', 'You will need to sign in again to access CSE Research Hub.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Sign Out',
-        style: 'destructive',
-        onPress: async () => {
-          setIsSigningOut(true);
-          try {
-            setIsSettingsModalVisible(false);
-            await signOut();
-            // AuthGuard redirects to login once the session clears.
-          } catch {
-            setIsSigningOut(false);
-            Alert.alert('Sign out failed', 'Please try again.');
-          }
-        },
-      },
-    ]);
+  const handleSignOut = async () => {
+    if (isSigningOut) return;
+    // Works on iOS, Android AND web (RN-Web's Alert.alert is a no-op).
+    const ok = await confirmAction({
+      title: 'Sign out?',
+      message: 'You will need to sign in again to access CSE Research Hub.',
+      confirmLabel: 'Sign Out',
+      destructive: true,
+    });
+    if (!ok) return;
+
+    setIsSigningOut(true);
+    setIsSettingsModalVisible(false);
+    try {
+      await signOut();
+      // AuthGuard routes to the login screen as soon as sign-out starts.
+    } catch {
+      setIsSigningOut(false);
+      showMessage('Sign out failed', 'Please check your connection and try again.');
+    }
   };
 
   const handleOpenLink = (url: string) => {
-    Linking.openURL(url).catch(() => Alert.alert('Link Error', `Unable to open: ${url}`));
+    Linking.openURL(url).catch(() => showMessage('Link Error', `Unable to open: ${url}`));
   };
 
   const openTopic = (topic: string) =>

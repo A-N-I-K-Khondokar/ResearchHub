@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { showMessage } from '@/utils/dialogs';
 import { useRouter } from 'expo-router';
 import { MailCheck, ArrowLeft, RefreshCw, CheckCircle } from 'lucide-react-native';
 import { ScreenContainer, Button } from '@/components';
@@ -47,7 +48,7 @@ export default function VerifyEmailScreen() {
     try {
       await sendVerificationEmail();
       startCooldown();
-      Alert.alert(
+      showMessage(
         'Verification Email Sent',
         'A fresh verification link has been sent to your email address. Please check your inbox.',
       );
@@ -71,7 +72,7 @@ export default function VerifyEmailScreen() {
       // refreshed), so AuthGuard in _layout.tsx routes to account-setup.
       // No manual navigation here — avoids racing the guard.
       if (!verified) {
-        Alert.alert(
+        showMessage(
           'Not Yet Verified',
           "We couldn't confirm your email verification. Please open the link in your email and try again.",
         );

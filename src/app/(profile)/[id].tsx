@@ -7,7 +7,6 @@ import {
   ScrollView,
   ActivityIndicator,
   Linking,
-  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -29,6 +28,7 @@ import {
 import { getPublicProfile } from '@/services/user.service';
 import { getPublishedWorksByAuthor } from '@/services/research.service';
 import { useConnections } from '@/hooks/useConnections';
+import { showMessage } from '@/utils/dialogs';
 import type { PublicProfile } from '@/types/user.types';
 import type { ResearchWork } from '@/types/research.types';
 
@@ -106,7 +106,7 @@ export default function ResearcherProfileScreen() {
           label: LINK_LABELS[key] ?? key,
           icon: iconFor(key),
           trailing: 'external' as const,
-          onPress: () => Linking.openURL(url).catch(() => Alert.alert('Link Error', `Unable to open: ${url}`)),
+          onPress: () => Linking.openURL(url).catch(() => showMessage('Link Error', `Unable to open: ${url}`)),
         };
       });
   }, [profile?.socialLinks, colors.primary]);

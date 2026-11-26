@@ -88,11 +88,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Tracked as its own state: `reload()` mutates the existing User object in
   // place, so `setFirebaseUser(sameRef)` would not trigger a re-render.
   const [emailVerified, setEmailVerified] = useState(false);
+  // True between "Sign Out" and Firebase confirming it: the session is treated as
+  // signed out immediately (AuthGuard -> login, no account-setup flash).
+  const [isSigningOut, setIsSigningOut] = useState(false);
+  // Bumped to re-open the profile listener (e.g. after a failed sign-out).
+  const [profileListenerKey, setProfileListenerKey] = useState(0);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isProfileLoading, setIsProfileLoading] = useState(false);
   const [authError, setAuthError] = useState<{ code: string; message: string } | null>(null);
   const [profileError, setProfileError] = useState<Error | null>(null);
+  const userProfileRef = useRef<UserProfile | null>(null);
+  userProfileRef.current = userProfile;
 
   // References for active Firestore profile subscription & stale snapshot prevention
   const profileUnsubscribeRef = useRef<(() => void) | null>(null);
@@ -128,6 +135,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         if (!isMounted.current) return;
         setFirebaseUser(user);
         setEmailVerified(user?.emailVerified ?? false);
+        setIsSigningOut(false);
         setIsLoading(false);
         // Clear any stale auth errors when the session changes
         setAuthError(null);
@@ -210,7 +218,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
       activeSubscribedUidRef.current = null;
     };
-  }, [firebaseUser?.uid, emailVerified]);
+  }, [firebaseUser?.uid, emailVerified, profileListenerKey]);
 
   // ---------------------------------------------------------------------------
   // Derived state & Access State Model
@@ -220,7 +228,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const approvalStatus: ApprovalStatus | null = userProfile?.approvalStatus ?? null;
 
   const accessState = useMemo<AccessState>(() => {
-    if (!firebaseUser) {
+    if (!firebaseUser || isSigningOut) {
       return 'unauthenticated';
     }
     if (!emailVerified) {
@@ -247,7 +255,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       default:
         return 'pending';
     }
-  }, [firebaseUser, emailVerified, profileError, isProfileLoading, userProfile]);
+  }, [firebaseUser, isSigningOut, emailVerified, profileError, isProfileLoading, userProfile]);
 
   // ---------------------------------------------------------------------------
   // Actions
@@ -295,22 +303,40 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const signOut = useCallback(async (): Promise<void> => {
     clearError();
+    const previousProfile = userProfileRef.current;
+
+    // 1. Treat the session as signed out right away: AuthGuard routes to login
+    //    (no account-setup flash) and every profile-keyed Firestore listener in
+    //    the app unsubscribes BEFORE the auth token is revoked (no
+    //    permission-denied errors from still-open listeners).
     if (profileUnsubscribeRef.current) {
       profileUnsubscribeRef.current();
       profileUnsubscribeRef.current = null;
     }
     activeSubscribedUidRef.current = null;
     if (isMounted.current) {
+      setIsSigningOut(true);
       setUserProfile(null);
       setIsProfileLoading(false);
       setProfileError(null);
     }
+
+    // 2. Let React commit and run listener clean-ups, then end the Firebase session.
+    await new Promise((resolve) => setTimeout(resolve, 60));
+
     try {
       await serviceSignOut();
-      // onAuthStateChanged fires → sets firebaseUser = null automatically.
+      // onAuthStateChanged fires → firebaseUser = null, isSigningOut reset.
     } catch (error) {
+      // 3. Sign-out failed: restore the session state instead of leaving the
+      //    user stranded on a signed-out / account-setup screen.
       const mapped = mapFirebaseError(error);
-      if (isMounted.current) setAuthError(mapped);
+      if (isMounted.current) {
+        setUserProfile(previousProfile);
+        setIsSigningOut(false);
+        setProfileListenerKey((k) => k + 1);
+        setAuthError(mapped);
+      }
       throw mapped;
     }
   }, [clearError]);
