@@ -228,6 +228,7 @@ export default function ResearchDetailScreen() {
       title: isCollabPost ? 'Delete collaboration post?' : 'Delete research work?',
       message: `"${work.title}" will be permanently removed${isCollabPost ? ', including its team list and applications' : ''}. This cannot be undone.`,
       confirmLabel: 'Delete permanently',
+      icon: 'delete',
       destructive: true,
     });
     if (!ok) return;

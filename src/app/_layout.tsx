@@ -17,6 +17,7 @@ import {
 import { ThemeProvider, useTheme } from '@/context/ThemeContext';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { ToastProvider } from '@/context/ToastContext';
+import { DialogProvider } from '@/context/DialogContext';
 import { CollabProvider } from '@/context/CollabContext';
 import { ContactCardProvider } from '@/context/ContactCardContext';
 
@@ -181,6 +182,7 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <ThemeProvider>
         <ToastProvider>
+          <DialogProvider>
           <AuthProvider>
             <ContactCardProvider>
               <CollabProvider>
@@ -190,6 +192,7 @@ export default function RootLayout() {
               </CollabProvider>
             </ContactCardProvider>
           </AuthProvider>
+          </DialogProvider>
         </ToastProvider>
       </ThemeProvider>
     </SafeAreaProvider>

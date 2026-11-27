@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TabHeader, HeaderIconButton } from '@/components/layout/TabHeader';
+import { SettingsSheet } from '@/components/profile/SettingsSheet';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
   Settings,
@@ -24,12 +25,7 @@ import {
   ExternalLink,
   Globe,
   Code2,
-  Sun,
-  Moon,
-  Smartphone,
-  X,
   Lock,
-  LogOut,
   Linkedin,
   Bookmark,
   IdCard,
@@ -37,7 +33,7 @@ import {
   MessageCircle,
 } from 'lucide-react-native';
 import { spacing, radius, typography, fontFamilies, floatingButtonTokens } from '@/constants';
-import { useTheme, ThemeMode } from '@/context/ThemeContext';
+import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
 import { Avatar } from '@/components/common/Avatar';
 import { TopicChip } from '@/components/common/TopicChip';
@@ -72,7 +68,7 @@ const LINK_META: { key: keyof UserSocialLinks; name: string }[] = [
 ];
 
 export default function ProfileTab() {
-  const { colors, themeMode, isDark, setThemeMode } = useTheme();
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { edit: editParam } = useLocalSearchParams<{ edit?: string }>();
@@ -217,12 +213,16 @@ export default function ProfileTab() {
 
   const handleSignOut = async () => {
     if (isSigningOut) return;
-    // Works on iOS, Android AND web (RN-Web's Alert.alert is a no-op).
+    // Close the Settings sheet first so the in-app popup is the only dialog.
+    setIsSettingsModalVisible(false);
+    await new Promise((r) => setTimeout(r, 250));
     const ok = await confirmAction({
       title: 'Sign out?',
-      message: 'You will need to sign in again to access CSE Research Hub.',
-      confirmLabel: 'Sign Out',
+      message: "You'll need to sign in again to use CSE Research Hub on this device.",
+      confirmLabel: 'Sign out',
+      cancelLabel: 'Stay signed in',
       destructive: true,
+      icon: 'signout',
     });
     if (!ok) return;
 
@@ -245,11 +245,6 @@ export default function ProfileTab() {
     router.push({ pathname: '/(explore)/topic-researchers' as any, params: { topic } });
 
   // Theme picker options
-  const themeOptions: { mode: ThemeMode; label: string; icon: React.ReactNode; desc: string }[] = [
-    { mode: 'light', label: 'Light', icon: <Sun size={18} color={themeMode === 'light' ? '#FFFFFF' : colors.textPrimary} />, desc: 'Crisp Scholarly' },
-    { mode: 'dark', label: 'Dark', icon: <Moon size={18} color={themeMode === 'dark' ? '#FFFFFF' : colors.textPrimary} />, desc: 'Deep Slate Navy' },
-    { mode: 'system', label: 'System', icon: <Smartphone size={18} color={themeMode === 'system' ? '#FFFFFF' : colors.textPrimary} />, desc: 'Auto Sync' },
-  ];
 
   const linkIcon = (key: keyof UserSocialLinks) => {
     const props = { size: 18, color: colors.primary, strokeWidth: 2 };
@@ -461,89 +456,17 @@ export default function ProfileTab() {
         </ProfileSection>
       </ScrollView>
 
-      {/* Settings & theme modal */}
-      <Modal
+      {/* Settings (bottom sheet) */}
+      <SettingsSheet
         visible={isSettingsModalVisible}
-        animationType="fade"
-        transparent
-        onRequestClose={() => setIsSettingsModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalCard, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}>
-            <View style={styles.modalHeaderRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Appearance & Settings</Text>
-                <Text style={[styles.modalSubtitle, { color: colors.textSecondary }]}>CSE Research Hub Preferences</Text>
-              </View>
-              <TouchableOpacity
-                onPress={() => setIsSettingsModalVisible(false)}
-                hitSlop={8}
-                style={[styles.modalCloseBtn, { backgroundColor: colors.surfaceSubtle }]}
-                accessibilityRole="button"
-                accessibilityLabel="Close settings"
-              >
-                <X size={18} color={colors.textSecondary} />
-              </TouchableOpacity>
-            </View>
-
-            <Text style={[styles.modalSectionLabel, { color: colors.textPrimary }]}>Theme Mode</Text>
-            <View style={styles.themeOptionsGrid}>
-              {themeOptions.map((opt) => {
-                const isSelected = themeMode === opt.mode;
-                return (
-                  <TouchableOpacity
-                    key={opt.mode}
-                    activeOpacity={0.8}
-                    onPress={() => setThemeMode(opt.mode)}
-                    style={[
-                      styles.themeOptionBtn,
-                      {
-                        backgroundColor: isSelected ? colors.primary : colors.surfaceSubtle,
-                        borderColor: isSelected ? colors.primary : colors.borderSubtle,
-                      },
-                    ]}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: isSelected }}
-                  >
-                    <View style={styles.themeIconBox}>{opt.icon}</View>
-                    <Text style={[styles.themeOptionTitle, { color: isSelected ? '#FFFFFF' : colors.textPrimary }]}>
-                      {opt.label}
-                    </Text>
-                    <Text style={[styles.themeOptionDesc, { color: isSelected ? '#FFFFFF' : colors.textMuted }]}>
-                      {opt.desc}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={handleSignOut}
-              disabled={isSigningOut}
-              style={[styles.modalButton, styles.signOutBtn, { borderColor: colors.error, backgroundColor: colors.errorLight }]}
-              accessibilityRole="button"
-              accessibilityLabel="Sign out"
-            >
-              <LogOut size={16} color={colors.error} strokeWidth={2.2} />
-              <Text style={[styles.modalButtonText, { color: colors.error }]}>
-                {isSigningOut ? 'Signing out...' : 'Sign Out'}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={() => setIsSettingsModalVisible(false)}
-              style={[styles.modalButton, floatingButtonTokens.primary]}
-              accessibilityRole="button"
-              accessibilityLabel="Done"
-            >
-              <Check size={16} color="#FFFFFF" strokeWidth={2.4} />
-              <Text style={[styles.modalButtonText, { color: '#FFFFFF' }]}>Done</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+        onClose={() => setIsSettingsModalVisible(false)}
+        email={userProfile?.email}
+        hasContactCard={hasMyCard}
+        signingOut={isSigningOut}
+        onEditProfile={handleOpenEditModal}
+        onContactCard={openContactEditor}
+        onSignOut={handleSignOut}
+      />
 
       {/* Edit profile modal */}
       <Modal
@@ -768,80 +691,6 @@ const styles = StyleSheet.create({
   },
 
   // Settings modal
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.lg,
-  },
-  modalCard: {
-    width: '100%',
-    borderWidth: 1,
-    borderRadius: radius.lg,
-    padding: spacing.lg,
-  },
-  modalHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: spacing.md,
-  },
-  modalTitle: {
-    ...typography.title,
-  },
-  modalSubtitle: {
-    ...typography.caption,
-    marginTop: 2,
-  },
-  modalCloseBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: radius.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modalSectionLabel: {
-    ...typography.label,
-    marginBottom: spacing.sm,
-  },
-  themeOptionsGrid: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    marginBottom: spacing.lg,
-  },
-  themeOptionBtn: {
-    flex: 1,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderRadius: radius.button,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.xs,
-  },
-  themeIconBox: {
-    marginBottom: 6,
-  },
-  themeOptionTitle: {
-    ...typography.caption,
-    fontFamily: fontFamilies.sansSemiBold,
-  },
-  themeOptionDesc: {
-    ...typography.micro,
-    marginTop: 2,
-  },
-  modalButton: {
-    height: spacing.secondaryButtonHeight,
-    borderRadius: radius.button,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-  },
-  signOutBtn: {
-    borderWidth: 1,
-    marginBottom: spacing.sm,
-  },
-  modalButtonText: {
-    ...typography.label,
-  },
 
   // Edit modal
   editModalOverlay: {
