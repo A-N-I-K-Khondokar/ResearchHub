@@ -168,6 +168,7 @@ export function subscribeNotifications(
   uid: string,
   onUpdate: (notifications: InAppNotification[]) => void,
   onError?: (error: Error) => void,
+  max: number = NOTIFICATIONS_LIMIT,
 ): () => void {
   if (!db || !uid) {
     onError?.(new Error('[network.service] Firestore unavailable or missing UID.'));
@@ -177,7 +178,7 @@ export function subscribeNotifications(
     collection(db, 'notifications'),
     where('recipientUid', '==', uid),
     orderBy('createdAt', 'desc'),
-    limit(NOTIFICATIONS_LIMIT),
+    limit(max),
   );
   return onSnapshot(
     q,
@@ -225,4 +226,14 @@ export async function markAllNotificationsRead(notificationIds: string[]): Promi
 
 export async function deleteNotification(notificationId: string): Promise<void> {
   await deleteDoc(doc(getFirestoreDb(), 'notifications', notificationId));
+}
+
+/** Delete several of my notifications (recipients may delete — see rules). */
+export async function deleteNotifications(notificationIds: string[]): Promise<void> {
+  const firestore = getFirestoreDb();
+  for (let i = 0; i < notificationIds.length; i += 400) {
+    const batch = writeBatch(firestore);
+    notificationIds.slice(i, i + 400).forEach((id) => batch.delete(doc(firestore, 'notifications', id)));
+    await batch.commit();
+  }
 }
