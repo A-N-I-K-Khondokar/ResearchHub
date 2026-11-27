@@ -1,714 +1,324 @@
-import React, { useState, useMemo } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  RefreshControl,
-  TouchableOpacity,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+/**
+ * Explore tab — discovery, centred on collaboration.
+ *
+ *   header: title + search bar (opens Search; Search owns all filters)
+ *   1. Open collaborations   (swipe cards with Apply; your interests first)
+ *   2. People like you       (shared interests; prompt if you have none)
+ *   3. Topics                (live counts; your topics first ★)
+ *   4. Recent research       (compact rows)
+ *   5. Researchers to know   (active posters you are not connected to yet)
+ * Every "See all" opens Search on the matching filter.
+ */
+
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
-import {
-  ArrowRight,
-  Layers,
-  Bookmark,
-  Users,
-} from 'lucide-react-native';
-import { spacing, radius, typography, fontFamilies, shadows, floatingButtonTokens } from '@/constants';
+import { Clock, Hash, Sparkles, UserPlus, Users } from 'lucide-react-native';
+import { spacing } from '@/constants';
 import { useTheme } from '@/context/ThemeContext';
-import { Topic } from '@/types';
 import { useAuth } from '@/context/AuthContext';
-import { SkeletonList } from '@/components/feedback/Skeleton';
-import { ResearcherCard } from '@/components/cards/ResearcherCard';
-import { tagMatchKey } from '@/utils/researchWork';
-import { FlatList } from 'react-native';
-import { TOPIC_TAXONOMY } from '@/utils/search';
-import { useResearchDirectory } from '@/hooks/useResearchDirectory';
-import { useConnections } from '@/hooks/useConnections';
-import { useSavedItems } from '@/hooks/useSavedItems';
-import { formatWorkDate } from '@/services/research.service';
-import { ActivityIndicator } from 'react-native';
 import { TabHeader } from '@/components/layout/TabHeader';
 import { SearchBar } from '@/components/common/SearchBar';
-import { ResearcherDiscoveryCard } from '@/components/cards/ResearcherDiscoveryCard';
+import { SkeletonList } from '@/components/feedback/Skeleton';
+import { PersonRow, WorkRow } from '@/components/search/SearchRows';
+import { CollabCard, PersonCard, PromptCard, SectionTitle, TopicCard } from '@/components/explore/ExploreCards';
+import { TOPIC_TAXONOMY, topicCounts } from '@/utils/search';
+import { tagMatchKey } from '@/utils/researchWork';
+import { useResearchDirectory } from '@/hooks/useResearchDirectory';
+import { useConnections } from '@/hooks/useConnections';
+import { useCollaborate } from '@/hooks/useCollaborate';
+import type { SearchFilter } from '@/utils/searchRank';
 
-type ExploreFilterType = 'all' | 'people' | 'work' | 'topics';
-
-const filterCategories: { key: ExploreFilterType; label: string }[] = [
-  { key: 'all', label: 'All' },
-  { key: 'people', label: 'People' },
-  { key: 'work', label: 'Current Work' },
-  { key: 'topics', label: 'Topics' },
-];
+const TOPICS_SHOWN = 8;
+const RECENT_SHOWN = 4;
+const TO_KNOW_SHOWN = 4;
 
 export default function ExploreScreen() {
   const router = useRouter();
-  const { colors, isDark } = useTheme();
-  const insets = useSafeAreaInsets();
-  const [refreshing, setRefreshing] = useState(false);
-  const [selectedTypeFilter, setSelectedTypeFilter] = useState<ExploreFilterType>('all');
+  const { colors } = useTheme();
+  const { userProfile } = useAuth();
+  const myUid = userProfile?.uid ?? '';
 
   const directory = useResearchDirectory();
   const { cardStatus, handleConnectPress } = useConnections();
-  const { isSaved, toggleSave } = useSavedItems();
+  const collaborate = useCollaborate();
 
-  // Researchers with recently shared work first, then the rest of the directory
-  // People who share your research interests (computed on-device, no backend call)
-  const { userProfile } = useAuth();
-  const sharedInterestPeople = useMemo(() => {
-    const mine = new Set((userProfile?.researchInterests ?? []).map(tagMatchKey));
-    if (mine.size === 0) return [];
-    return directory.researchers
-      .map((r) => ({
-        researcher: r,
-        shared: (r.interests ?? []).filter((i) => mine.has(tagMatchKey(i))).length,
-      }))
-      .filter((x) => x.shared > 0)
-      .sort((a, b) => b.shared - a.shared)
-      .slice(0, 10);
-  }, [directory.researchers, userProfile?.researchInterests]);
-
-  const featuredResearchers = useMemo(() => {
-    const active = directory.researchers.filter((r) => (r.currentWorkIds?.length ?? 0) > 0);
-    const others = directory.researchers.filter((r) => (r.currentWorkIds?.length ?? 0) === 0);
-    return [...active, ...others].slice(0, 3);
-  }, [directory.researchers]);
-  const allCurrentWork = directory.works;
-
-  const handleRefresh = React.useCallback(() => {
+  // ---------------------------------------------------------------------------
+  // Pull to refresh: stays on until the reload actually finishes
+  // ---------------------------------------------------------------------------
+  const [refreshing, setRefreshing] = useState(false);
+  const sawLoading = useRef(false);
+  useEffect(() => {
+    if (!refreshing) return;
+    if (directory.loading) sawLoading.current = true;
+    else if (sawLoading.current) {
+      sawLoading.current = false;
+      setRefreshing(false);
+    }
+  }, [refreshing, directory.loading]);
+  useEffect(() => {
+    if (!refreshing) return;
+    const safety = setTimeout(() => setRefreshing(false), 6000);
+    return () => clearTimeout(safety);
+  }, [refreshing]);
+  const onRefresh = () => {
+    sawLoading.current = false;
     setRefreshing(true);
     directory.refresh();
-    setTimeout(() => setRefreshing(false), 800);
-  }, [directory]);
-
-  const handleTopicPress = (topic: Topic | string) => {
-    const topicName = typeof topic === 'string' ? topic : topic.name;
-    router.push({
-      pathname: '/(explore)/topic-researchers' as any,
-      params: { topic: topicName },
-    });
   };
 
-  const getTopicChipStyle = (topicName: string) => {
-    const lower = topicName.toLowerCase();
-    // 1. "AI & Machine Learning": bg #EBF2FF, text #1B5ECC (SemiBold)
-    if (
-      lower.includes('learning') ||
-      lower.includes('machine') ||
-      lower.includes('ai')
-    ) {
-      return {
-        bg: isDark ? 'rgba(36, 113, 231, 0.22)' : '#EBF2FF',
-        text: isDark ? '#93C5FD' : '#1B5ECC',
-      };
-    }
-    // 2. "Computer Vision": bg #EEF2FF, text #4338CA
-    if (lower.includes('vision') || lower.includes('cv')) {
-      return {
-        bg: isDark ? 'rgba(99, 102, 241, 0.22)' : '#EEF2FF',
-        text: isDark ? '#C7D2FE' : '#4338CA',
-      };
-    }
-    // 3. "Natural Language Processing": bg #FFF0EB, text #CB4C23
-    if (
-      lower.includes('nlp') ||
-      lower.includes('language') ||
-      lower.includes('speech') ||
-      lower.includes('bangla')
-    ) {
-      return {
-        bg: isDark ? 'rgba(255, 113, 69, 0.22)' : '#FFF0EB',
-        text: isDark ? '#FFB59F' : '#CB4C23',
-      };
-    }
-    // 4. Default/Others: bg colors.surfaceContainerHigh, text colors.textPrimary
-    return {
-      bg: colors.surfaceContainerHigh,
-      text: colors.textPrimary,
-    };
+  // ---------------------------------------------------------------------------
+  // Data
+  // ---------------------------------------------------------------------------
+  const myKeys = useMemo(
+    () => new Set((userProfile?.researchInterests ?? []).map(tagMatchKey)),
+    [userProfile?.researchInterests],
+  );
+  const hasInterests = myKeys.size > 0;
+
+  /** Open collaborations (not mine), ones matching my interests first. */
+  const openCollabs = useMemo(() => {
+    return directory.currentWorks
+      .filter((w) => w.postType === 'collaboration' && w.collabStatus !== 'closed' && w.userId !== myUid)
+      .map((w, index) => {
+        const matched = [...(w.topics ?? []), ...(w.lookingFor ?? [])].filter((t) => myKeys.has(tagMatchKey(t)));
+        return { work: w, matched, index };
+      })
+      .sort((a, b) => b.matched.length - a.matched.length || a.index - b.index)
+      .slice(0, 8);
+  }, [directory.currentWorks, myKeys, myUid]);
+
+  /** People who share my research interests. */
+  const peopleLikeYou = useMemo(() => {
+    if (!hasInterests) return [];
+    return directory.researchers
+      .map((r) => ({ person: r, shared: (r.interests ?? []).filter((i) => myKeys.has(tagMatchKey(i))) }))
+      .filter((x) => x.shared.length > 0)
+      .sort((a, b) => b.shared.length - a.shared.length)
+      .slice(0, 10);
+  }, [directory.researchers, myKeys, hasInterests]);
+
+  /** Topics with live counts — mine first, then most active. */
+  const topics = useMemo(() => {
+    const data = { researchers: directory.researchers, works: directory.currentWorks };
+    return TOPIC_TAXONOMY.map((t) => {
+      const live = topicCounts(t, data);
+      return { ...live, mine: myKeys.has(tagMatchKey(t.name)) };
+    }).sort(
+      (a, b) =>
+        Number(b.mine) - Number(a.mine) ||
+        b.researchersCount + b.currentWorkCount - (a.researchersCount + a.currentWorkCount),
+    );
+  }, [directory.researchers, directory.currentWorks, myKeys]);
+
+  const recentWork = useMemo(() => directory.currentWorks.slice(0, RECENT_SHOWN), [directory.currentWorks]);
+
+  /** Active researchers I am not connected to, never repeating "People like you". */
+  const toKnow = useMemo(() => {
+    const shown = new Set(peopleLikeYou.map((p) => p.person.id));
+    const latestTitle = new Map(directory.currentWorks.map((w) => [w.userId, w.title] as const).reverse());
+    return directory.researchers
+      .filter((r) => !shown.has(r.id) && cardStatus(r.id) === 'none')
+      .sort((a, b) => Number((b.currentWorkIds?.length ?? 0) > 0) - Number((a.currentWorkIds?.length ?? 0) > 0))
+      .slice(0, TO_KNOW_SHOWN)
+      .map((r) => ({ person: r, latest: latestTitle.get(r.id) ?? null }));
+  }, [directory.researchers, directory.currentWorks, peopleLikeYou, cardStatus]);
+
+  // ---------------------------------------------------------------------------
+  // Navigation
+  // ---------------------------------------------------------------------------
+  const openSearch = (category?: SearchFilter) =>
+    router.push({ pathname: '/(explore)/search' as any, params: category ? { category } : {} });
+  const openTopic = (name: string) =>
+    router.push({ pathname: '/(explore)/topic-researchers' as any, params: { topic: name } });
+  const openPerson = (uid: string) => router.push(`/(profile)/${uid}` as any);
+  const openWork = (id: string) => router.push(`/(research)/${id}` as any);
+  const connect = (uid: string) => {
+    const profile = directory.profileByUid.get(uid);
+    if (profile) handleConnectPress(profile);
   };
+
+  // ---------------------------------------------------------------------------
+  // Render
+  // ---------------------------------------------------------------------------
+  const loading = directory.loading && !refreshing && directory.currentWorks.length === 0;
 
   return (
-    <View style={[styles.safeArea, { backgroundColor: colors.surface }]}>
-      {/* Shared tab header: title + search + quick filters */}
-      <TabHeader title="Explore" subtitle="Researchers, topics and collaborations">
-        <TouchableOpacity
-          activeOpacity={0.9}
-          onPress={() => router.push('/(explore)/search' as any)}
-        >
+    <View style={[styles.safeArea, { backgroundColor: colors.background }]}>
+      <TabHeader title="Explore" subtitle="Collaborations, people and topics in CSE">
+        <TouchableOpacity activeOpacity={0.9} onPress={() => openSearch()} accessibilityRole="search" accessibilityLabel="Search">
           <View pointerEvents="none">
-            <SearchBar
-              value=""
-              onChangeText={() => {}}
-              placeholder="Search researchers, topics, or research"
-              onFilterPress={() => router.push('/(explore)/search' as any)}
-            />
+            <SearchBar value="" onChangeText={() => {}} placeholder="Search people, topics, roles…" />
           </View>
         </TouchableOpacity>
-
-        {/* Quick Category Filter Pills */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.filterScrollView}
-          contentContainerStyle={styles.filterScrollContent}
-        >
-          {filterCategories.map((cat) => {
-            const isSelected = selectedTypeFilter === cat.key;
-            return (
-              <TouchableOpacity
-                key={cat.key}
-                activeOpacity={0.8}
-                onPress={() => setSelectedTypeFilter(cat.key)}
-                style={[
-                  styles.filterPill,
-                  {
-                    backgroundColor: isSelected ? colors.primary : colors.surfaceSubtle,
-                    borderColor: isSelected ? colors.primary : colors.borderSubtle,
-                  },
-                ]}
-                accessibilityRole="button"
-                accessibilityState={{ selected: isSelected }}
-              >
-                <Text
-                  style={[
-                    styles.filterPillText,
-                    {
-                      color: isSelected ? '#FFFFFF' : colors.textSecondary,
-                    },
-                    isSelected && styles.filterPillTextActive,
-                  ]}
-                  numberOfLines={1}
-                  ellipsizeMode="tail"
-                >
-                  {cat.label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
       </TabHeader>
 
       <ScrollView
-        style={[styles.container, { backgroundColor: colors.background }]}
+        style={styles.container}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            colors={[colors.primary]}
-            tintColor={colors.primary}
-          />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} tintColor={colors.primary} />
         }
       >
-        {/* 1. RESEARCH TOPICS */}
-        {(selectedTypeFilter === 'all' || selectedTypeFilter === 'topics') && (
-          <View style={styles.sectionContainer}>
-            <View style={styles.bentoHeaderRow}>
-              <View style={styles.bentoHeaderLeft}>
-                <Text
-                  style={[styles.bentoTitle, { color: colors.textPrimary }]}
-                  numberOfLines={1}
-                >
-                  Research Topics
-                </Text>
-                <Text
-                  style={[styles.bentoSubtitle, { color: colors.textSecondary }]}
-                  numberOfLines={1}
-                >
-                  Select a topic to find researchers currently working in that area
-                </Text>
-              </View>
-            </View>
-
-            <View
-              style={[
-                styles.topicsCard,
-                {
-                  backgroundColor: colors.surface,
-                  borderColor: colors.borderSubtle,
-                  shadowOpacity: isDark ? 0 : 0.03,
-                  elevation: isDark ? 0 : 1,
-                },
-              ]}
-            >
-              <View style={styles.topicsGrid}>
-                {TOPIC_TAXONOMY.map((t) => {
-                  const scheme = getTopicChipStyle(t.name);
-                  return (
-                    <TouchableOpacity
-                      key={t.id}
-                      activeOpacity={0.75}
-                      onPress={() => handleTopicPress(t)}
-                      style={[
-                        styles.solidTopicChip,
-                        {
-                          backgroundColor: scheme.bg,
-                        },
-                      ]}
-                      accessibilityRole="button"
-                      accessibilityLabel={t.name}
-                    >
-                      <Text
-                        style={[
-                          styles.solidTopicChipLabel,
-                          { color: scheme.text },
-                        ]}
-                        numberOfLines={1}
-                        ellipsizeMode="tail"
-                      >
-                        {t.name}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </View>
-          </View>
-        )}
-
-        {/* 1b. PEOPLE WITH SHARED INTERESTS */}
-        {(selectedTypeFilter === 'all' || selectedTypeFilter === 'people') && sharedInterestPeople.length > 0 && (
-          <View style={styles.sectionContainer}>
-            <View style={styles.bentoHeaderRow}>
-              <View style={styles.bentoHeaderLeft}>
-                <Text style={[styles.bentoTitle, { color: colors.textPrimary }]} numberOfLines={1}>
-                  People With Shared Interests
-                </Text>
-                <Text style={[styles.bentoSubtitle, { color: colors.textSecondary }]} numberOfLines={1}>
-                  Researchers working on topics you follow
-                </Text>
-              </View>
-            </View>
-            <FlatList
-              horizontal
-              data={sharedInterestPeople}
-              keyExtractor={(item) => item.researcher.id}
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ gap: spacing.sm, paddingVertical: spacing.xs }}
-              renderItem={({ item }) => (
-                <ResearcherCard
-                  researcher={item.researcher}
-                  sharedInterestsCount={item.shared}
-                  connectionStatus={cardStatus(item.researcher.id)}
-                  onPress={() => router.push(`/(profile)/${item.researcher.id}` as any)}
-                  onConnectPress={() => {
-                    const profile = directory.profileByUid.get(item.researcher.id);
-                    if (profile) handleConnectPress(profile);
-                  }}
+        {loading ? (
+          <SkeletonList count={4} variant="row" />
+        ) : (
+          <>
+            {/* 1. Open collaborations */}
+            <View style={styles.section}>
+              <SectionTitle
+                icon={<Users size={17} color={colors.primary} />}
+                title="Open collaborations"
+                subtitle={hasInterests ? 'Matching your interests first' : 'Projects looking for teammates'}
+                onAction={openCollabs.length ? () => openSearch('collaborations') : undefined}
+              />
+              {openCollabs.length ? (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hList}>
+                  {openCollabs.map(({ work, matched }) => (
+                    <CollabCard
+                      key={work.id}
+                      work={work}
+                      hint={matched.length ? `Matches your interest ${matched[0]}` : null}
+                      action={collaborate(work)}
+                      onPress={() => openWork(work.id)}
+                    />
+                  ))}
+                </ScrollView>
+              ) : (
+                <PromptCard
+                  icon={<Users size={18} color={colors.primary} />}
+                  title="No open collaborations right now"
+                  text="Start one — describe your project and the roles you need."
+                  actionLabel="Post"
+                  onAction={() => router.push({ pathname: '/(tabs)/share' as any, params: { mode: 'collaboration' } })}
                 />
               )}
-            />
-          </View>
-        )}
+            </View>
 
-        {/* 2. FEATURED RESEARCHERS */}
-        {(selectedTypeFilter === 'all' || selectedTypeFilter === 'people') && (
-          <View style={styles.sectionContainer}>
-            <View style={styles.featuredResearchersContainer}>
-              {/* Section Header */}
-              <View style={styles.featuredResearchersHeaderRow}>
-                <View style={styles.bentoHeaderLeft}>
-                  <Text
-                    style={[styles.bentoTitle, { color: colors.textPrimary }]}
-                    numberOfLines={1}
-                  >
-                    Featured Researchers
-                  </Text>
-                  <Text
-                    style={[styles.bentoSubtitle, { color: colors.textSecondary }]}
-                    numberOfLines={1}
-                  >
-                    Active scholars and thesis contributors in CSE
-                  </Text>
-                </View>
-
-                <TouchableOpacity
-                  activeOpacity={0.7}
-                  onPress={() =>
-                    router.push({
-                      pathname: '/(explore)/search' as any,
-                      params: { category: 'people' },
-                    })
-                  }
-                  style={styles.bentoActionBtn}
-                  accessibilityRole="button"
-                  accessibilityLabel="View all featured researchers"
-                >
-                  <Text style={[styles.bentoActionText, { color: colors.primary }]}>
-                    View All
-                  </Text>
-                  <ArrowRight size={14} color={colors.primary} />
-                </TouchableOpacity>
-              </View>
-
-              {/* Cards List */}
-              <View style={styles.featuredResearchersList}>
-                {directory.loading ? (
-                  <SkeletonList count={2} variant="row" />
-                ) : featuredResearchers.length === 0 ? (
-                  <Text style={[styles.currentWorkMeta, { color: colors.textSecondary }]}>
-                    No other approved researchers yet.
-                  </Text>
-                ) : null}
-                {featuredResearchers.map((researcher) => {
-                  const primaryWorkId = researcher.currentWorkIds?.[0];
-                  const primaryWork = primaryWorkId
-                    ? directory.currentWorks.find((w) => w.id === primaryWorkId) ?? null
-                    : null;
-
-                  return (
-                    <ResearcherDiscoveryCard
-                      key={researcher.id}
-                      researcher={researcher}
-                      currentWork={primaryWork}
-                      connectionStatus={cardStatus(researcher.id)}
-                      onPress={() =>
-                        router.push(`/(profile)/${researcher.id}` as any)
-                      }
-                      onConnectPress={() => {
-                        const profile = directory.profileByUid.get(researcher.id);
-                        if (profile) handleConnectPress(profile);
-                      }}
-                      onTopicPress={(topic) => handleTopicPress(topic)}
+            {/* 2. People like you */}
+            <View style={styles.section}>
+              <SectionTitle
+                icon={<Sparkles size={17} color={colors.primary} />}
+                title="People like you"
+                subtitle="Researchers who share your interests"
+                onAction={peopleLikeYou.length ? () => openSearch('people') : undefined}
+              />
+              {!hasInterests ? (
+                <PromptCard
+                  icon={<Sparkles size={18} color={colors.primary} />}
+                  title="Get better suggestions"
+                  text="Add your research interests to find people working on the same things."
+                  actionLabel="Add"
+                  onAction={() => router.push({ pathname: '/(tabs)/profile' as any, params: { edit: 'profile' } })}
+                />
+              ) : peopleLikeYou.length ? (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hList}>
+                  {peopleLikeYou.map(({ person, shared }) => (
+                    <PersonCard
+                      key={person.id}
+                      person={person}
+                      shared={shared}
+                      status={cardStatus(person.id)}
+                      onPress={() => openPerson(person.id)}
+                      onConnect={() => connect(person.id)}
                     />
-                  );
-                })}
+                  ))}
+                </ScrollView>
+              ) : (
+                <Text style={[styles.muted, { color: colors.textSecondary }]}>
+                  No one shares your interests yet — browse topics below to find nearby areas.
+                </Text>
+              )}
+            </View>
+
+            {/* 3. Topics */}
+            <View style={styles.section}>
+              <SectionTitle
+                icon={<Hash size={17} color={colors.primary} />}
+                title="Topics"
+                subtitle={hasInterests ? 'Your topics are marked ★' : 'Find researchers by area'}
+                actionLabel="All topics"
+                onAction={() => openSearch('topics')}
+              />
+              <View style={styles.grid}>
+                {topics.slice(0, TOPICS_SHOWN).map((t) => (
+                  <TopicCard
+                    key={t.id}
+                    name={t.name}
+                    researchers={t.researchersCount}
+                    posts={t.currentWorkCount}
+                    mine={t.mine}
+                    onPress={() => openTopic(t.name)}
+                  />
+                ))}
               </View>
             </View>
-          </View>
-        )}
 
-        {/* 3. TRENDING CURRENT WORK */}
-        {(selectedTypeFilter === 'all' || selectedTypeFilter === 'work') && (
-          <View style={styles.sectionContainer}>
-            <View style={styles.bentoHeaderRow}>
-              <View style={styles.bentoHeaderLeft}>
-                <Text
-                  style={[styles.bentoTitle, { color: colors.textPrimary }]}
-                  numberOfLines={1}
-                >
-                  Trending Current Work
-                </Text>
-                <Text
-                  style={[styles.bentoSubtitle, { color: colors.textSecondary }]}
-                  numberOfLines={1}
-                >
-                  Active experiments and ongoing thesis projects
-                </Text>
+            {/* 4. Recent research */}
+            <View style={styles.section}>
+              <SectionTitle
+                icon={<Clock size={17} color={colors.primary} />}
+                title="Recent research"
+                subtitle="Latest work and collaboration posts"
+                onAction={recentWork.length ? () => openSearch('work') : undefined}
+              />
+              {recentWork.length ? (
+                <View style={styles.vList}>
+                  {recentWork.map((w) => (
+                    <WorkRow
+                      key={w.id}
+                      work={w}
+                      terms={[]}
+                      reason={null}
+                      onPress={() => openWork(w.id)}
+                      action={w.postType === 'collaboration' ? collaborate(w) : undefined}
+                    />
+                  ))}
+                </View>
+              ) : (
+                <Text style={[styles.muted, { color: colors.textSecondary }]}>No research shared yet.</Text>
+              )}
+            </View>
+
+            {/* 5. Researchers to know */}
+            {toKnow.length ? (
+              <View style={styles.section}>
+                <SectionTitle
+                  icon={<UserPlus size={17} color={colors.primary} />}
+                  title="Researchers to know"
+                  subtitle="Active in the department, not connected yet"
+                  onAction={() => openSearch('people')}
+                />
+                <View style={styles.vList}>
+                  {toKnow.map(({ person, latest }) => (
+                    <PersonRow
+                      key={person.id}
+                      person={person}
+                      terms={[]}
+                      reason={latest ? `Working on: ${latest}` : person.interests?.length ? `Interested in ${person.interests.slice(0, 2).join(', ')}` : null}
+                      status={cardStatus(person.id)}
+                      onPress={() => openPerson(person.id)}
+                      onConnect={() => connect(person.id)}
+                    />
+                  ))}
+                </View>
               </View>
-            </View>
-
-            <View style={styles.currentWorkList}>
-              {!directory.loading && allCurrentWork.length === 0 ? (
-                <Text style={[styles.currentWorkMeta, { color: colors.textSecondary }]}>
-                  No research has been shared yet.
-                </Text>
-              ) : null}
-              {allCurrentWork.slice(0, 3).map((work) => {
-                const saved = isSaved(work.id);
-
-                return (
-                  <TouchableOpacity
-                    key={work.id}
-                    activeOpacity={0.8}
-                    onPress={() => router.push(`/(research)/${work.id}` as any)}
-                    style={[
-                      styles.currentWorkItem,
-                      {
-                        backgroundColor: colors.surface,
-                        borderColor: colors.borderSubtle,
-                        borderLeftColor: colors.primary,
-                        shadowOpacity: isDark ? 0 : 0.03,
-                        elevation: isDark ? 0 : 1,
-                      },
-                    ]}
-                    accessibilityRole="button"
-                    accessibilityLabel={work.title}
-                  >
-                    {work.postType === 'collaboration' ? (
-                      <View style={[styles.collabTag, { backgroundColor: colors.primaryMuted }]}>
-                        <Users size={11} color={colors.primary} />
-                        <Text style={[styles.collabTagText, { color: colors.primary }]}>Looking for collaborators</Text>
-                      </View>
-                    ) : null}
-                    <Text
-                      style={[styles.currentWorkTitle, { color: colors.primary }]}
-                      numberOfLines={1}
-                      ellipsizeMode="tail"
-                    >
-                      {work.title}
-                    </Text>
-                    <Text
-                      style={[styles.currentWorkMeta, { color: colors.textSecondary }]}
-                      numberOfLines={1}
-                      ellipsizeMode="tail"
-                    >
-                      Shared {formatWorkDate(work.createdAt)} by {work.authorName}
-                    </Text>
-                    <View style={styles.currentWorkStatsRow}>
-                      <View style={styles.currentWorkStatItem}>
-                        <Layers size={14} color={colors.textSecondary} />
-                        <Text
-                          style={[
-                            styles.currentWorkStatText,
-                            { color: colors.textSecondary },
-                          ]}
-                        >
-                          {work.stage}
-                        </Text>
-                      </View>
-                      <TouchableOpacity
-                        style={styles.currentWorkStatItem}
-                        onPress={() => toggleSave(work)}
-                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                        accessibilityRole="button"
-                        accessibilityLabel={saved ? 'Remove from saved items' : 'Save research'}
-                      >
-                        <Bookmark
-                          size={14}
-                          color={saved ? colors.primary : colors.textSecondary}
-                          fill={saved ? colors.primary : 'transparent'}
-                        />
-                        <Text
-                          style={[
-                            styles.currentWorkStatText,
-                            { color: saved ? colors.primary : colors.textSecondary },
-                          ]}
-                        >
-                          {saved ? 'Saved' : 'Save'}
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-
-            {/* View Activity Feed Button */}
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={() =>
-                router.push({
-                  pathname: '/(explore)/search' as any,
-                  params: { category: 'currentWork' },
-                })
-              }
-              style={[
-                styles.viewActivityFeedBtn,
-                {
-                  backgroundColor: isDark ? colors.surfaceContainer : colors.surface,
-                  borderColor: isDark ? colors.borderSubtle : '#D4D8E2',
-                },
-                floatingButtonTokens.secondary,
-              ]}
-              accessibilityRole="button"
-              accessibilityLabel="View Activity Feed"
-            >
-              <Text style={[styles.viewActivityFeedText, { color: colors.primary }]}>
-                View Activity Feed
-              </Text>
-            </TouchableOpacity>
-          </View>
+            ) : null}
+          </>
         )}
-
-        <View style={styles.bottomSpacer} />
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  collabTag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: radius.full,
-    marginBottom: 6,
-  },
-  collabTagText: {
-    ...typography.micro,
-    fontFamily: fontFamilies.sansSemiBold,
-  },
-  safeArea: {
-    flex: 1,
-  },
-  headerContainer: {
-    paddingHorizontal: spacing.md,
-    paddingBottom: spacing.sm,
-    borderBottomWidth: 1,
-  },
-  filterScrollView: {
-    marginHorizontal: -spacing.md,
-    marginTop: spacing.sm,
-  },
-  filterScrollContent: {
-    paddingHorizontal: spacing.md,
-    gap: 8,
-  },
-  filterPill: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: radius.full,
-    borderWidth: 1,
-    maxWidth: '100%',
-    flexShrink: 1,
-    minHeight: 32,
-    justifyContent: 'center',
-  },
-  filterPillText: {
-    ...typography.caption,
-    fontFamily: fontFamilies.sansMedium,
-    flexShrink: 1,
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  filterPillTextActive: {
-    fontFamily: fontFamilies.sansSemiBold,
-  },
-  container: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingTop: spacing.md,
-    paddingBottom: 32,
-  },
-  sectionContainer: {
-    paddingHorizontal: spacing.md,
-    marginBottom: spacing.md,
-  },
-  bentoHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  bentoHeaderLeft: {
-    flex: 1,
-    flexShrink: 1,
-    marginRight: spacing.sm,
-  },
-  bentoTitle: {
-    ...typography.sectionHeader,
-  },
-  bentoSubtitle: {
-    fontSize: 13,
-    fontFamily: fontFamilies.sansRegular,
-    lineHeight: 18,
-    marginTop: 3,
-  },
-  bentoActionBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingVertical: 4,
-    flexShrink: 0,
-  },
-  bentoActionText: {
-    fontSize: 13,
-    fontFamily: fontFamilies.sansSemiBold,
-    fontWeight: '600',
-  },
-  featuredResearchersContainer: {
-    // Un-nested section container without redundant outer borders or background
-  },
-  featuredResearchersHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  featuredResearchersList: {
-    gap: 12,
-  },
-  topicsCard: {
-    borderRadius: 14,
-    borderWidth: 1,
-    padding: 16,
-    shadowColor: '#071A3E',
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 4,
-  },
-  topicsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  solidTopicChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 9999,
-    borderWidth: 0,
-    maxWidth: '100%',
-    flexShrink: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 32,
-  },
-  solidTopicChipLabel: {
-    fontSize: 13,
-    fontFamily: fontFamilies.sansSemiBold,
-    fontWeight: '600',
-    flexShrink: 1,
-  },
-  currentWorkList: {
-    gap: 12,
-  },
-  currentWorkItem: {
-    borderRadius: 12,
-    borderWidth: 1,
-    borderLeftWidth: 3,
-    padding: 14,
-    shadowColor: '#071A3E',
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 4,
-  },
-  currentWorkTitle: {
-    fontSize: 15,
-    fontFamily: fontFamilies.sansSemiBold,
-    fontWeight: '600',
-    marginBottom: 3,
-  },
-  currentWorkMeta: {
-    fontSize: 13,
-    fontFamily: fontFamilies.sansRegular,
-    lineHeight: 18,
-    marginBottom: 8,
-  },
-  currentWorkStatsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-  },
-  currentWorkStatItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-  },
-  currentWorkStatText: {
-    fontSize: 12,
-    fontFamily: fontFamilies.sansSemiBold,
-    fontWeight: '600',
-  },
-  viewActivityFeedBtn: {
-    marginTop: 12,
-    height: 44,
-    borderRadius: radius.button,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  viewActivityFeedText: {
-    fontSize: 13,
-    fontFamily: fontFamilies.sansSemiBold,
-    fontWeight: '600',
-  },
-  bottomSpacer: {
-    height: 48,
-  },
+  safeArea: { flex: 1 },
+  container: { flex: 1 },
+  scrollContent: { paddingTop: spacing.md, paddingBottom: spacing.xxl },
+  section: { paddingHorizontal: spacing.md, marginBottom: spacing.lg },
+  hList: { gap: spacing.sm, paddingRight: spacing.md },
+  vList: { gap: spacing.sm },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  muted: { fontSize: 13, lineHeight: 18 },
 });

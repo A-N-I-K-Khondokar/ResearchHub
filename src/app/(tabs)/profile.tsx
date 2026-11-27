@@ -157,10 +157,12 @@ export default function ProfileTab() {
     setIsEditModalVisible(true);
   };
 
-  // Deep link from a collaboration post: /(tabs)/profile?edit=contact
+  // Deep links: /(tabs)/profile?edit=contact (contact card) | ?edit=profile (edit form)
   useEffect(() => {
-    if (editParam !== 'contact' || !userProfile) return;
-    openContactEditor();
+    if (!editParam || !userProfile) return;
+    if (editParam === 'contact') openContactEditor();
+    else if (editParam === 'profile') handleOpenEditModal();
+    else return;
     router.setParams({ edit: '' });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editParam, userProfile?.uid]);
