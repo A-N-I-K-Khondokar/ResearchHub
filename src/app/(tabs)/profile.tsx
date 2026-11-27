@@ -544,7 +544,7 @@ export default function ProfileTab() {
             {myApplications.length > 0 ? (
               <TouchableOpacity
                 activeOpacity={0.85}
-                onPress={() => router.push({ pathname: '/(profile)/network' as any, params: { tab: 'collaborations' } })}
+                onPress={() => router.push({ pathname: '/(profile)/network' as any, params: { tab: 'teams' } })}
                 style={[styles.appsRow, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}
                 accessibilityRole="button"
               >
