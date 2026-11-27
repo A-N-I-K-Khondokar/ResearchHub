@@ -10,7 +10,7 @@ import {
   KeyboardAvoidingView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { StatusBar } from 'expo-status-bar';
+import { TabHeader } from '@/components/layout/TabHeader';
 import {
   PenLine,
   AlignLeft,
@@ -289,7 +289,10 @@ export default function ShareTab() {
 
   return (
     <View style={[styles.safeArea, { backgroundColor: colors.background }]}>
-      <StatusBar style={isDark ? 'light' : 'dark'} backgroundColor={colors.background} />
+      <TabHeader
+        title="Share"
+        subtitle={isCollab ? 'Find collaborators for your project' : 'Post an update on your current research'}
+      />
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -297,7 +300,7 @@ export default function ShareTab() {
       >
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 16 }]}
+          contentContainerStyle={[styles.scrollContent, { paddingTop: spacing.md }]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >

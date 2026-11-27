@@ -101,12 +101,12 @@ export default function GlobalSearchScreen() {
       >
         <View style={styles.searchRow}>
           <TouchableOpacity
-            onPress={() => router.back()}
-            style={styles.backButton}
+            onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)' as any))}
+            style={[styles.backButton, { backgroundColor: colors.surfaceSubtle }]}
             accessibilityLabel="Go back"
             accessibilityRole="button"
           >
-            <ArrowLeft size={22} color={colors.textPrimary} />
+            <ArrowLeft size={20} color={colors.textPrimary} />
           </TouchableOpacity>
 
           <View style={styles.searchContainer}>

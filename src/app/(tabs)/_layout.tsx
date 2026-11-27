@@ -1,15 +1,25 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Tabs } from 'expo-router';
-import { Home, Compass, PlusCircle, Bell, User } from 'lucide-react-native';
+import { Home, Compass, Plus, Bell, User } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/ThemeContext';
-import { fontFamilies } from '@/constants';
+import { fontFamilies, shadows } from '@/constants';
 import { useAuth } from '@/context/AuthContext';
 import { subscribeUnreadCount } from '@/services/network.service';
+import { Avatar } from '@/components/common/Avatar';
 
+/**
+ * Bottom tab bar
+ *  - theme colours (light + dark)
+ *  - soft pill behind the active icon
+ *  - raised round "+" for Share (the app's main action)
+ *  - numeric unread badge on Notifications (1–9, then 9+)
+ *  - the user's photo as the Profile icon, ringed when active
+ *  - hidden while the keyboard is open (Android)
+ */
 export default function TabLayout() {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const { userProfile } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
@@ -23,45 +33,56 @@ export default function TabLayout() {
     return subscribeUnreadCount(userProfile.uid, setUnreadCount);
   }, [userProfile?.uid, userProfile?.approvalStatus]);
 
-  const bottomInset = insets.bottom > 0 ? insets.bottom : 6;
-  const barHeight = 60 + bottomInset;
+  // 2 top + 64 tab (5px library padding + 28 icon + 4 + 14 label) + gesture area.
+  const bottomInset = Math.max(insets.bottom, 8);
+  const barHeight = 66 + bottomInset;
+  // Strong, readable colours for the CTA and the badge in BOTH themes
+  // (the dark theme's primary / error tokens are pale tints).
+  const ctaColor = isDark ? '#3A78E6' : colors.primary;
+  const badgeColor = '#DC2626';
+
+  // We draw icon + label ourselves (tabBarShowLabel: false): the library's
+  // item has a fixed 5px padding that clipped the built-in label.
+  const label = (text: string, focused: boolean) => (
+    <Text
+      numberOfLines={1}
+      style={[
+        styles.label,
+        { color: focused ? colors.primary : colors.textSecondary },
+        focused && { fontFamily: fontFamilies.sansSemiBold },
+      ]}
+    >
+      {text}
+    </Text>
+  );
+  // Plain render helper (not a component) so icons are not remounted every render.
+  const tab = (text: string, focused: boolean, children: React.ReactNode) => (
+    <View style={styles.tab}>
+      <View style={[styles.pill, focused && { backgroundColor: colors.primaryMuted }]}>{children}</View>
+      {label(text, focused)}
+    </View>
+  );
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarShowLabel: true,
-        tabBarLabelPosition: 'below-icon',
-        tabBarActiveTintColor: '#2563EB', // Academic Cobalt
+        tabBarShowLabel: false,
+        tabBarHideOnKeyboard: true,
+        tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textSecondary,
         tabBarStyle: {
           backgroundColor: colors.surface,
           borderTopWidth: 1,
           borderTopColor: colors.borderSubtle,
-          borderWidth: 0,
           height: barHeight,
           paddingBottom: bottomInset,
-          paddingTop: 4,
+          paddingTop: 2,
           elevation: 0,
           shadowOpacity: 0,
         },
-        tabBarLabelStyle: {
-          fontSize: 11,
-          fontFamily: fontFamilies.sansMedium,
-          fontWeight: '500',
-          lineHeight: 14,
-          marginTop: 2,
-          marginBottom: 0,
-        },
-        tabBarItemStyle: {
-          justifyContent: 'center',
-          alignItems: 'center',
-          paddingVertical: 2,
-        },
-        tabBarIconStyle: {
-          width: 24,
-          height: 24,
-        },
+        tabBarItemStyle: { height: 64 },
+        tabBarIconStyle: { width: 80, height: 50 },
       }}
     >
       <Tabs.Screen
@@ -69,9 +90,11 @@ export default function TabLayout() {
         options={{
           title: 'Home',
           tabBarIcon: ({ color, focused }) => (
-            <View style={styles.tabIconWrapper}>
-              <Home size={22} color={color} strokeWidth={focused ? 2.3 : 1.8} />
-            </View>
+            tab(
+              'Home',
+              focused,
+              <Home size={21} color={color} strokeWidth={focused ? 2.3 : 1.8} />,
+            )
           ),
         }}
       />
@@ -80,9 +103,11 @@ export default function TabLayout() {
         options={{
           title: 'Explore',
           tabBarIcon: ({ color, focused }) => (
-            <View style={styles.tabIconWrapper}>
-              <Compass size={22} color={color} strokeWidth={focused ? 2.3 : 1.8} />
-            </View>
+            tab(
+              'Explore',
+              focused,
+              <Compass size={21} color={color} strokeWidth={focused ? 2.3 : 1.8} />,
+            )
           ),
         }}
       />
@@ -90,9 +115,28 @@ export default function TabLayout() {
         name="share"
         options={{
           title: 'Share',
-          tabBarIcon: ({ color, focused }) => (
-            <View style={styles.tabIconWrapper}>
-              <PlusCircle size={22} color={color} strokeWidth={focused ? 2.3 : 1.8} />
+          tabBarAccessibilityLabel: 'Share your research or find collaborators',
+          tabBarIcon: ({ focused }) => (
+            <View style={styles.tab}>
+            <View
+              style={[
+                styles.shareButton,
+                shadows.elevated,
+                {
+                  backgroundColor: ctaColor,
+                  borderColor: colors.surface,
+                  shadowColor: ctaColor,
+                  shadowOpacity: isDark ? 0.5 : 0.3,
+                  shadowRadius: 10,
+                  shadowOffset: { width: 0, height: 4 },
+                  elevation: 6,
+                  opacity: focused ? 1 : 0.95,
+                },
+              ]}
+            >
+              <Plus size={24} color="#FFFFFF" strokeWidth={2.6} />
+            </View>
+            {label('Share', focused)}
             </View>
           ),
         }}
@@ -101,21 +145,20 @@ export default function TabLayout() {
         name="notifications"
         options={{
           title: 'Notifications',
+          tabBarAccessibilityLabel: unreadCount ? `Notifications, ${unreadCount} unread` : 'Notifications',
           tabBarIcon: ({ color, focused }) => (
-            <View style={styles.tabIconWrapper}>
-              <View style={styles.iconWithBadge}>
-                <Bell size={22} color={color} strokeWidth={focused ? 2.3 : 1.8} />
+            tab(
+              'Notifications',
+              focused,
+              <View>
+                <Bell size={21} color={color} strokeWidth={focused ? 2.3 : 1.8} />
                 {unreadCount > 0 ? (
-                  <View
-                    style={[
-                      styles.notificationDot,
-                      { backgroundColor: colors.accent },
-                    ]}
-                    accessibilityLabel={`${unreadCount} unread notifications`}
-                  />
+                  <View style={[styles.badge, { backgroundColor: badgeColor, borderColor: colors.surface }]}>
+                    <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                  </View>
                 ) : null}
-              </View>
-            </View>
+              </View>,
+            )
           ),
         }}
       />
@@ -124,9 +167,22 @@ export default function TabLayout() {
         options={{
           title: 'Profile',
           tabBarIcon: ({ color, focused }) => (
-            <View style={styles.tabIconWrapper}>
-              <User size={22} color={color} strokeWidth={focused ? 2.3 : 1.8} />
-            </View>
+            tab(
+              'Profile',
+              focused,
+              userProfile ? (
+                <View
+                  style={[
+                    styles.avatarRing,
+                    { borderColor: focused ? colors.primary : isDark ? colors.border : colors.borderSubtle },
+                  ]}
+                >
+                  <Avatar name={userProfile.displayName || 'You'} uri={userProfile.photoURL} size="xs" />
+                </View>
+              ) : (
+                <User size={21} color={color} strokeWidth={focused ? 2.3 : 1.8} />
+              ),
+            )
           ),
         }}
       />
@@ -135,23 +191,38 @@ export default function TabLayout() {
 }
 
 const styles = StyleSheet.create({
-  tabIconWrapper: {
-    width: 28,
-    height: 24,
+  tab: { width: 80, height: 50, alignItems: 'center', justifyContent: 'flex-start', paddingTop: 2 },
+  label: { fontSize: 11, lineHeight: 14, marginTop: 4, fontFamily: fontFamilies.sansMedium, maxWidth: 80, textAlign: 'center' },
+  pill: {
+    width: 56,
+    height: 28,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  iconWithBadge: {
-    position: 'relative',
+  shareButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    borderWidth: 3,
     alignItems: 'center',
     justifyContent: 'center',
+    // Raised above the bar
+    // Raised above the bar; the label stays aligned with the other tabs
+    marginTop: -22,
   },
-  notificationDot: {
+  badge: {
     position: 'absolute',
-    top: -1,
-    right: -2,
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
+    top: -6,
+    right: -10,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 2,
+    paddingHorizontal: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
+  badgeText: { color: '#FFFFFF', fontSize: 10, lineHeight: 12, fontFamily: fontFamilies.sansBold },
+  avatarRing: { borderWidth: 2, borderRadius: 16, padding: 1 },
 });

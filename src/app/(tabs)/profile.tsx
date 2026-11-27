@@ -13,7 +13,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { StatusBar } from 'expo-status-bar';
+import { TabHeader, HeaderIconButton } from '@/components/layout/TabHeader';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
   Settings,
@@ -44,7 +44,6 @@ import { TopicChip } from '@/components/common/TopicChip';
 import {
   ProfileHero,
   HeroActionButton,
-  HeroIconButton,
   ProfileSection,
   ProfileEmptyText,
   WorkList,
@@ -303,8 +302,17 @@ export default function ProfileTab() {
   ];
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top + 16 }]}>
-      <StatusBar style={isDark ? 'light' : 'dark'} backgroundColor={colors.background} />
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <TabHeader
+        title="Profile"
+        right={
+          <HeaderIconButton
+            icon={<Settings size={18} color={colors.textPrimary} strokeWidth={2} />}
+            onPress={() => setIsSettingsModalVisible(true)}
+            label="Open settings and theme options"
+          />
+        }
+      />
 
       <ScrollView
         style={styles.scroll}
@@ -320,18 +328,11 @@ export default function ProfileTab() {
           emptyBioPrompt="Add a short bio about your research focus"
           onEmptyBioPress={handleOpenEditModal}
           actions={
-            <>
-              <HeroActionButton
-                label="Edit Profile"
-                icon={<Edit3 size={15} color={colors.textPrimary} strokeWidth={2} />}
-                onPress={handleOpenEditModal}
-              />
-              <HeroIconButton
-                label="Open settings and theme options"
-                icon={<Settings size={20} color={colors.textSecondary} strokeWidth={2} />}
-                onPress={() => setIsSettingsModalVisible(true)}
-              />
-            </>
+            <HeroActionButton
+              label="Edit Profile"
+              icon={<Edit3 size={15} color={colors.textPrimary} strokeWidth={2} />}
+              onPress={handleOpenEditModal}
+            />
           }
           stats={[
             { label: 'Connections', value: connected.length },
@@ -726,6 +727,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: spacing.screenHorizontal,
+    paddingTop: spacing.md,
     paddingBottom: spacing.xl,
   },
   chipsRow: {

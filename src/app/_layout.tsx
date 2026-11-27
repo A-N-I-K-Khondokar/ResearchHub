@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { StatusBar } from 'expo-status-bar';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
@@ -121,9 +122,12 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 // ---------------------------------------------------------------------------
 
 function RootNavigation() {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
 
   return (
+    <>
+    {/* One app-wide status bar that follows the theme */}
+    <StatusBar style={isDark ? 'light' : 'dark'} backgroundColor={colors.surface} />
     <Stack
       screenOptions={{
         headerShown: false,
@@ -143,6 +147,7 @@ function RootNavigation() {
       <Stack.Screen name="(explore)/topic-researchers" />
       <Stack.Screen name="+not-found" />
     </Stack>
+    </>
   );
 }
 

@@ -1,3 +1,4 @@
+import { TabHeader, HeaderBadge } from '@/components/layout/TabHeader';
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   View,
@@ -391,57 +392,25 @@ export default function NotificationsTab() {
 
   return (
     <View style={[styles.safeArea, { backgroundColor: colors.surface }]}>
-      {/* Header Container */}
-      <View
-        style={[
-          styles.headerContainer,
-          {
-            backgroundColor: colors.surface,
-            borderBottomColor: colors.borderSubtle,
-            paddingTop: insets.top + 16,
-          },
-        ]}
-      >
-        <View style={styles.titleRow}>
-          <View style={styles.titleWithBadge}>
-            <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>
-              Notifications
-            </Text>
-            {unreadCount > 0 && (
-              <View
-                style={[
-                  styles.unreadBadge,
-                  { backgroundColor: colors.primaryMuted },
-                ]}
-              >
-                <Text
-                  style={[styles.unreadBadgeText, { color: colors.primary }]}
-                >
-                  {unreadCount} new
-                </Text>
-              </View>
-            )}
-          </View>
-
-          {unreadCount > 0 && (
+      {/* Shared tab header: title + "N new" + Mark all read, filters below */}
+      <TabHeader
+        title="Notifications"
+        accessory={unreadCount > 0 ? <HeaderBadge label={`${unreadCount} new`} /> : null}
+        right={
+          unreadCount > 0 ? (
             <TouchableOpacity
               activeOpacity={0.7}
               onPress={handleMarkAllAsRead}
-              style={[
-                styles.markAllButton,
-                { backgroundColor: colors.surfaceSubtle },
-              ]}
+              style={[styles.markAllButton, { backgroundColor: colors.surfaceSubtle }]}
               accessibilityRole="button"
               accessibilityLabel="Mark all alerts as read"
             >
               <CheckCheck size={14} color={colors.primary} strokeWidth={2.2} />
-              <Text style={[styles.markAllText, { color: colors.primary }]}>
-                Mark all read
-              </Text>
+              <Text style={[styles.markAllText, { color: colors.primary }]}>Mark all read</Text>
             </TouchableOpacity>
-          )}
-        </View>
-
+          ) : null
+        }
+      >
         {/* Horizontally Scrollable Filter Tags */}
         <ScrollView
           horizontal
@@ -490,7 +459,7 @@ export default function NotificationsTab() {
             );
           })}
         </ScrollView>
-      </View>
+      </TabHeader>
 
       {/* Main SectionList Feed */}
       <SectionList

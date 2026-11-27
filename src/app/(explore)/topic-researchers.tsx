@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { ScreenHeader } from '@/components/layout/ScreenHeader';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, Users, Sparkles, Filter, ArrowUpDown } from 'lucide-react-native';
 import { spacing, radius, typography, fontFamilies, shadows } from '@/constants';
@@ -87,26 +88,11 @@ export default function TopicResearchersScreen() {
       style={[styles.safeArea, { backgroundColor: colors.surface }]}
       edges={['top']}
     >
-      {/* Top App Header */}
-      <View
-        style={[
-          styles.header,
-          {
-            backgroundColor: colors.surface,
-            borderBottomColor: colors.borderSubtle,
-          },
-        ]}
-      >
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.backButton}
-          accessibilityLabel="Back to Explore"
-          accessibilityRole="button"
-        >
-          <ArrowLeft size={22} color={colors.textPrimary} />
-          <Text style={[styles.backButtonText, { color: colors.primary }]}>Explore</Text>
-        </TouchableOpacity>
-      </View>
+      {/* Shared inner-screen header */}
+      <ScreenHeader
+        title="Research topic"
+        subtitle={`${discoveryData.researchers.length} researcher${discoveryData.researchers.length === 1 ? '' : 's'} · ${discoveryData.topic.name}`}
+      />
 
       <ScrollView
         style={[styles.container, { backgroundColor: colors.background }]}

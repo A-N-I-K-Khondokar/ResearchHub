@@ -29,6 +29,7 @@ import { useConnections } from '@/hooks/useConnections';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { formatWorkDate } from '@/services/research.service';
 import { ActivityIndicator } from 'react-native';
+import { TabHeader } from '@/components/layout/TabHeader';
 import { SearchBar } from '@/components/common/SearchBar';
 import { ResearcherDiscoveryCard } from '@/components/cards/ResearcherDiscoveryCard';
 
@@ -130,17 +131,8 @@ export default function ExploreScreen() {
 
   return (
     <View style={[styles.safeArea, { backgroundColor: colors.surface }]}>
-      {/* Search Header Container (Top Explore title removed) */}
-      <View
-        style={[
-          styles.headerContainer,
-          {
-            backgroundColor: colors.surface,
-            borderBottomColor: colors.borderSubtle,
-            paddingTop: insets.top + 16,
-          },
-        ]}
-      >
+      {/* Shared tab header: title + search + quick filters */}
+      <TabHeader title="Explore" subtitle="Researchers, topics and collaborations">
         <TouchableOpacity
           activeOpacity={0.9}
           onPress={() => router.push('/(explore)/search' as any)}
@@ -196,7 +188,7 @@ export default function ExploreScreen() {
             );
           })}
         </ScrollView>
-      </View>
+      </TabHeader>
 
       <ScrollView
         style={[styles.container, { backgroundColor: colors.background }]}

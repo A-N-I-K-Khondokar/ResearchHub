@@ -136,24 +136,46 @@ export const DetailSkeleton: React.FC = () => {
   const { colors } = useTheme();
   return (
     <View style={styles.page}>
-      <View style={styles.row}>
-        <Skeleton width={44} height={44} rounded={22} />
+      {/* status line */}
+      <Skeleton width={36} height={4} rounded={2} />
+      <View style={[styles.row, styles.gapTop]}>
+        <Skeleton width={110} height={26} rounded={radius.full} />
+        <Skeleton width={64} height={26} rounded={radius.full} />
+        <Skeleton width={50} height={12} />
+      </View>
+      {/* title */}
+      <Skeleton width="92%" height={26} style={styles.gapTopLg} />
+      <Skeleton width="58%" height={26} style={styles.gapTop} />
+      {/* author */}
+      <View style={[styles.row, styles.gapTopLg]}>
+        <Skeleton width={32} height={32} rounded={16} />
         <View style={styles.flex}>
-          <Skeleton width="45%" height={14} />
-          <Skeleton width="65%" height={12} style={styles.gapTop} />
+          <Skeleton width="45%" height={13} />
+          <Skeleton width="65%" height={11} style={styles.gapTop} />
+        </View>
+        <Skeleton width={84} height={32} rounded={radius.full} />
+      </View>
+      {/* stage progress */}
+      <View style={[styles.card, styles.gapTopLg, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}>
+        <Skeleton width="40%" height={12} />
+        <View style={[styles.row, styles.gapTop]}>
+          {[0, 1, 2, 3].map((i) => (
+            <View key={i} style={styles.flex}>
+              <Skeleton width="100%" height={6} rounded={radius.full} />
+            </View>
+          ))}
         </View>
       </View>
-      <Skeleton width="90%" height={22} style={styles.gapTopLg} />
-      <Skeleton width="60%" height={22} style={styles.gapTop} />
+      {/* about */}
+      <Skeleton width="45%" height={16} style={styles.gapTopLg} />
+      <Skeleton width="100%" height={12} style={styles.gapTop} />
+      <Skeleton width="96%" height={12} style={styles.gapTop} />
+      <Skeleton width="88%" height={12} style={styles.gapTop} />
+      <Skeleton width="62%" height={12} style={styles.gapTop} />
       <View style={[styles.row, styles.gapTopLg]}>
-        <Skeleton width={90} height={24} rounded={radius.full} />
-        <Skeleton width={70} height={24} rounded={radius.full} />
-      </View>
-      <View style={[styles.card, styles.gapTopLg, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}>
-        <Skeleton width="100%" height={12} />
-        <Skeleton width="95%" height={12} style={styles.gapTop} />
-        <Skeleton width="85%" height={12} style={styles.gapTop} />
-        <Skeleton width="60%" height={12} style={styles.gapTop} />
+        <Skeleton width={90} height={28} rounded={radius.full} />
+        <Skeleton width={70} height={28} rounded={radius.full} />
+        <Skeleton width={100} height={28} rounded={radius.full} />
       </View>
     </View>
   );

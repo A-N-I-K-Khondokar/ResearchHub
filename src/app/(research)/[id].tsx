@@ -1,25 +1,59 @@
-import React, { useCallback, useEffect, useState } from 'react';
+/**
+ * Research Details
+ *
+ * Layout (top → bottom):
+ *   header (⋯ Manage for the author)
+ *   hero: type/status line · title · author row (+ Connect) · stage progress
+ *   About this research: collapsible description, topics, link
+ *   Team & roles (collaboration posts): looking for, stacked team avatars
+ *   More from <author>: horizontal cards
+ *   sticky bottom action bar: the ONE main action for whoever is viewing
+ * Author tools (edit, open/closed, applicants, delete) live in ManagePostSheet.
+ */
+
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  ActivityIndicator,
   Linking,
+  RefreshControl,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { BookOpen, Layers, Calendar, ExternalLink, Bookmark, Pencil, Users, UserPlus, Check, Clock, User, MessageCircle, IdCard } from 'lucide-react-native';
-import { spacing, radius, typography, fontFamilies } from '../../constants';
+import {
+  BookOpen,
+  Bookmark,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  ChevronUp,
+  Clock,
+  ExternalLink,
+  IdCard,
+  Layers,
+  MessageCircle,
+  MoreHorizontal,
+  Pencil,
+  Settings2,
+  UserPlus,
+  Users,
+} from 'lucide-react-native';
+import { spacing, radius, typography, fontFamilies, shadows } from '../../constants';
 import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/context/ToastContext';
+import { useContactCard } from '@/context/ContactCardContext';
 import { Avatar } from '../../components/common/Avatar';
-import { ScreenHeader } from '../../components/layout/ScreenHeader';
+import { ScreenHeader, ScreenHeaderAction } from '../../components/layout/ScreenHeader';
 import { DetailSkeleton } from '../../components/feedback/Skeleton';
 import { Button } from '../../components/common/Button';
-import { SoftDangerButton } from '../../components/common/SoftDangerButton';
 import { ContactSheet, type ContactPerson } from '../../components/common/ContactSheet';
+import { EditWorkSheet } from '@/components/research/EditWorkSheet';
+import { ManagePostSheet } from '@/components/research/ManagePostSheet';
+import { StageProgress } from '@/components/research/StageProgress';
 import {
   getResearchWork,
   deleteResearchWork,
@@ -27,98 +61,103 @@ import {
   getPublishedWorksByAuthor,
   updateResearchStage,
 } from '@/services/research.service';
-import { EditWorkSheet } from '@/components/research/EditWorkSheet';
-import { getPublicProfile } from '@/services/user.service';
-import { RESEARCH_STAGE_IDS, type ResearchWork } from '@/types/research.types';
-import type { PublicProfile } from '@/types/user.types';
-import { useConnections } from '@/hooks/useConnections';
-import { useToast } from '@/context/ToastContext';
-import { WorkList } from '@/components/profile';
-import { useCollaborate } from '@/hooks/useCollaborate';
 import { respondToApplication, setCollabStatus, subscribeReceivedApplications } from '@/services/collab.service';
+import type { ResearchWork } from '@/types/research.types';
 import type { CollabRequest } from '@/types/collab.types';
-import { Switch } from 'react-native';
+import { useConnections } from '@/hooks/useConnections';
+import { useCollaborate } from '@/hooks/useCollaborate';
 import { useSavedItems } from '@/hooks/useSavedItems';
-import { useContactCard } from '@/context/ContactCardContext';
 import { confirmAction } from '@/utils/dialogs';
 
 type LoadState = 'loading' | 'ready' | 'not-found' | 'error';
 
+const DESCRIPTION_PREVIEW_LINES = 5;
+const DESCRIPTION_LONG = 280;
+const BOTTOM_BAR_HEIGHT = 76;
+
 export default function ResearchDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const { firebaseUser, userProfile } = useAuth();
+  const toast = useToast();
+  const { isSaved, toggleSave } = useSavedItems();
+  const { relationship, handleConnectPress, busyUid } = useConnections();
+  const collaborate = useCollaborate();
+  const { hasMyCard, openContactEditor } = useContactCard();
 
   const [work, setWork] = useState<ResearchWork | null>(null);
   const [state, setState] = useState<LoadState>('loading');
-  const [isDeleting, setIsDeleting] = useState(false);
-  const { isSaved, toggleSave } = useSavedItems();
-  const { relationship, handleConnectPress, busyUid } = useConnections();
-  const toast = useToast();
-  const collaborate = useCollaborate();
-  const [author, setAuthor] = useState<PublicProfile | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const [moreWorks, setMoreWorks] = useState<ResearchWork[]>([]);
   const [applicants, setApplicants] = useState<CollabRequest[]>([]);
   const [busyRequest, setBusyRequest] = useState<string | null>(null);
   const [statusBusy, setStatusBusy] = useState(false);
-  const [contactPerson, setContactPerson] = useState<ContactPerson | null>(null);
-  const [editing, setEditing] = useState(false);
   const [stageBusy, setStageBusy] = useState(false);
-  const { hasMyCard, openContactEditor } = useContactCard();
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const [teamOpen, setTeamOpen] = useState(false);
+  const [manageOpen, setManageOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [contactPerson, setContactPerson] = useState<ContactPerson | null>(null);
 
-  const load = useCallback(async () => {
-    if (!id) {
-      setState('not-found');
-      return;
-    }
-    setState('loading');
-    try {
-      const result = await getResearchWork(id);
-      setWork(result);
-      setState(result ? 'ready' : 'not-found');
-      if (result) {
-        // Secondary data (non-blocking): author card + "More from this researcher"
-        Promise.all([
-          getPublicProfile(result.authorUid).catch(() => null),
-          getPublishedWorksByAuthor(result.authorUid).catch(() => [] as ResearchWork[]),
-        ]).then(([profile, works]) => {
-          setAuthor(profile);
-          setMoreWorks(works.filter((w) => w.id !== result.id).slice(0, 3));
-        });
+  // -------------------------------------------------------------------------
+  // Data
+  // -------------------------------------------------------------------------
+
+  const load = useCallback(
+    async (silent = false) => {
+      if (!id) {
+        setState('not-found');
+        return;
       }
-    } catch (err: any) {
-      // Unknown / legacy IDs and inaccessible drafts are denied by the rules.
-      setState(err?.code === 'permission-denied' ? 'not-found' : 'error');
-    }
-  }, [id]);
+      if (!silent) setState('loading');
+      try {
+        const result = await getResearchWork(id);
+        setWork(result);
+        setState(result ? 'ready' : 'not-found');
+        if (result) {
+          getPublishedWorksByAuthor(result.authorUid)
+            .then((works) => setMoreWorks(works.filter((w) => w.id !== result.id).slice(0, 6)))
+            .catch(() => setMoreWorks([]));
+        }
+      } catch (err: any) {
+        // Unknown / legacy IDs and inaccessible drafts are denied by the rules.
+        if (!silent) setState(err?.code === 'permission-denied' ? 'not-found' : 'error');
+        else toast.show('Could not refresh. Check your connection.', 'error');
+      }
+    },
+    [id, toast],
+  );
 
   useEffect(() => {
     load();
   }, [load]);
 
-  const isOwner = Boolean(work && firebaseUser && work.authorUid === firebaseUser.uid);
-  const isCollabPost = work?.postType === 'collaboration';
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await load(true);
+    setRefreshing(false);
+  };
+
   const myUid = firebaseUser?.uid ?? '';
+  const isOwner = Boolean(work && myUid && work.authorUid === myUid);
+  const isCollabPost = work?.postType === 'collaboration';
   const onTeam = Boolean(work && !isOwner && work.team.some((m) => m.uid === myUid));
-  // Team members and an author with a team need a contact card to be reachable.
   const needsMyCard = Boolean(isCollabPost && (onTeam || (isOwner && (work?.team.length ?? 0) > 0)));
+  const pendingCount = applicants.filter((a) => a.status === 'pending').length;
+  const authorFirst = work?.authorName.split(' ')[0] ?? '';
 
   // Live applicants for the author of a collaboration post
   useEffect(() => {
-    if (!isOwner || !isCollabPost || !firebaseUser || !work) return;
-    return subscribeReceivedApplications(firebaseUser.uid, setApplicants, work.id);
-  }, [isOwner, isCollabPost, firebaseUser, work?.id]);
+    if (!isOwner || !isCollabPost || !myUid || !work?.id) return;
+    return subscribeReceivedApplications(myUid, setApplicants, work.id);
+  }, [isOwner, isCollabPost, myUid, work?.id]);
 
-  const refreshWork = async () => {
-    if (!id) return;
-    try {
-      const fresh = await getResearchWork(id);
-      if (fresh) setWork(fresh);
-    } catch {
-      // keep the current copy
-    }
-  };
+  // -------------------------------------------------------------------------
+  // Actions
+  // -------------------------------------------------------------------------
 
   const handleRespond = async (request: CollabRequest, accept: boolean) => {
     if (!userProfile) return;
@@ -139,8 +178,9 @@ export default function ResearchDetailScreen() {
         accept ? 'success' : 'info',
       );
       if (accept) {
-        await refreshWork();
+        await load(true);
         if (hasMyCard === false) {
+          setManageOpen(false);
           setTimeout(() => openContactEditor(), 900);
         }
       }
@@ -182,15 +222,6 @@ export default function ResearchDetailScreen() {
     }
   };
 
-  const handleOpenLink = (url: string) => {
-    Linking.openURL(url).catch(() => toast.show('Unable to open this link', 'error'));
-  };
-
-  const handleAuthorPress = () => {
-    if (!work) return;
-    router.push((isOwner ? '/(tabs)/profile' : `/(profile)/${work.authorUid}`) as any);
-  };
-
   const handleDelete = async () => {
     if (!work) return;
     const ok = await confirmAction({
@@ -203,6 +234,7 @@ export default function ResearchDetailScreen() {
     setIsDeleting(true);
     try {
       await deleteResearchWork(work.id);
+      setManageOpen(false);
       toast.show(isCollabPost ? 'Collaboration post deleted' : 'Research work deleted', 'info');
       router.back();
     } catch {
@@ -211,60 +243,225 @@ export default function ResearchDetailScreen() {
     }
   };
 
+  const openLink = (url: string) => Linking.openURL(url).catch(() => toast.show('Unable to open this link', 'error'));
+  const openProfile = (uid: string) =>
+    router.push((uid === myUid ? '/(tabs)/profile' : `/(profile)/${uid}`) as any);
+
+  const contactAuthor = () =>
+    work &&
+    setContactPerson({
+      uid: work.authorUid,
+      displayName: work.authorName,
+      photoURL: work.authorPhotoURL,
+      subtitle: isCollabPost ? 'Project lead' : work.authorDesignation,
+    });
+
+  const authorSource = useMemo(
+    () =>
+      work
+        ? { uid: work.authorUid, displayName: work.authorName, photoURL: work.authorPhotoURL, designation: work.authorDesignation }
+        : null,
+    [work],
+  );
+
+  // -------------------------------------------------------------------------
+  // Render helpers
+  // -------------------------------------------------------------------------
+
   const renderStatus = () => {
-    if (state === 'loading') {
-      return <DetailSkeleton />;
-    }
+    if (state === 'loading') return <DetailSkeleton />;
     return (
       <View style={styles.centered}>
         <View style={[styles.iconContainer, { backgroundColor: colors.primaryMuted }]}>
           <BookOpen size={36} color={colors.primary} />
         </View>
-        <Text style={[styles.title, { color: colors.textPrimary, textAlign: 'center' }]}>
+        <Text style={[styles.statusTitle, { color: colors.textPrimary }]}>
           {state === 'not-found' ? 'Research not available' : 'Something went wrong'}
         </Text>
-        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+        <Text style={[styles.statusText, { color: colors.textSecondary }]}>
           {state === 'not-found'
-            ? 'This update may have been removed, or it is not shared with you.'
-            : 'We could not load this research update. Check your connection and try again.'}
+            ? 'This post may have been removed, or it is not shared with you.'
+            : 'We could not load this post. Check your connection and try again.'}
         </Text>
-        {state === 'error' ? (
-          <Button label="Retry" onPress={load} variant="outline" size="md" />
+        {state === 'error' ? <Button label="Retry" onPress={() => load()} variant="outline" size="md" /> : null}
+      </View>
+    );
+  };
+
+  /** Compact Connect pill beside the author (visitors only). */
+  const renderConnectPill = () => {
+    if (!authorSource || isOwner) return null;
+    const rel = relationship(authorSource.uid).state;
+    if (rel === 'rejected') return null;
+    const busy = busyUid === authorSource.uid;
+    const connected = rel === 'connected';
+    const label = connected ? 'Connected' : rel === 'outgoing' ? 'Requested' : rel === 'incoming' ? 'Respond' : 'Connect';
+    const Icon = connected ? Check : rel === 'outgoing' ? Clock : UserPlus;
+    const filled = rel === 'none' || rel === 'incoming';
+    return (
+      <TouchableOpacity
+        onPress={() => handleConnectPress(authorSource)}
+        disabled={busy || connected}
+        style={[
+          styles.connectPill,
+          filled
+            ? { backgroundColor: colors.primary, borderColor: colors.primary }
+            : { backgroundColor: colors.surface, borderColor: colors.borderSubtle },
+        ]}
+        accessibilityRole="button"
+        accessibilityLabel={`${label} ${work?.authorName}`}
+      >
+        <Icon size={13} color={filled ? '#FFFFFF' : connected ? colors.success : colors.textSecondary} />
+        <Text style={[styles.connectText, { color: filled ? '#FFFFFF' : connected ? colors.success : colors.textSecondary }]}>
+          {label}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
+
+  /** The one main action for whoever is looking at the post. */
+  const renderBottomBar = () => {
+    if (!work) return null;
+    const saved = isSaved(work.id);
+    const canSave = work.status === 'published' && !isOwner;
+
+    let primary: React.ReactNode;
+    if (isOwner) {
+      primary = (
+        <TouchableOpacity
+          onPress={() => setManageOpen(true)}
+          style={[styles.primaryBtn, { backgroundColor: colors.primary }]}
+          accessibilityRole="button"
+          accessibilityLabel={pendingCount ? `Manage post, ${pendingCount} applicants waiting` : 'Manage post'}
+        >
+          <Settings2 size={17} color="#FFFFFF" />
+          <Text style={styles.primaryText}>
+            {isCollabPost ? (pendingCount ? `Manage applicants` : 'Manage post') : 'Manage post'}
+          </Text>
+          {pendingCount ? (
+            <View style={styles.countBadge}>
+              <Text style={[styles.countText, { color: colors.primary }]}>{pendingCount}</Text>
+            </View>
+          ) : null}
+        </TouchableOpacity>
+      );
+    } else if (onTeam || (!isCollabPost && relationship(work.authorUid).state === 'connected')) {
+      primary = (
+        <TouchableOpacity
+          onPress={contactAuthor}
+          style={[styles.primaryBtn, { backgroundColor: colors.primary }]}
+          accessibilityRole="button"
+        >
+          <MessageCircle size={17} color="#FFFFFF" />
+          <Text style={styles.primaryText}>Contact {authorFirst}</Text>
+        </TouchableOpacity>
+      );
+    } else if (isCollabPost) {
+      const action = collaborate(work);
+      const disabled = Boolean(action.collaborateDisabled);
+      primary = (
+        <TouchableOpacity
+          onPress={action.onCollaboratePress}
+          disabled={disabled || !action.onCollaboratePress}
+          style={[
+            styles.primaryBtn,
+            disabled
+              ? { backgroundColor: colors.surfaceSubtle, borderWidth: 1, borderColor: colors.borderSubtle }
+              : { backgroundColor: colors.primary },
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel={action.collaborateLabel}
+        >
+          <UserPlus size={17} color={disabled ? colors.textMuted : '#FFFFFF'} />
+          <Text style={[styles.primaryText, disabled && { color: colors.textMuted }]} numberOfLines={1}>
+            {action.collaborateLabel}
+          </Text>
+        </TouchableOpacity>
+      );
+    } else if (authorSource) {
+      const rel = relationship(work.authorUid).state;
+      const disabled = rel === 'outgoing' || rel === 'rejected';
+      const label =
+        rel === 'outgoing' ? 'Request sent' : rel === 'incoming' ? 'Respond to request' : rel === 'rejected' ? 'Request declined' : `Connect with ${authorFirst}`;
+      primary = (
+        <TouchableOpacity
+          onPress={() => handleConnectPress(authorSource)}
+          disabled={disabled || busyUid === work.authorUid}
+          style={[
+            styles.primaryBtn,
+            disabled
+              ? { backgroundColor: colors.surfaceSubtle, borderWidth: 1, borderColor: colors.borderSubtle }
+              : { backgroundColor: colors.primary },
+          ]}
+          accessibilityRole="button"
+        >
+          {disabled ? <Clock size={17} color={colors.textMuted} /> : <UserPlus size={17} color="#FFFFFF" />}
+          <Text style={[styles.primaryText, disabled && { color: colors.textMuted }]}>{label}</Text>
+        </TouchableOpacity>
+      );
+    }
+
+    return (
+      <View
+        style={[
+          styles.bottomBar,
+          shadows.elevated,
+          { backgroundColor: colors.surface, borderTopColor: colors.borderSubtle, paddingBottom: Math.max(insets.bottom, spacing.sm) },
+        ]}
+      >
+        {primary}
+        {isOwner ? (
+          <TouchableOpacity
+            onPress={() => setEditing(true)}
+            style={[styles.squareBtn, { borderColor: colors.border, backgroundColor: colors.surface }]}
+            accessibilityRole="button"
+            accessibilityLabel="Edit post"
+          >
+            <Pencil size={18} color={colors.textPrimary} />
+          </TouchableOpacity>
+        ) : canSave ? (
+          <TouchableOpacity
+            onPress={() => toggleSave(work)}
+            style={[
+              styles.squareBtn,
+              saved
+                ? { borderColor: colors.primaryLight, backgroundColor: colors.primaryMuted }
+                : { borderColor: colors.border, backgroundColor: colors.surface },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel={saved ? 'Remove from saved items' : 'Save post'}
+          >
+            <Bookmark size={18} color={saved ? colors.primary : colors.textPrimary} fill={saved ? colors.primary : 'transparent'} />
+          </TouchableOpacity>
         ) : null}
       </View>
     );
   };
+
+  // -------------------------------------------------------------------------
+  // Screen
+  // -------------------------------------------------------------------------
+
+  const accent = isCollabPost ? colors.primary : colors.textSecondary;
+  const longDescription =
+    (work?.description.length ?? 0) > DESCRIPTION_LONG || (work?.description.split('\n').length ?? 0) > DESCRIPTION_PREVIEW_LINES;
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
       <ScreenHeader
         title="Research Details"
         right={
-          state === 'ready' && work && work.status === 'published' ? (
-            <View style={styles.headerActions}>
-            {isOwner ? (
-              <TouchableOpacity
-                onPress={() => setEditing(true)}
-                hitSlop={6}
-                accessibilityRole="button"
-                accessibilityLabel="Edit post"
-              >
-                <Pencil size={19} color={colors.textPrimary} />
-              </TouchableOpacity>
-            ) : null}
-            <TouchableOpacity
-              onPress={() => toggleSave(work)}
-              hitSlop={6}
-              accessibilityRole="button"
-              accessibilityLabel={isSaved(work.id) ? 'Remove from saved items' : 'Save research'}
-            >
-              <Bookmark
-                size={20}
-                color={isSaved(work.id) ? colors.primary : colors.textPrimary}
-                fill={isSaved(work.id) ? colors.primary : 'transparent'}
-              />
-            </TouchableOpacity>
-            </View>
+          state === 'ready' && work && isOwner ? (
+            <ScreenHeaderAction
+              onPress={() => setManageOpen(true)}
+              label={pendingCount ? `Manage post, ${pendingCount} applicants waiting` : 'Manage post'}
+              icon={
+                <View>
+                  <MoreHorizontal size={22} color={colors.textPrimary} />
+                  {pendingCount ? <View style={[styles.dot, { backgroundColor: colors.error, borderColor: colors.surface }]} /> : null}
+                </View>
+              }
+            />
           ) : null
         }
       />
@@ -272,556 +469,419 @@ export default function ResearchDetailScreen() {
       {state !== 'ready' || !work ? (
         renderStatus()
       ) : (
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          {/* Author */}
-          <TouchableOpacity activeOpacity={0.8} onPress={handleAuthorPress} style={styles.authorRow}>
-            <Avatar name={work.authorName} uri={work.authorPhotoURL} size="md" />
-            <View style={styles.authorInfo}>
-              <Text style={[styles.authorName, { color: colors.textPrimary }]} numberOfLines={1}>
-                {work.authorName}
-              </Text>
-              <Text style={[styles.authorMeta, { color: colors.textSecondary }]} numberOfLines={1}>
-                {[work.authorDesignation, work.authorDepartment].filter(Boolean).join(' • ')}
-              </Text>
-            </View>
-          </TouchableOpacity>
-
-          {/* Title */}
-          <View style={styles.titleBlock}>
-            <View style={[styles.typeBadge, { backgroundColor: isCollabPost ? colors.primaryMuted : colors.surfaceSubtle }]}>
-              {isCollabPost ? <Users size={13} color={colors.primary} /> : <BookOpen size={13} color={colors.textSecondary} />}
-              <Text style={[styles.typeBadgeText, { color: isCollabPost ? colors.primary : colors.textSecondary }]}>
-                {isCollabPost ? 'Collaboration post' : 'Research work'}
-              </Text>
-            </View>
-            {work.status === 'draft' ? (
-              <View style={[styles.typeBadge, { backgroundColor: colors.surfaceSubtle }]}>
-                <Text style={[styles.typeBadgeText, { color: colors.textMuted }]}>Draft</Text>
-              </View>
-            ) : null}
-          </View>
-          <Text style={[styles.title, { color: colors.textPrimary }]}>{work.title}</Text>
-
-          {/* ===== Section 1: Research ===== */}
-          <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}>
-            <View style={styles.sectionHeader}>
-              <BookOpen size={16} color={colors.primary} />
-              <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Research</Text>
-              <View style={styles.metaItem}>
-                <Calendar size={13} color={colors.textSecondary} />
-                <Text style={[styles.metaText, { color: colors.textSecondary }]}>{formatWorkDate(work.createdAt)}</Text>
-              </View>
-            </View>
-
-            <Text style={[styles.subLabel, { color: colors.textSecondary }]}>STAGE</Text>
-            {/* Stage stepper */}
-            <View style={styles.stepper} accessibilityLabel={`Research stage: ${work.stage}`}>
-              {RESEARCH_STAGE_IDS.map((stageId, index) => {
-                const current = RESEARCH_STAGE_IDS.indexOf(work.stage);
-                const reached = index <= current;
-                return (
-                  <React.Fragment key={stageId}>
-                    {index > 0 ? (
-                      <View style={[styles.stepLine, { backgroundColor: index <= current ? colors.primary : colors.borderSubtle }]} />
-                    ) : null}
-                    <TouchableOpacity
-                      style={styles.step}
-                      disabled={!isOwner || stageBusy || stageId === work.stage}
-                      onPress={() => handleStageChange(stageId)}
-                      accessibilityRole={isOwner ? 'button' : undefined}
-                      accessibilityLabel={isOwner ? `Set stage to ${stageId}` : undefined}
+        <>
+          <ScrollView
+            contentContainerStyle={[styles.scroll, { paddingBottom: BOTTOM_BAR_HEIGHT + insets.bottom + spacing.lg }]}
+            showsVerticalScrollIndicator={false}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+          >
+            {/* ===== Hero ===== */}
+            <View style={styles.hero}>
+              <View style={[styles.accentBar, { backgroundColor: accent }]} />
+              <View style={styles.statusLine}>
+                <View
+                  style={[
+                    styles.typeChip,
+                    { backgroundColor: isCollabPost ? colors.primaryMuted : colors.surfaceSubtle },
+                  ]}
+                >
+                  {isCollabPost ? <Users size={13} color={colors.primary} /> : <BookOpen size={13} color={colors.textSecondary} />}
+                  <Text style={[styles.typeText, { color: isCollabPost ? colors.primary : colors.textSecondary }]}>
+                    {isCollabPost ? 'Collaboration' : 'Research work'}
+                  </Text>
+                </View>
+                {isCollabPost ? (
+                  <View
+                    style={[
+                      styles.typeChip,
+                      { backgroundColor: work.collabStatus === 'closed' ? colors.successLight : colors.surfaceSubtle },
+                    ]}
+                  >
+                    <View
+                      style={[styles.liveDot, { backgroundColor: work.collabStatus === 'closed' ? colors.success : colors.primary }]}
+                    />
+                    <Text
+                      style={[styles.typeText, { color: work.collabStatus === 'closed' ? colors.success : colors.textPrimary }]}
                     >
-                      <View
-                        style={[
-                          styles.stepDot,
-                          reached
-                            ? { backgroundColor: colors.primary, borderColor: colors.primary }
-                            : { backgroundColor: colors.surface, borderColor: colors.border },
-                        ]}
-                      >
-                        {index < current ? <Check size={11} color="#FFFFFF" strokeWidth={3} /> : null}
-                      </View>
-                      <Text
-                        style={[
-                          styles.stepLabel,
-                          { color: index === current ? colors.primary : colors.textSecondary },
-                          index === current && { fontFamily: fontFamilies.sansSemiBold },
-                        ]}
-                        numberOfLines={2}
-                      >
-                        {stageId}
-                      </Text>
-                    </TouchableOpacity>
-                  </React.Fragment>
-                );
-              })}
+                      {work.collabStatus === 'closed' ? 'Team formed' : 'Open'}
+                    </Text>
+                  </View>
+                ) : null}
+                {work.status === 'draft' ? (
+                  <View style={[styles.typeChip, { backgroundColor: colors.warningLight }]}>
+                    <Text style={[styles.typeText, { color: colors.warning }]}>Draft</Text>
+                  </View>
+                ) : null}
+                <Text style={[styles.date, { color: colors.textMuted }]}>{formatWorkDate(work.createdAt)}</Text>
+              </View>
+
+              <Text style={[styles.title, { color: colors.textPrimary }]}>{work.title}</Text>
+
+              <View style={styles.authorRow}>
+                <TouchableOpacity
+                  style={styles.authorTap}
+                  onPress={() => openProfile(work.authorUid)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Open ${work.authorName}'s profile`}
+                >
+                  <Avatar name={work.authorName} uri={work.authorPhotoURL} size="sm" />
+                  <View style={styles.authorInfo}>
+                    <Text style={[styles.authorName, { color: colors.textPrimary }]} numberOfLines={1}>
+                      {isOwner ? `${work.authorName} (you)` : work.authorName}
+                    </Text>
+                    <Text style={[styles.authorMeta, { color: colors.textSecondary }]} numberOfLines={1}>
+                      {[work.authorDesignation, work.authorDepartment].filter(Boolean).join(' · ')}
+                    </Text>
+                  </View>
+                  <ChevronRight size={16} color={colors.textMuted} />
+                </TouchableOpacity>
+                {renderConnectPill()}
+              </View>
+
+              <View style={[styles.progressCard, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}>
+                <StageProgress stage={work.stage} editable={isOwner} busy={stageBusy} onChange={handleStageChange} />
+              </View>
             </View>
-            {isOwner ? (
-              <Text style={[styles.stageHint, { color: colors.textMuted }]}>Tap a stage to update your progress</Text>
-            ) : null}
 
-            <Text style={[styles.subLabel, { color: colors.textSecondary }]}>DESCRIPTION</Text>
-            <Text style={[styles.description, { color: colors.textPrimary }]}>{work.description}</Text>
+            {/* ===== About this research ===== */}
+            <View style={[styles.divider, { backgroundColor: colors.borderSubtle }]} />
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>About this research</Text>
+              <Text
+                style={[styles.description, { color: colors.textPrimary }]}
+                numberOfLines={expanded || !longDescription ? undefined : DESCRIPTION_PREVIEW_LINES}
+              >
+                {work.description}
+              </Text>
+              {longDescription ? (
+                <TouchableOpacity onPress={() => setExpanded((v) => !v)} style={styles.readMore} accessibilityRole="button">
+                  <Text style={[styles.readMoreText, { color: colors.primary }]}>{expanded ? 'Show less' : 'Read more'}</Text>
+                  {expanded ? <ChevronUp size={15} color={colors.primary} /> : <ChevronDown size={15} color={colors.primary} />}
+                </TouchableOpacity>
+              ) : null}
 
-            {work.tags.length > 0 ? (
-              <>
-                <Text style={[styles.subLabel, { color: colors.textSecondary }]}>TOPICS</Text>
+              {work.tags.length > 0 || work.externalUrl ? (
                 <View style={styles.tagsRow}>
                   {work.tags.map((tag) => (
-                    <View
-                      key={tag}
-                      style={[styles.tag, { backgroundColor: colors.surfaceSubtle, borderColor: colors.borderSubtle }]}
-                    >
+                    <View key={tag} style={[styles.tag, { backgroundColor: colors.surfaceSubtle }]}>
                       <Text style={[styles.tagText, { color: colors.textSecondary }]} numberOfLines={1}>
                         {tag}
                       </Text>
                     </View>
                   ))}
+                  {work.externalUrl ? (
+                    <TouchableOpacity
+                      onPress={() => openLink(work.externalUrl!)}
+                      style={[styles.tag, styles.linkTag, { borderColor: colors.primaryLight, backgroundColor: colors.primaryMuted }]}
+                      accessibilityRole="link"
+                      accessibilityLabel={`Open project link ${work.externalUrl}`}
+                    >
+                      <ExternalLink size={12} color={colors.primary} />
+                      <Text style={[styles.tagText, { color: colors.primary, fontFamily: fontFamilies.sansSemiBold }]}>
+                        Project link
+                      </Text>
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
+              ) : null}
+            </View>
+
+            {/* ===== Team & roles (collaboration posts) ===== */}
+            {isCollabPost ? (
+              <>
+                <View style={[styles.divider, { backgroundColor: colors.borderSubtle }]} />
+                <View style={styles.section}>
+                  <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Team & roles</Text>
+
+                  {work.lookingFor.length > 0 ? (
+                    <>
+                      <Text style={[styles.subLabel, { color: colors.textSecondary }]}>
+                        {work.collabStatus === 'closed' ? 'Was looking for' : 'Looking for'}
+                      </Text>
+                      <View style={styles.tagsRow}>
+                        {work.lookingFor.map((role) => (
+                          <View key={role} style={[styles.tag, { backgroundColor: colors.primaryMuted }]}>
+                            <Text style={[styles.tagText, { color: colors.primary, fontFamily: fontFamilies.sansSemiBold }]} numberOfLines={1}>
+                              {role}
+                            </Text>
+                          </View>
+                        ))}
+                      </View>
+                    </>
+                  ) : null}
+
+                  <Text style={[styles.subLabel, { color: colors.textSecondary }]}>Team</Text>
+                  {work.team.length === 0 ? (
+                    <Text style={[styles.muted, { color: colors.textSecondary }]}>
+                      {isOwner ? 'No one on the team yet. Accepted applicants appear here.' : 'No members yet — be the first to join.'}
+                    </Text>
+                  ) : (
+                    <>
+                      <TouchableOpacity
+                        onPress={() => setTeamOpen((v) => !v)}
+                        style={[styles.teamSummary, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}
+                        accessibilityRole="button"
+                        accessibilityLabel={`${teamOpen ? 'Hide' : 'Show'} team of ${work.team.length}`}
+                      >
+                        <View style={styles.stack}>
+                          <View style={[styles.stackItem, { borderColor: colors.surface }]}>
+                            <Avatar name={work.authorName} uri={work.authorPhotoURL} size="sm" />
+                          </View>
+                          {work.team.slice(0, 4).map((m) => (
+                            <View key={m.uid} style={[styles.stackItem, styles.stackOverlap, { borderColor: colors.surface }]}>
+                              <Avatar name={m.displayName} uri={m.photoURL} size="sm" />
+                            </View>
+                          ))}
+                          {work.team.length > 4 ? (
+                            <View style={[styles.stackMore, styles.stackOverlap, { backgroundColor: colors.surfaceSubtle, borderColor: colors.surface }]}>
+                              <Text style={[styles.stackMoreText, { color: colors.textSecondary }]}>+{work.team.length - 4}</Text>
+                            </View>
+                          ) : null}
+                        </View>
+                        <Text style={[styles.teamCount, { color: colors.textPrimary }]}>
+                          {work.team.length + 1} people
+                        </Text>
+                        {teamOpen ? <ChevronUp size={18} color={colors.textMuted} /> : <ChevronDown size={18} color={colors.textMuted} />}
+                      </TouchableOpacity>
+
+                      {teamOpen ? (
+                        <View style={styles.teamList}>
+                          <View style={styles.memberRow}>
+                            <Avatar name={work.authorName} uri={work.authorPhotoURL} size="sm" />
+                            <Text style={[styles.memberName, { color: colors.textPrimary }]} numberOfLines={1}>{work.authorName}</Text>
+                            <View style={[styles.rolePill, { backgroundColor: colors.surfaceSubtle }]}>
+                              <Text style={[styles.roleText, { color: colors.textSecondary }]}>Lead</Text>
+                            </View>
+                            {onTeam ? (
+                              <TouchableOpacity
+                                onPress={contactAuthor}
+                                hitSlop={8}
+                                style={[styles.contactIcon, { borderColor: colors.primaryLight }]}
+                                accessibilityRole="button"
+                                accessibilityLabel={`Contact ${work.authorName}`}
+                              >
+                                <MessageCircle size={15} color={colors.primary} />
+                              </TouchableOpacity>
+                            ) : null}
+                          </View>
+                          {work.team.map((m) => (
+                            <TouchableOpacity
+                              key={m.uid}
+                              onPress={() => openProfile(m.uid)}
+                              style={styles.memberRow}
+                              accessibilityRole="button"
+                              accessibilityLabel={`${m.displayName}, ${m.role}`}
+                            >
+                              <Avatar name={m.displayName} uri={m.photoURL} size="sm" />
+                              <Text style={[styles.memberName, { color: colors.textPrimary }]} numberOfLines={1}>
+                                {m.uid === myUid ? `${m.displayName} (you)` : m.displayName}
+                              </Text>
+                              <View style={[styles.rolePill, { backgroundColor: colors.primaryMuted }]}>
+                                <Text style={[styles.roleText, { color: colors.primary }]} numberOfLines={1}>{m.role}</Text>
+                              </View>
+                              {isOwner ? (
+                                <TouchableOpacity
+                                  onPress={() =>
+                                    setContactPerson({ uid: m.uid, displayName: m.displayName, photoURL: m.photoURL, subtitle: m.role })
+                                  }
+                                  hitSlop={8}
+                                  style={[styles.contactIcon, { borderColor: colors.primaryLight }]}
+                                  accessibilityRole="button"
+                                  accessibilityLabel={`Contact ${m.displayName}`}
+                                >
+                                  <MessageCircle size={15} color={colors.primary} />
+                                </TouchableOpacity>
+                              ) : null}
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      ) : null}
+                    </>
+                  )}
+
+                  {needsMyCard && hasMyCard === false ? (
+                    <TouchableOpacity
+                      onPress={openContactEditor}
+                      style={[styles.nudge, { backgroundColor: colors.primaryMuted, borderColor: colors.primaryLight }]}
+                      accessibilityRole="button"
+                    >
+                      <IdCard size={18} color={colors.primary} />
+                      <Text style={[styles.nudgeText, { color: colors.textPrimary }]}>
+                        Add your contact card so the team can reach you.
+                      </Text>
+                      <Text style={[styles.nudgeLink, { color: colors.primary }]}>Add</Text>
+                    </TouchableOpacity>
+                  ) : null}
                 </View>
               </>
             ) : null}
 
-            {work.externalUrl ? (
-              <TouchableOpacity
-                activeOpacity={0.7}
-                onPress={() => handleOpenLink(work.externalUrl!)}
-                style={[styles.linkRow, { backgroundColor: colors.surfaceSubtle, borderColor: colors.borderSubtle }]}
-                accessibilityRole="link"
-              >
-                <ExternalLink size={16} color={colors.primary} />
-                <Text style={[styles.linkText, { color: colors.primary }]} numberOfLines={1}>
-                  {work.externalUrl}
-                </Text>
-              </TouchableOpacity>
-            ) : null}
-
-            {/* Delete — bottom of the post details (work posts) */}
-            {isOwner && !isCollabPost ? (
-              <View style={[styles.deleteRow, { borderTopColor: colors.borderSubtle }]}>
-                <Button
-                  label="Edit research work"
-                  onPress={() => setEditing(true)}
-                  variant="outline"
-                  size="md"
-                  fullWidth
-                  icon={<Pencil size={16} color={colors.primary} />}
-                />
-                <SoftDangerButton
-                  label="Delete research work"
-                  onPress={handleDelete}
-                  loading={isDeleting}
-                />
-              </View>
-            ) : null}
-          </View>
-
-          {/* ===== Section 2: Collaboration (collaboration posts only) ===== */}
-          {isCollabPost ? (
-            <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.primaryLight }]}>
-              <View style={styles.sectionHeader}>
-                <Users size={16} color={colors.primary} />
-                <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Collaboration</Text>
-                <View
-                  style={[
-                    styles.statusPill,
-                    { backgroundColor: work.collabStatus === 'closed' ? colors.successLight : colors.primaryMuted },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.statusPillText,
-                      { color: work.collabStatus === 'closed' ? colors.success : colors.primary },
-                    ]}
-                  >
-                    {work.collabStatus === 'closed' ? 'Team formed' : 'Open'}
+            {/* ===== More from the author ===== */}
+            {moreWorks.length > 0 ? (
+              <>
+                <View style={[styles.divider, { backgroundColor: colors.borderSubtle }]} />
+                <View style={styles.sectionHeaderRow}>
+                  <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginBottom: 0 }]}>
+                    More from {isOwner ? 'you' : authorFirst}
                   </Text>
+                  <TouchableOpacity onPress={() => openProfile(work.authorUid)} hitSlop={8} accessibilityRole="button">
+                    <Text style={[styles.seeAll, { color: colors.primary }]}>See all</Text>
+                  </TouchableOpacity>
                 </View>
-              </View>
-
-              {work.lookingFor.length > 0 ? (
-                <>
-                  <Text style={[styles.subLabel, { color: colors.textSecondary }]}>LOOKING FOR</Text>
-                  <View style={styles.tagsRow}>
-                    {work.lookingFor.map((role) => (
-                      <View key={role} style={[styles.tag, { backgroundColor: colors.primaryMuted, borderColor: colors.primaryLight }]}>
-                        <Text style={[styles.tagText, { color: colors.primary, fontFamily: fontFamilies.sansSemiBold }]} numberOfLines={1}>
-                          {role}
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.moreRow}
+                >
+                  {moreWorks.map((w) => (
+                    <TouchableOpacity
+                      key={w.id}
+                      activeOpacity={0.85}
+                      onPress={() => router.push(`/(research)/${w.id}` as any)}
+                      style={[styles.moreCard, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Open ${w.title}`}
+                    >
+                      <View style={[styles.moreAccent, { backgroundColor: w.postType === 'collaboration' ? colors.primary : colors.border }]} />
+                      <Text style={[styles.moreType, { color: w.postType === 'collaboration' ? colors.primary : colors.textMuted }]}>
+                        {w.postType === 'collaboration' ? 'Collaboration' : 'Research work'}
+                      </Text>
+                      <Text style={[styles.moreTitle, { color: colors.textPrimary }]} numberOfLines={2}>
+                        {w.title}
+                      </Text>
+                      <View style={styles.moreMeta}>
+                        <Layers size={12} color={colors.textMuted} />
+                        <Text style={[styles.moreMetaText, { color: colors.textMuted }]} numberOfLines={1}>
+                          {w.stage} · {formatWorkDate(w.createdAt)}
                         </Text>
                       </View>
-                    ))}
-                  </View>
-                </>
-              ) : null}
-
-              {(() => {
-                const action = collaborate(work);
-                if (isOwner) return null;
-                if (!action.onCollaboratePress) return null;
-                return (
-                  <TouchableOpacity
-                    onPress={action.onCollaboratePress}
-                    disabled={action.collaborateDisabled}
-                    style={[
-                      styles.authorButton,
-                      { marginTop: spacing.md },
-                      action.collaborateDisabled
-                        ? { backgroundColor: colors.surfaceSubtle, borderColor: colors.borderSubtle }
-                        : { backgroundColor: colors.primary, borderColor: colors.primary },
-                    ]}
-                    accessibilityRole="button"
-                    accessibilityLabel={action.collaborateLabel}
-                  >
-                    <UserPlus size={15} color={action.collaborateDisabled ? colors.textMuted : '#FFFFFF'} />
-                    <Text style={[styles.authorButtonText, { color: action.collaborateDisabled ? colors.textMuted : '#FFFFFF' }]}>
-                      {action.collaborateLabel}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })()}
-
-              {onTeam ? (
-                <TouchableOpacity
-                  onPress={() =>
-                    setContactPerson({
-                      uid: work.authorUid,
-                      displayName: work.authorName,
-                      photoURL: work.authorPhotoURL,
-                      subtitle: 'Project lead',
-                    })
-                  }
-                  style={[styles.authorButton, styles.contactButton, { backgroundColor: colors.primaryMuted, borderColor: colors.primaryLight }]}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Contact ${work.authorName}`}
-                >
-                  <MessageCircle size={15} color={colors.primary} />
-                  <Text style={[styles.authorButtonText, { color: colors.primary, fontFamily: fontFamilies.sansSemiBold }]}>
-                    Contact {work.authorName.split(' ')[0]}
-                  </Text>
-                </TouchableOpacity>
-              ) : null}
-
-              {needsMyCard && hasMyCard === false ? (
-                <View style={[styles.nudge, { backgroundColor: colors.surfaceSubtle, borderColor: colors.borderSubtle }]}>
-                  <IdCard size={18} color={colors.primary} />
-                  <Text style={[styles.nudgeText, { color: colors.textSecondary }]}>
-                    {isOwner
-                      ? 'Add your contact card so your team can reach you.'
-                      : 'Add your contact card so the team can reach you.'}
-                  </Text>
-                  <TouchableOpacity onPress={openContactEditor} hitSlop={8} accessibilityRole="button">
-                    <Text style={[styles.nudgeLink, { color: colors.primary }]}>Add</Text>
-                  </TouchableOpacity>
-                </View>
-              ) : null}
-
-              {work.team.length > 0 ? (
-                <View style={styles.subsection}>
-                  <Text style={[styles.subLabel, { color: colors.textSecondary }]}>TEAM ({work.team.length})</Text>
-                  {work.team.map((m) => (
-                    <TouchableOpacity
-                      key={m.uid}
-                      onPress={() => router.push(`/(profile)/${m.uid}` as any)}
-                      style={styles.personRow}
-                      accessibilityRole="button"
-                      accessibilityLabel={`${m.displayName}, ${m.role}`}
-                    >
-                      <Avatar name={m.displayName} uri={m.photoURL} size="sm" />
-                      <Text style={[styles.personName, { color: colors.textPrimary, flex: 1 }]} numberOfLines={1}>{m.displayName}</Text>
-                      <View style={[styles.rolePill, { backgroundColor: colors.primaryMuted }]}>
-                        <Text style={[styles.rolePillText, { color: colors.primary }]} numberOfLines={1}>{m.role}</Text>
-                      </View>
-                      {isOwner ? (
-                        <TouchableOpacity
-                          onPress={() => setContactPerson({ uid: m.uid, displayName: m.displayName, photoURL: m.photoURL, subtitle: m.role })}
-                          hitSlop={8}
-                          style={[styles.contactIcon, { borderColor: colors.primaryLight, backgroundColor: colors.surface }]}
-                          accessibilityRole="button"
-                          accessibilityLabel={`Contact ${m.displayName}`}
-                        >
-                          <MessageCircle size={15} color={colors.primary} />
-                        </TouchableOpacity>
-                      ) : null}
                     </TouchableOpacity>
                   ))}
-                </View>
-              ) : null}
+                </ScrollView>
+              </>
+            ) : null}
+          </ScrollView>
 
-              {isOwner ? (
-                <>
-                  <View style={[styles.toggleRow, styles.subsection]}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.personName, { color: colors.textPrimary }]}>Accepting applications</Text>
-                      <Text style={[styles.metaText, { color: colors.textSecondary }]}>
-                        {work.collabStatus === 'closed' ? 'Shown as "Team formed" — no new applications.' : 'Researchers can apply for the roles above.'}
-                      </Text>
-                    </View>
-                    <Switch
-                      value={work.collabStatus !== 'closed'}
-                      onValueChange={handleToggleOpen}
-                      disabled={statusBusy}
-                      accessibilityLabel="Accepting applications"
-                    />
-                  </View>
+          {renderBottomBar()}
 
-                  <View style={styles.subsection}>
-                  <Text style={[styles.subLabel, { color: colors.textSecondary }]}>
-                    APPLICANTS ({applicants.length})
-                  </Text>
-                  {applicants.length === 0 ? (
-                    <Text style={[styles.metaText, { color: colors.textSecondary }]}>
-                      No applications yet. They will appear here (and in Notifications) as researchers apply.
-                    </Text>
-                  ) : (
-                    [...applicants]
-                      .sort((a, b) => (a.status === 'pending' ? -1 : 0) - (b.status === 'pending' ? -1 : 0))
-                      .map((r) => (
-                        <View key={r.id} style={[styles.applicant, { borderColor: colors.borderSubtle }]}>
-                          <TouchableOpacity
-                            onPress={() => router.push(`/(profile)/${r.applicantUid}` as any)}
-                            style={styles.personRow}
-                            accessibilityRole="button"
-                          >
-                            <Avatar name={r.applicant.displayName} uri={r.applicant.photoURL} size="sm" />
-                            <View style={{ flex: 1, minWidth: 0 }}>
-                              <Text style={[styles.personName, { color: colors.textPrimary }]} numberOfLines={1}>
-                                {r.applicant.displayName}
-                              </Text>
-                              <Text style={[styles.metaText, { color: colors.textSecondary }]} numberOfLines={1}>
-                                {r.applicant.designation} · {formatWorkDate(r.createdAt)}
-                              </Text>
-                            </View>
-                            <View style={[styles.rolePill, { backgroundColor: colors.primaryMuted }]}>
-                              <Text style={[styles.rolePillText, { color: colors.primary }]} numberOfLines={1}>{r.role}</Text>
-                            </View>
-                          </TouchableOpacity>
-                          {r.message ? (
-                            <Text style={[styles.applicantMessage, { color: colors.textPrimary, backgroundColor: colors.surfaceSubtle }]}>
-                              "{r.message}"
-                            </Text>
-                          ) : null}
-                          {r.status === 'pending' ? (
-                            <View style={styles.authorActions}>
-                              <TouchableOpacity
-                                onPress={() => handleRespond(r, false)}
-                                disabled={busyRequest === r.id}
-                                style={[styles.authorButton, { borderColor: colors.border, backgroundColor: colors.surface }]}
-                                accessibilityRole="button"
-                              >
-                                <Text style={[styles.authorButtonText, { color: colors.textPrimary }]}>Decline</Text>
-                              </TouchableOpacity>
-                              <TouchableOpacity
-                                onPress={() => handleRespond(r, true)}
-                                disabled={busyRequest === r.id}
-                                style={[styles.authorButton, { backgroundColor: colors.primary, borderColor: colors.primary }]}
-                                accessibilityRole="button"
-                              >
-                                <Check size={15} color="#FFFFFF" />
-                                <Text style={[styles.authorButtonText, { color: '#FFFFFF' }]}>
-                                  {busyRequest === r.id ? 'Saving…' : 'Accept'}
-                                </Text>
-                              </TouchableOpacity>
-                            </View>
-                          ) : (
-                            <Text
-                              style={[
-                                styles.metaText,
-                                { color: r.status === 'accepted' ? colors.success : colors.textMuted, marginTop: spacing.xs },
-                              ]}
-                            >
-                              {r.status === 'accepted' ? '✓ Accepted — on your team' : 'Declined'}
-                            </Text>
-                          )}
-                        </View>
-                      ))
-                  )}
-                  </View>
-                </>
-              ) : null}
-
-              {/* Delete — bottom of the post details (collaboration posts) */}
-              {isOwner ? (
-                <View style={[styles.deleteRow, { borderTopColor: colors.borderSubtle }]}>
-                  <Button
-                    label="Edit collaboration post"
-                    onPress={() => setEditing(true)}
-                    variant="outline"
-                    size="md"
-                    fullWidth
-                    icon={<Pencil size={16} color={colors.primary} />}
-                  />
-                  <SoftDangerButton
-                    label="Delete collaboration post"
-                    onPress={handleDelete}
-                    loading={isDeleting}
-                  />
-                </View>
-              ) : null}
-            </View>
-          ) : null}
-
-          {/* About the researcher */}
-          {!isOwner && author ? (
-            <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}>
-              <Text style={[styles.sectionLabel, { color: colors.textPrimary }]}>About the researcher</Text>
-              <View style={styles.authorRow}>
-                <Avatar name={author.displayName} uri={author.photoURL} size="md" />
-                <View style={styles.authorInfo}>
-                  <Text style={[styles.authorName, { color: colors.textPrimary }]} numberOfLines={1}>
-                    {author.displayName}
-                  </Text>
-                  <Text style={[styles.authorMeta, { color: colors.textSecondary }]} numberOfLines={1}>
-                    {[author.designation, author.department].filter(Boolean).join(' • ')}
-                  </Text>
-                </View>
-              </View>
-              {author.bio ? (
-                <Text style={[styles.metaText, { color: colors.textSecondary, marginBottom: spacing.sm }]} numberOfLines={3}>
-                  {author.bio}
-                </Text>
-              ) : null}
-              <View style={styles.authorActions}>
-                <TouchableOpacity
-                  onPress={handleAuthorPress}
-                  style={[styles.authorButton, { borderColor: colors.border, backgroundColor: colors.surface }]}
-                  accessibilityRole="button"
-                >
-                  <User size={15} color={colors.textPrimary} />
-                  <Text style={[styles.authorButtonText, { color: colors.textPrimary }]}>View profile</Text>
-                </TouchableOpacity>
-                {(() => {
-                  const rel = relationship(author.uid).state;
-                  const busy = busyUid === author.uid;
-                  const filled = rel === 'none' || rel === 'incoming';
-                  const label =
-                    rel === 'connected' ? 'Connected'
-                    : rel === 'outgoing' ? 'Request sent'
-                    : rel === 'incoming' ? 'Respond'
-                    : rel === 'rejected' ? 'Declined'
-                    : 'Connect';
-                  const Icon = rel === 'connected' ? Check : rel === 'outgoing' || rel === 'rejected' ? Clock : UserPlus;
-                  return (
-                    <TouchableOpacity
-                      onPress={() => handleConnectPress(author)}
-                      disabled={busy}
-                      style={[
-                        styles.authorButton,
-                        filled
-                          ? { backgroundColor: colors.primary, borderColor: colors.primary }
-                          : { backgroundColor: colors.primaryMuted, borderColor: colors.primaryLight },
-                      ]}
-                      accessibilityRole="button"
-                      accessibilityLabel={label}
-                    >
-                      <Icon size={15} color={filled ? '#FFFFFF' : colors.primary} />
-                      <Text style={[styles.authorButtonText, { color: filled ? '#FFFFFF' : colors.primary }]}>{label}</Text>
-                    </TouchableOpacity>
-                  );
-                })()}
-              </View>
-            </View>
-          ) : null}
-
-          {/* More from this researcher */}
-          {moreWorks.length > 0 ? (
-            <View style={styles.moreSection}>
-              <Text style={[styles.sectionLabel, { color: colors.textPrimary }]}>
-                More from {isOwner ? 'you' : work.authorName.split(' ')[0]}
-              </Text>
-              <WorkList works={moreWorks} onOpen={(w) => router.push(`/(research)/${w.id}` as any)} />
-            </View>
-          ) : null}
-
-        </ScrollView>
+          <ManagePostSheet
+            visible={manageOpen}
+            onClose={() => setManageOpen(false)}
+            work={work}
+            applicants={applicants}
+            busyRequest={busyRequest}
+            statusBusy={statusBusy}
+            isDeleting={isDeleting}
+            onEdit={() => setEditing(true)}
+            onToggleOpen={handleToggleOpen}
+            onRespond={handleRespond}
+            onDelete={handleDelete}
+          />
+        </>
       )}
 
-      <EditWorkSheet
-        work={work}
-        visible={editing}
-        onClose={() => setEditing(false)}
-        onSaved={(updated) => setWork(updated)}
-      />
+      <EditWorkSheet work={work} visible={editing} onClose={() => setEditing(false)} onSaved={(updated) => setWork(updated)} />
 
       <ContactSheet
         person={contactPerson}
         onClose={() => setContactPerson(null)}
-        onViewProfile={(uid) => router.push(`/(profile)/${uid}` as any)}
+        onViewProfile={(uid) => openProfile(uid)}
       />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleBlock: { flexDirection: 'row', gap: spacing.xs, marginBottom: spacing.sm },
-  typeBadge: {
+  safeArea: { flex: 1 },
+  scroll: { paddingTop: spacing.md },
+
+  // status / empty
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl, gap: spacing.md },
+  iconContainer: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center' },
+  statusTitle: { ...typography.headline, textAlign: 'center' },
+  statusText: { ...typography.bodySmall, textAlign: 'center' },
+
+  // hero
+  hero: { paddingHorizontal: spacing.md, paddingBottom: spacing.md },
+  accentBar: { width: 36, height: 4, borderRadius: 2, marginBottom: spacing.sm },
+  statusLine: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: spacing.xs },
+  typeChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 5,
     paddingHorizontal: 10,
-    paddingVertical: 4,
+    height: 26,
     borderRadius: radius.full,
   },
-  typeBadgeText: { ...typography.caption, fontFamily: fontFamilies.sansSemiBold },
-  section: {
+  typeText: { ...typography.caption, fontFamily: fontFamilies.sansSemiBold },
+  liveDot: { width: 7, height: 7, borderRadius: 4 },
+  date: { ...typography.caption, marginLeft: 2 },
+  title: {
+    ...typography.display,
+    fontSize: 26,
+    lineHeight: 33,
+    marginTop: spacing.sm,
+  },
+  authorRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.md },
+  authorTap: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, minWidth: 0 },
+  authorInfo: { flex: 1, minWidth: 0 },
+  authorName: { ...typography.label, fontFamily: fontFamilies.sansSemiBold },
+  authorMeta: { ...typography.caption },
+  connectPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    height: 32,
+    borderRadius: radius.full,
+    borderWidth: 1,
+  },
+  connectText: { ...typography.caption, fontFamily: fontFamilies.sansSemiBold },
+  progressCard: { borderWidth: 1, borderRadius: radius.md, padding: spacing.md, marginTop: spacing.md },
+
+  // sections
+  divider: { height: 1, marginHorizontal: spacing.md },
+  section: { paddingHorizontal: spacing.md, paddingVertical: spacing.lg },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.sm,
+  },
+  sectionTitle: { ...typography.title, fontSize: 18, marginBottom: spacing.sm },
+  subLabel: { ...typography.caption, fontFamily: fontFamilies.sansSemiBold, marginTop: spacing.md, marginBottom: spacing.xs },
+  description: { ...typography.body, lineHeight: 24 },
+  readMore: { flexDirection: 'row', alignItems: 'center', gap: 2, marginTop: spacing.xs, alignSelf: 'flex-start' },
+  readMoreText: { ...typography.label, fontFamily: fontFamilies.sansSemiBold },
+  muted: { ...typography.bodySmall },
+  seeAll: { ...typography.label, fontFamily: fontFamilies.sansSemiBold },
+  tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginTop: spacing.md },
+  tag: { paddingHorizontal: 10, height: 28, justifyContent: 'center', borderRadius: radius.full, maxWidth: '100%' },
+  linkTag: { flexDirection: 'row', alignItems: 'center', gap: 5, borderWidth: 1 },
+  tagText: { ...typography.caption },
+
+  // team
+  teamSummary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
     borderWidth: 1,
     borderRadius: radius.md,
-    padding: spacing.md,
-    marginBottom: spacing.md,
+    padding: spacing.sm,
   },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.xs },
-  sectionTitle: { ...typography.title, fontSize: 17, flex: 1 },
-  subLabel: { ...typography.micro, fontFamily: fontFamilies.sansSemiBold, letterSpacing: 0.6, marginTop: spacing.md, marginBottom: spacing.xs },
-  subsection: { marginTop: spacing.sm },
-  statusPill: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: radius.full },
-  statusPillText: { ...typography.micro, fontFamily: fontFamilies.sansSemiBold },
-  stepper: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  step: {
-    alignItems: 'center',
-    width: 64,
-  },
-  stepDot: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stepLine: {
-    flex: 1,
-    height: 2,
-    marginTop: 9,
-    marginHorizontal: -18,
-  },
-  stepLabel: {
-    ...typography.micro,
-    textAlign: 'center',
-    marginTop: 4,
-  },
-  sectionLabel: {
-    ...typography.sectionHeader,
-    marginBottom: spacing.sm,
-  },
-  authorActions: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  authorButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    height: spacing.secondaryButtonHeight,
-    borderRadius: radius.button,
-    borderWidth: 1,
-  },
-  authorButtonText: {
-    ...typography.label,
-  },
-  contactButton: { flex: 0, marginTop: spacing.md },
+  stack: { flexDirection: 'row', alignItems: 'center' },
+  stackItem: { borderWidth: 2, borderRadius: 20 },
+  stackOverlap: { marginLeft: -10 },
+  stackMore: { width: 36, height: 36, borderRadius: 18, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  stackMoreText: { ...typography.micro, fontFamily: fontFamilies.sansSemiBold },
+  teamCount: { ...typography.label, fontFamily: fontFamilies.sansSemiBold, flex: 1 },
+  teamList: { marginTop: spacing.sm, gap: 2 },
+  memberRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: 6 },
+  memberName: { ...typography.label, flex: 1, minWidth: 0 },
+  rolePill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: radius.full, maxWidth: 140 },
+  roleText: { ...typography.caption, fontFamily: fontFamilies.sansSemiBold },
   contactIcon: { width: 32, height: 32, borderRadius: 16, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   nudge: {
     flexDirection: 'row',
@@ -834,168 +894,59 @@ const styles = StyleSheet.create({
   },
   nudgeText: { ...typography.bodySmall, flex: 1 },
   nudgeLink: { ...typography.label, fontFamily: fontFamilies.sansSemiBold },
-  personRow: {
+
+  // more from
+  moreRow: { paddingHorizontal: spacing.md, gap: spacing.sm, paddingBottom: spacing.sm },
+  moreCard: { width: 220, borderWidth: 1, borderRadius: radius.md, padding: spacing.md, overflow: 'hidden' },
+  moreAccent: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 3 },
+  moreType: { ...typography.micro, fontFamily: fontFamilies.sansSemiBold, marginBottom: 4 },
+  moreTitle: { ...typography.label, fontFamily: fontFamilies.sansSemiBold, minHeight: 40 },
+  moreMeta: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: spacing.sm },
+  moreMetaText: { ...typography.micro, flex: 1 },
+
+  // header dot
+  dot: { position: 'absolute', top: -2, right: -4, width: 10, height: 10, borderRadius: 5, borderWidth: 2 },
+
+  // bottom bar
+  bottomBar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    paddingVertical: 6,
-  },
-  personName: {
-    ...typography.label,
-    flexShrink: 1,
-  },
-  rolePill: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: radius.full,
-    maxWidth: 150,
-  },
-  rolePillText: {
-    ...typography.caption,
-    fontFamily: fontFamilies.sansSemiBold,
-  },
-  toggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  applicant: {
-    borderTopWidth: 1,
+    paddingHorizontal: spacing.md,
     paddingTop: spacing.sm,
-    marginTop: spacing.sm,
-  },
-  applicantMessage: {
-    ...typography.bodySmall,
-    fontStyle: 'italic',
-    padding: spacing.sm,
-    borderRadius: radius.sm,
-    marginVertical: spacing.xs,
-  },
-  moreSection: {
-    marginBottom: spacing.md,
-  },
-  safeArea: {
-    flex: 1,
-  },
-  centered: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.xl,
-  },
-  iconContainer: {
-    width: 72,
-    height: 72,
-    borderRadius: radius.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.md,
-  },
-  scrollContent: {
-    padding: spacing.md,
-    paddingBottom: spacing.xl,
-  },
-  authorRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.md,
-  },
-  authorInfo: {
-    flex: 1,
-    minWidth: 0,
-    marginLeft: spacing.sm,
-  },
-  authorName: {
-    ...typography.titleSmall,
-  },
-  authorMeta: {
-    ...typography.bodySmall,
-  },
-  title: {
-    ...typography.headlineSmall,
-    marginBottom: spacing.sm,
-  },
-  subtitle: {
-    ...typography.body,
-    textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: spacing.lg,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  metaPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: radius.full,
-  },
-  metaPillText: {
-    ...typography.caption,
-    fontFamily: fontFamilies.sansSemiBold,
-  },
-  metaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  metaText: {
-    ...typography.caption,
-  },
-  card: {
-    borderWidth: 1,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-  },
-  description: {
-    ...typography.body,
-    lineHeight: 22,
-  },
-  tagsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: spacing.md,
-  },
-  tag: {
-    borderWidth: 1,
-    borderRadius: radius.full,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    maxWidth: '100%',
-    flexShrink: 1,
-  },
-  tagText: {
-    ...typography.caption,
-    flexShrink: 1,
-  },
-  linkRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    borderWidth: 1,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    marginTop: spacing.md,
-  },
-  linkText: {
-    ...typography.bodySmall,
-    flex: 1,
-    minWidth: 0,
-  },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  stageHint: { ...typography.micro, textAlign: 'center', marginTop: spacing.xs },
-  deleteRow: {
-    gap: spacing.sm,
-    marginTop: spacing.md,
-    paddingTop: spacing.md,
     borderTopWidth: 1,
+  },
+  primaryBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    height: spacing.buttonHeight,
+    borderRadius: radius.button,
+    paddingHorizontal: spacing.md,
+  },
+  primaryText: { ...typography.button, color: '#FFFFFF', flexShrink: 1 },
+  countBadge: {
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
+    paddingHorizontal: 6,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  countText: { ...typography.micro, fontFamily: fontFamilies.sansSemiBold },
+  squareBtn: {
+    width: spacing.buttonHeight,
+    height: spacing.buttonHeight,
+    borderRadius: radius.button,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
