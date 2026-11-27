@@ -2,38 +2,37 @@ import React, { useCallback, useEffect, useState } from 'react';
 import type { QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 import { UserTable } from '../components/users/UserTable';
 import { Button } from '../components/common/Button';
-import { getUsersPage, USERS_PAGE_SIZE } from '../services/admin.service';
+import { PageHeader } from '../components/common/PageHeader';
+import { getDashboardCounts, getUsersPage, USERS_PAGE_SIZE } from '../services/admin.service';
 import type { UserProfile, ApprovalStatus } from '../types/user.types';
 import type { ActionType } from '../components/users/ApprovalActionDialog';
+
+type Filter = ApprovalStatus | 'all';
 
 interface UsersPageProps {
   onInspectUser: (user: UserProfile) => void;
   onActionClick: (user: UserProfile, action: ActionType) => void;
-  initialFilter?: ApprovalStatus | 'all';
+  /** Current status filter (kept in the URL: #/users/rejected). */
+  filter: Filter;
+  onFilterChange: (filter: Filter) => void;
   /** Changes whenever an admin action modifies a user, triggering a reload. */
   reloadKey?: number;
 }
 
-export const UsersPage: React.FC<UsersPageProps> = ({
-  onInspectUser,
-  onActionClick,
-  initialFilter = 'all',
-  reloadKey = 0
-}) => {
+export const UsersPage: React.FC<UsersPageProps> = ({ onInspectUser, onActionClick, filter, onFilterChange, reloadKey = 0 }) => {
   const [users, setUsers] = useState<UserProfile[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [loadingMore, setLoadingMore] = useState<boolean>(false);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cursor, setCursor] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
   const [hasMore, setHasMore] = useState(false);
-  const [activeFilter, setActiveFilter] = useState<ApprovalStatus | 'all'>(initialFilter);
+  const [counts, setCounts] = useState<Partial<Record<Filter, number>>>({});
 
-  // First page for the current filter
-  const loadFirstPage = useCallback(async (filter: ApprovalStatus | 'all') => {
+  const loadFirstPage = useCallback(async (f: Filter) => {
     setLoading(true);
     setError(null);
     try {
-      const page = await getUsersPage(filter, null);
+      const page = await getUsersPage(f, null);
       setUsers(page.users);
       setCursor(page.cursor);
       setHasMore(page.hasMore);
@@ -41,8 +40,8 @@ export const UsersPage: React.FC<UsersPageProps> = ({
       console.error('[UsersPage] Failed to fetch users:', err);
       setError(
         err?.code === 'failed-precondition'
-          ? 'The directory index is still being built. Please try again in a few minutes.'
-          : 'Could not load the researcher directory.'
+          ? 'The user list index is still being built. Please try again in a few minutes.'
+          : 'Could not load users.'
       );
     } finally {
       setLoading(false);
@@ -53,54 +52,54 @@ export const UsersPage: React.FC<UsersPageProps> = ({
     if (!cursor || loadingMore) return;
     setLoadingMore(true);
     try {
-      const page = await getUsersPage(activeFilter, cursor);
+      const page = await getUsersPage(filter, cursor);
       setUsers((prev) => [...prev, ...page.users]);
       setCursor(page.cursor);
       setHasMore(page.hasMore);
     } catch (err) {
       console.error('[UsersPage] Failed to load more users:', err);
-      setError('Could not load more researchers.');
+      setError('Could not load more users.');
     } finally {
       setLoadingMore(false);
     }
   };
 
   useEffect(() => {
-    loadFirstPage(activeFilter);
-  }, [activeFilter, reloadKey, loadFirstPage]);
+    loadFirstPage(filter);
+  }, [filter, reloadKey, loadFirstPage]);
+
+  useEffect(() => {
+    getDashboardCounts()
+      .then((c) =>
+        setCounts({ all: c.totalUsers, pending: c.pendingUsers, approved: c.approvedUsers, rejected: c.rejectedUsers, suspended: c.suspendedUsers })
+      )
+      .catch(() => setCounts({}));
+  }, [reloadKey]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      <div>
-        <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>
-          Scholar Directory & Account States
-        </h2>
-        <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-          Inspect academic profiles, adjust approval statuses, or suspend accounts
-        </div>
-      </div>
+    <div className="stack">
+      <PageHeader title="Users" subtitle="View accounts, change their status, or correct academic details" />
 
-      {error && (
-        <div style={{ fontSize: '13px', color: 'var(--status-rejected-text)' }}>{error}</div>
-      )}
+      {error ? <div role="alert" style={{ fontSize: 13, color: 'var(--status-rejected-text)' }}>{error}</div> : null}
 
       <UserTable
         users={users}
         loading={loading}
-        activeFilter={activeFilter}
-        onFilterChange={setActiveFilter}
+        activeFilter={filter}
+        onFilterChange={onFilterChange}
+        counts={counts}
         onInspect={onInspectUser}
         onActionClick={onActionClick}
       />
 
-      {!loading && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12.5px', color: 'var(--text-secondary)' }}>
+      {!loading && users.length > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', fontSize: 12.5, color: 'var(--text-secondary)' }}>
           <span>
-            Showing {users.length} researcher{users.length === 1 ? '' : 's'}
-            {hasMore ? ` (${USERS_PAGE_SIZE} per page)` : ''}. Search filters the loaded page(s).
+            Showing {users.length} user{users.length === 1 ? '' : 's'}
+            {hasMore ? ` · ${USERS_PAGE_SIZE} per page · search covers loaded users` : ''}
           </span>
           {hasMore && (
-            <Button variant="secondary" onClick={loadMore} loading={loadingMore}>
+            <Button variant="secondary" size="sm" onClick={loadMore} loading={loadingMore}>
               Load more
             </Button>
           )}

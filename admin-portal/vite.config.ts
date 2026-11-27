@@ -4,16 +4,19 @@ import react from '@vitejs/plugin-react';
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
-  // The administrator email is reduced to a SHA-256 fingerprint at BUILD time,
-  // so the address itself never appears in the public JavaScript bundle.
+  // Administrator emails are reduced to SHA-256 fingerprints at BUILD time,
+  // so the addresses never appear in the public JavaScript bundle.
+  // VITE_ADMIN_EMAIL (one) and VITE_ADMIN_EMAILS (comma-separated) are merged.
   // (Real authorisation is still the admins/{uid} record + Firestore rules.)
   const env = loadEnv(mode, process.cwd(), 'VITE_');
-  const adminEmail = (env.VITE_ADMIN_EMAIL || '').toLowerCase().trim();
-  const adminEmailSha256 = adminEmail ? createHash('sha256').update(adminEmail).digest('hex') : '';
+  const adminEmails = [env.VITE_ADMIN_EMAIL || '', ...(env.VITE_ADMIN_EMAILS || '').split(',')]
+    .map((e) => e.toLowerCase().trim())
+    .filter(Boolean);
+  const adminEmailSha256s = [...new Set(adminEmails)].map((e) => createHash('sha256').update(e).digest('hex'));
 
   return {
   define: {
-    __ADMIN_EMAIL_SHA256__: JSON.stringify(adminEmailSha256)
+    __ADMIN_EMAIL_SHA256S__: JSON.stringify(adminEmailSha256s)
   },
   plugins: [react()],
   resolve: {

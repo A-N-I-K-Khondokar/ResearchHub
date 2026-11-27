@@ -1,65 +1,31 @@
 import React from 'react';
-import type { LucideIcon } from 'lucide-react';
+import { ArrowRight, type LucideIcon } from 'lucide-react';
 
 interface StatCardProps {
   title: string;
   value: number | string;
   icon: LucideIcon;
   accentColor: string;
-  badge?: string;
+  /** Short hint under the number, e.g. "Needs review". */
+  hint?: string;
   onClick?: () => void;
 }
 
-export const StatCard: React.FC<StatCardProps> = ({
-  title,
-  value,
-  icon: Icon,
-  accentColor,
-  badge,
-  onClick
-}) => {
-  return (
-    <div
-      className="card"
-      onClick={onClick}
-      style={{
-        cursor: onClick ? 'pointer' : 'default',
-        position: 'relative',
-        overflow: 'hidden',
-        borderLeft: `4px solid ${accentColor}`
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-        <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
-          {title}
-        </span>
-        <div
-          style={{
-            width: '36px',
-            height: '36px',
-            borderRadius: 'var(--radius-md)',
-            backgroundColor: 'var(--bg-surface-subtle)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: accentColor
-          }}
-        >
-          <Icon size={18} />
-        </div>
+/** Metric tile; a real button, so it works with Tab / Enter. */
+export const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, accentColor, hint, onClick }) => (
+  <button type="button" className="stat-card" onClick={onClick} aria-label={`${title}: ${value}. View list`}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div className="stat-icon" style={{ background: `${accentColor}1A`, color: accentColor }}>
+        <Icon size={18} aria-hidden="true" />
       </div>
-
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-        <span style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.5px' }}>
-          {value}
-        </span>
-        {badge && (
-          <span style={{ fontSize: '12px', fontWeight: 600, color: accentColor }}>
-            {badge}
-          </span>
-        )}
-      </div>
+      <span className="stat-link" aria-hidden="true">
+        View <ArrowRight size={12} />
+      </span>
     </div>
-  );
-};
-
+    <div className="stat-value">{value}</div>
+    <div className="stat-label">
+      {title}
+      {hint ? <span style={{ color: accentColor, fontWeight: 600 }}> · {hint}</span> : null}
+    </div>
+  </button>
+);

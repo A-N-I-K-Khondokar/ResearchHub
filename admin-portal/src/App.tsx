@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useAuth } from './context/AuthContext';
 import { NotificationProvider, useNotifications } from './context/NotificationContext';
 import { AdminLayout } from './components/layout/AdminLayout';
-import type { NavTab } from './components/layout/Sidebar';
 import { LoginPage } from './pages/LoginPage';
 import { OverviewPage } from './pages/OverviewPage';
 import { PendingPage } from './pages/PendingPage';
@@ -10,6 +9,7 @@ import { UsersPage } from './pages/UsersPage';
 import { ActivityPage } from './pages/ActivityPage';
 import { ApplicantDetailModal } from './components/users/ApplicantDetailModal';
 import { ApprovalActionDialog, type ActionType } from './components/users/ApprovalActionDialog';
+import { useHashRoute } from './hooks/useHashRoute';
 import {
   getUserById,
   approveUser,
@@ -24,22 +24,18 @@ import { Loader2 } from 'lucide-react';
 
 const AdminPortalContent: React.FC = () => {
   const { user, adminRecord, loading } = useAuth();
-  const [currentTab, setCurrentTab] = useState<NavTab>('overview');
+  const { route, navigate } = useHashRoute();
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [actionTargetUser, setActionTargetUser] = useState<UserProfile | null>(null);
   const [actionType, setActionType] = useState<ActionType>('approve');
-  // Sidebar badge reads the single shared pending listener (NotificationContext)
   const { pendingCount } = useNotifications();
-  // Bumped after every admin action so the paginated directory reloads
-  const [directoryVersion, setDirectoryVersion] = useState(0);
+  // Bumped after every admin action so lists and counts reload
+  const [dataVersion, setDataVersion] = useState(0);
 
-  // Handle direct UID lookup (from notification or search)
   const handleInspectByUid = async (uid: string) => {
     try {
       const profile = await getUserById(uid);
-      if (profile) {
-        setSelectedUser(profile);
-      }
+      if (profile) setSelectedUser(profile);
     } catch (err) {
       console.error('[App] Failed to load profile for uid:', uid, err);
     }
@@ -50,9 +46,12 @@ const AdminPortalContent: React.FC = () => {
     setActionType(type);
   };
 
+  const refreshSelected = async (uid: string) => {
+    if (selectedUser && selectedUser.uid === uid) setSelectedUser(await getUserById(uid));
+  };
+
   const handleExecuteAction = async (target: UserProfile, reason?: string) => {
     if (!user) return;
-
     switch (actionType) {
       case 'approve':
         await approveUser(target, user.uid);
@@ -67,39 +66,43 @@ const AdminPortalContent: React.FC = () => {
         await reinstateUser(target, user.uid);
         break;
     }
-    setDirectoryVersion((v) => v + 1);
+    setDataVersion((v) => v + 1);
+    await refreshSelected(target.uid);
+  };
 
-    // Refresh selectedUser if detail modal is open
-    if (selectedUser && selectedUser.uid === target.uid) {
-      const refreshed = await getUserById(target.uid);
-      setSelectedUser(refreshed);
+  /** Approve several pending applicants (each its own atomic batch). Returns failures. */
+  const handleBulkApprove = async (targets: UserProfile[]): Promise<UserProfile[]> => {
+    if (!user) return targets;
+    const failed: UserProfile[] = [];
+    for (const t of targets) {
+      try {
+        await approveUser(t, user.uid);
+      } catch (err) {
+        console.error('[App] Bulk approve failed for', t.uid, err);
+        failed.push(t);
+      }
     }
+    setDataVersion((v) => v + 1);
+    return failed;
   };
 
   const handleCorrectAcademic = async (target: UserProfile, fields: AcademicCorrection) => {
     await correctAcademicDetails(target, fields);
     setSelectedUser(await getUserById(target.uid));
-    setDirectoryVersion((v) => v + 1);
+    setDataVersion((v) => v + 1);
   };
 
   if (loading) {
     return (
       <div
+        role="status"
         style={{
-          minHeight: '100vh',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '16px',
-          backgroundColor: 'var(--bg-canvas)',
-          color: 'var(--text-secondary)'
+          minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          gap: 14, backgroundColor: 'var(--bg-canvas)', color: 'var(--text-secondary)'
         }}
       >
-        <Loader2 size={36} color="var(--color-brand)" className="animate-spin" style={{ animation: 'spin 1s linear infinite' }} />
-        <div style={{ fontSize: '14px', fontWeight: 600 }}>
-          Connecting to CSE Research Hub Gateway...
-        </div>
+        <Loader2 size={32} color="var(--color-brand)" className="animate-spin" aria-hidden="true" />
+        <div style={{ fontSize: 14, fontWeight: 600 }}>Connecting…</div>
       </div>
     );
   }
@@ -110,50 +113,48 @@ const AdminPortalContent: React.FC = () => {
 
   return (
     <AdminLayout
-      currentTab={currentTab}
-      onSelectTab={setCurrentTab}
+      currentTab={route.tab}
+      onSelectTab={(tab) => navigate(tab)}
       pendingCount={pendingCount}
       onSelectApplicant={handleInspectByUid}
     >
-      {currentTab === 'overview' && (
+      {route.tab === 'overview' && (
         <OverviewPage
-          onNavigateToPending={() => setCurrentTab('pending')}
-          onNavigateToUsers={() => setCurrentTab('users')}
+          onNavigateToPending={() => navigate('pending')}
+          onNavigateToUsers={(filter) => navigate('users', filter)}
           onInspectUser={handleInspectByUid}
+          reloadKey={dataVersion}
         />
       )}
 
-      {currentTab === 'pending' && (
+      {route.tab === 'pending' && (
         <PendingPage
           onInspectUser={(u) => setSelectedUser(u)}
           onActionClick={handleOpenActionDialog}
+          onBulkApprove={handleBulkApprove}
         />
       )}
 
-      {currentTab === 'users' && (
+      {route.tab === 'users' && (
         <UsersPage
           onInspectUser={(u) => setSelectedUser(u)}
           onActionClick={handleOpenActionDialog}
-          reloadKey={directoryVersion}
+          filter={route.usersFilter}
+          onFilterChange={(f) => navigate('users', f)}
+          reloadKey={dataVersion}
         />
       )}
 
-      {currentTab === 'activity' && (
-        <ActivityPage onInspectUser={handleInspectByUid} />
-      )}
+      {route.tab === 'activity' && <ActivityPage onInspectUser={handleInspectByUid} reloadKey={dataVersion} />}
 
-      {/* Inspect Detail Modal */}
       <ApplicantDetailModal
         isOpen={Boolean(selectedUser)}
         onClose={() => setSelectedUser(null)}
         user={selectedUser}
-        onActionClick={(u, act) => {
-          handleOpenActionDialog(u, act);
-        }}
+        onActionClick={handleOpenActionDialog}
         onCorrectAcademic={handleCorrectAcademic}
       />
 
-      {/* Action Confirmation Dialog */}
       <ApprovalActionDialog
         isOpen={Boolean(actionTargetUser)}
         onClose={() => setActionTargetUser(null)}
@@ -165,10 +166,8 @@ const AdminPortalContent: React.FC = () => {
   );
 };
 
-export const App: React.FC = () => {
-  return (
-    <NotificationProvider>
-      <AdminPortalContent />
-    </NotificationProvider>
-  );
-};
+export const App: React.FC = () => (
+  <NotificationProvider>
+    <AdminPortalContent />
+  </NotificationProvider>
+);

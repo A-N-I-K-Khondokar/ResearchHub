@@ -2,21 +2,27 @@ import React, { useEffect, useState } from 'react';
 import { Modal } from '../common/Modal';
 import { Badge } from '../common/Badge';
 import { Button } from '../common/Button';
+import { Avatar } from '../common/Avatar';
 import {
   Globe,
   Github,
   Linkedin,
   GraduationCap,
-  BookOpen,
-  Calendar,
+  FlaskConical,
   CheckCircle,
   XCircle,
   ShieldAlert,
   RotateCcw,
-  Pencil
+  Pencil,
+  Copy,
+  Check,
+  Send,
+  type LucideIcon
 } from 'lucide-react';
+import { getAdminDirectory, type AcademicCorrection } from '../../services/admin.service';
+import { useAuth } from '../../context/AuthContext';
+import { exactTime, relativeTime } from '../../utils/time';
 import type { UserProfile } from '../../types/user.types';
-import type { AcademicCorrection } from '../../services/admin.service';
 import type { ActionType } from './ApprovalActionDialog';
 
 interface ApplicantDetailModalProps {
@@ -28,30 +34,38 @@ interface ApplicantDetailModalProps {
   onCorrectAcademic?: (user: UserProfile, fields: AcademicCorrection) => Promise<void>;
 }
 
-const EMPTY_FORM: AcademicCorrection = {
-  department: '',
-  designation: '',
-  program: null,
-  batch: null,
-  studentId: null
-};
+const EMPTY_FORM: AcademicCorrection = { department: '', designation: '', program: null, batch: null, studentId: null };
 
-export const ApplicantDetailModal: React.FC<ApplicantDetailModalProps> = ({
-  isOpen,
-  onClose,
-  user,
-  onActionClick,
-  onCorrectAcademic
-}) => {
+const LINKS: { key: string; label: string; icon: LucideIcon }[] = [
+  { key: 'website', label: 'Website', icon: Globe },
+  { key: 'googleScholar', label: 'Google Scholar', icon: GraduationCap },
+  { key: 'researchGate', label: 'ResearchGate', icon: FlaskConical },
+  { key: 'github', label: 'GitHub', icon: Github },
+  { key: 'linkedin', label: 'LinkedIn', icon: Linkedin }
+];
+
+let adminCache: Promise<Map<string, string>> | null = null;
+
+export const ApplicantDetailModal: React.FC<ApplicantDetailModalProps> = ({ isOpen, onClose, user, onActionClick, onCorrectAcademic }) => {
+  const { user: me } = useAuth();
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<AcademicCorrection>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [admins, setAdmins] = useState<Map<string, string>>(new Map());
+
+  useEffect(() => {
+    if (!isOpen) return;
+    adminCache ??= getAdminDirectory();
+    adminCache.then(setAdmins);
+  }, [isOpen]);
 
   // Reset the correction form whenever a different applicant is opened
   useEffect(() => {
     setEditing(false);
     setSaveError(null);
+    setCopied(false);
     if (user) {
       setForm({
         department: user.department || '',
@@ -64,6 +78,8 @@ export const ApplicantDetailModal: React.FC<ApplicantDetailModalProps> = ({
   }, [user]);
 
   if (!user) return null;
+
+  const adminName = (uid?: string | null) => (!uid ? 'an admin' : uid === me?.uid ? 'you' : admins.get(uid) || 'another admin');
 
   const handleSaveCorrection = async () => {
     if (!onCorrectAcademic) return;
@@ -78,287 +94,226 @@ export const ApplicantDetailModal: React.FC<ApplicantDetailModalProps> = ({
       setEditing(false);
     } catch (err: any) {
       console.error('[ApplicantDetailModal] Correction failed:', err);
-      setSaveError(err?.code === 'permission-denied'
-        ? 'Permission denied by security rules.'
-        : err?.message || 'Could not save the correction.');
+      setSaveError(err?.code === 'permission-denied' ? 'Permission denied by security rules.' : err?.message || 'Could not save the correction.');
     } finally {
       setSaving(false);
     }
   };
 
-  const correctionFields: { key: keyof AcademicCorrection; label: string; required?: boolean }[] = [
-    { key: 'department', label: 'Department', required: true },
-    { key: 'designation', label: 'Designation', required: true },
-    { key: 'program', label: 'Program' },
-    { key: 'batch', label: 'Batch' },
-    { key: 'studentId', label: 'Student / Faculty ID' }
-  ];
-
-  const formatDate = (ts: any) => {
-    if (!ts) return 'N/A';
-    if (ts.toDate) return ts.toDate().toLocaleString();
-    if (ts instanceof Date) return ts.toLocaleString();
-    return String(ts);
+  const copyUid = async () => {
+    try {
+      await navigator.clipboard.writeText(user.uid);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* clipboard unavailable */
+    }
   };
 
-  const socialLinks = user.socialLinks || {};
+  const fields: { key: keyof AcademicCorrection; label: string; required?: boolean }[] = [
+    { key: 'designation', label: 'Role', required: true },
+    { key: 'department', label: 'Department', required: true },
+    { key: 'program', label: 'Program' },
+    { key: 'batch', label: 'Batch' },
+    { key: 'studentId', label: 'Student / faculty ID' }
+  ];
+
+  const links = LINKS.filter((l) => user.socialLinks?.[l.key]);
+
+  // History timeline from stored fields
+  const timeline: { title: string; meta: string; color: string; icon: LucideIcon; note?: string | null }[] = [
+    {
+      title: 'Applied',
+      meta: `${relativeTime(user.requestedAt || user.createdAt)} · ${exactTime(user.requestedAt || user.createdAt)}`,
+      color: 'var(--color-brand)',
+      icon: Send
+    }
+  ];
+  if (user.approvalStatus === 'approved' || (user.approvalStatus === 'suspended' && user.approvedAt)) {
+    timeline.push({
+      title: `Approved by ${adminName(user.approvedBy)}`,
+      meta: `${relativeTime(user.approvedAt)} · ${exactTime(user.approvedAt)}`,
+      color: 'var(--status-approved)',
+      icon: CheckCircle
+    });
+  }
+  if (user.approvalStatus === 'rejected') {
+    timeline.push({
+      title: `Rejected by ${adminName(user.approvedBy)}`,
+      meta: `${relativeTime(user.updatedAt)} · ${exactTime(user.updatedAt)}`,
+      color: 'var(--status-rejected)',
+      icon: XCircle,
+      note: user.rejectionReason
+    });
+  }
+  if (user.approvalStatus === 'suspended') {
+    timeline.push({
+      title: 'Suspended',
+      meta: `${relativeTime(user.updatedAt)} · ${exactTime(user.updatedAt)}`,
+      color: 'var(--status-suspended)',
+      icon: ShieldAlert
+    });
+  }
+
+  const footer = (
+    <>
+      {user.approvalStatus === 'pending' && (
+        <>
+          <Button variant="secondary" icon={<XCircle size={15} aria-hidden="true" />} onClick={() => onActionClick(user, 'reject')}>
+            Reject
+          </Button>
+          <Button variant="success" icon={<CheckCircle size={15} aria-hidden="true" />} onClick={() => onActionClick(user, 'approve')}>
+            Approve
+          </Button>
+        </>
+      )}
+      {user.approvalStatus === 'approved' && (
+        <Button variant="danger" icon={<ShieldAlert size={15} aria-hidden="true" />} onClick={() => onActionClick(user, 'suspend')}>
+          Suspend account
+        </Button>
+      )}
+      {(user.approvalStatus === 'suspended' || user.approvalStatus === 'rejected') && (
+        <Button variant="primary" icon={<RotateCcw size={15} aria-hidden="true" />} onClick={() => onActionClick(user, 'reinstate')}>
+          Reinstate
+        </Button>
+      )}
+    </>
+  );
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Scholar Profile Inspection" maxWidth="640px">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        {/* Header Summary */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          {user.photoURL ? (
-            <img
-              src={user.photoURL}
-              alt=""
-              style={{ width: '56px', height: '56px', borderRadius: 'var(--radius-full)', objectFit: 'cover' }}
-            />
-          ) : (
-            <div
-              style={{
-                width: '56px',
-                height: '56px',
-                borderRadius: 'var(--radius-full)',
-                background: 'var(--color-brand)',
-                color: '#FFFFFF',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '22px',
-                fontWeight: 700
-              }}
-            >
-              {(user.displayName || 'U')[0].toUpperCase()}
-            </div>
-          )}
-
+    <Modal isOpen={isOpen} onClose={onClose} title="Applicant details" maxWidth="680px" footer={footer}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
+        {/* Identity */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <Avatar name={user.displayName} photoURL={user.photoURL} size={56} />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-              <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                {user.displayName}
-              </h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <h3 style={{ fontSize: 18 }}>{user.displayName}</h3>
               <Badge status={user.approvalStatus} />
             </div>
-            <div style={{ fontSize: '13.5px', color: 'var(--text-secondary)', marginTop: '2px' }}>
-              {user.email}
+            <div style={{ fontSize: 13.5, color: 'var(--text-secondary)', marginTop: 2, wordBreak: 'break-all' }}>{user.email}</div>
+            <div className="uid-row" style={{ marginTop: 4 }}>
+              <span>UID</span>
+              <code>{user.uid}</code>
+              <button className="btn btn-ghost btn-sm" style={{ padding: 4 }} onClick={copyUid} aria-label="Copy UID" title="Copy UID">
+                {copied ? <Check size={13} color="var(--status-approved)" /> : <Copy size={13} />}
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Academic Profile Details Table */}
-        <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13.5px' }}>
-            <tbody>
-              <tr>
-                <td style={{ width: '130px', padding: '10px 14px', background: 'var(--bg-surface-subtle)', color: 'var(--text-secondary)', fontWeight: 600, borderBottom: '1px solid var(--border)' }}>Department</td>
-                <td style={{ padding: '10px 14px', color: 'var(--text-primary)', borderBottom: '1px solid var(--border)' }}>{user.department}</td>
-              </tr>
-              <tr>
-                <td style={{ padding: '10px 14px', background: 'var(--bg-surface-subtle)', color: 'var(--text-secondary)', fontWeight: 600, borderBottom: '1px solid var(--border)' }}>Designation</td>
-                <td style={{ padding: '10px 14px', color: 'var(--text-primary)', borderBottom: '1px solid var(--border)' }}>{user.designation}</td>
-              </tr>
-              <tr>
-                <td style={{ padding: '10px 14px', background: 'var(--bg-surface-subtle)', color: 'var(--text-secondary)', fontWeight: 600, borderBottom: '1px solid var(--border)' }}>Program</td>
-                <td style={{ padding: '10px 14px', color: 'var(--text-primary)', borderBottom: '1px solid var(--border)' }}>{user.program || 'Not specified'}</td>
-              </tr>
-              <tr>
-                <td style={{ padding: '10px 14px', background: 'var(--bg-surface-subtle)', color: 'var(--text-secondary)', fontWeight: 600, borderBottom: '1px solid var(--border)' }}>Batch</td>
-                <td style={{ padding: '10px 14px', color: 'var(--text-primary)', borderBottom: '1px solid var(--border)' }}>{user.batch || 'Not specified'}</td>
-              </tr>
-              <tr>
-                <td style={{ padding: '10px 14px', background: 'var(--bg-surface-subtle)', color: 'var(--text-secondary)', fontWeight: 600, borderBottom: '1px solid var(--border)' }}>Student / Faculty ID</td>
-                <td style={{ padding: '10px 14px', color: 'var(--text-primary)', borderBottom: '1px solid var(--border)' }}>{user.studentId || 'Not specified'}</td>
-              </tr>
-              <tr>
-                <td style={{ padding: '10px 14px', background: 'var(--bg-surface-subtle)', color: 'var(--text-secondary)', fontWeight: 600 }}>Firebase UID</td>
-                <td style={{ padding: '10px 14px', color: 'var(--text-muted)', fontFamily: 'monospace', fontSize: '12px' }}>{user.uid}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        {/* Academic details (view / edit) */}
+        <section aria-labelledby="acad-title">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+            <div id="acad-title" className="section-label" style={{ marginBottom: 0 }}>Academic details</div>
+            {onCorrectAcademic && !editing ? (
+              <Button variant="secondary" size="sm" icon={<Pencil size={13} aria-hidden="true" />} onClick={() => setEditing(true)}>
+                Edit details
+              </Button>
+            ) : null}
+          </div>
 
-        {/* Admin academic correction (identity fields are locked for researchers after approval) */}
-        {onCorrectAcademic && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {!editing ? (
-              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <Button variant="ghost" size="sm" icon={<Pencil size={13} />} onClick={() => setEditing(true)}>
-                  Correct academic details
-                </Button>
-              </div>
-            ) : (
-              <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                  Correct academic details
-                </div>
-                {correctionFields.map((f) => (
-                  <label key={f.key} style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '12.5px', color: 'var(--text-secondary)' }}>
-                    {f.label}{f.required ? ' *' : ''}
+          {!editing ? (
+            <dl className="dl">
+              {fields.map((f) => {
+                const val = user[f.key as keyof UserProfile] as string | null | undefined;
+                return (
+                  <div key={f.key}>
+                    <dt>{f.label}</dt>
+                    <dd className={val ? '' : 'is-empty'}>{val || 'Not given'}</dd>
+                  </div>
+                );
+              })}
+            </dl>
+          ) : (
+            <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div className="dl">
+                {fields.map((f) => (
+                  <label key={f.key} style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12.5, fontWeight: 600, color: 'var(--text-secondary)' }}>
+                    {f.label}
+                    {f.required ? ' *' : ''}
                     <input
                       className="input"
                       value={form[f.key] ?? ''}
                       maxLength={f.key === 'batch' || f.key === 'studentId' ? 50 : 100}
+                      required={f.required}
                       onChange={(e) => setForm((prev) => ({ ...prev, [f.key]: e.target.value }))}
                     />
                   </label>
                 ))}
-                {saveError && (
-                  <div style={{ fontSize: '12.5px', color: 'var(--status-rejected-text)' }}>{saveError}</div>
-                )}
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                  <Button variant="secondary" size="sm" onClick={() => setEditing(false)} disabled={saving}>
-                    Cancel
-                  </Button>
-                  <Button variant="primary" size="sm" onClick={handleSaveCorrection} loading={saving}>
-                    Save correction
-                  </Button>
-                </div>
               </div>
-            )}
-          </div>
-        )}
+              {saveError ? <div role="alert" style={{ fontSize: 12.5, color: 'var(--status-rejected-text)' }}>{saveError}</div> : null}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                <Button variant="secondary" size="sm" onClick={() => setEditing(false)} disabled={saving}>Cancel</Button>
+                <Button variant="primary" size="sm" onClick={handleSaveCorrection} loading={saving}>Save changes</Button>
+              </div>
+            </div>
+          )}
+        </section>
 
         {/* Bio */}
-        {user.bio && (
-          <div>
-            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
-              Biography & Research Focus:
-            </div>
-            <div style={{ fontSize: '13.5px', color: 'var(--text-primary)', lineHeight: '1.5', background: 'var(--bg-surface-subtle)', padding: '12px 14px', borderRadius: 'var(--radius-sm)' }}>
-              {user.bio}
-            </div>
-          </div>
-        )}
+        {user.bio ? (
+          <section>
+            <div className="section-label">Bio</div>
+            <p style={{ fontSize: 14, lineHeight: 1.55, margin: 0 }}>{user.bio}</p>
+          </section>
+        ) : null}
 
-        {/* Research Interests */}
-        <div>
-          <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
-            Research Domain Interests:
-          </div>
-          {user.researchInterests && user.researchInterests.length > 0 ? (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-              {user.researchInterests.map((interest, idx) => (
-                <span
-                  key={idx}
-                  style={{
-                    background: 'var(--color-brand-light)',
-                    color: 'var(--color-brand-dark)',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    padding: '3px 9px',
-                    borderRadius: 'var(--radius-full)'
-                  }}
-                >
-                  {interest}
-                </span>
+        {/* Interests */}
+        <section>
+          <div className="section-label">Research interests</div>
+          {user.researchInterests?.length ? (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {user.researchInterests.map((interest) => (
+                <span key={interest} className="tag">{interest}</span>
               ))}
             </div>
           ) : (
-            <div style={{ fontSize: '13px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-              No research domain tags listed.
+            <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>None listed.</div>
+          )}
+        </section>
+
+        {/* Links */}
+        <section>
+          <div className="section-label">Links</div>
+          {links.length ? (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {links.map((l) => {
+                const Icon = l.icon;
+                return (
+                  <a key={l.key} href={user.socialLinks?.[l.key]} target="_blank" rel="noopener noreferrer" className="btn btn-secondary btn-sm">
+                    <Icon size={14} aria-hidden="true" /> {l.label}
+                  </a>
+                );
+              })}
             </div>
+          ) : (
+            <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>No links provided.</div>
           )}
-        </div>
+        </section>
 
-        {/* Academic Links */}
-        <div>
-          <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
-            Academic & Web Presence:
-          </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-            {socialLinks.website && (
-              <a href={socialLinks.website} target="_blank" rel="noopener noreferrer" className="btn btn-secondary btn-sm">
-                <Globe size={14} /> Website
-              </a>
-            )}
-            {socialLinks.github && (
-              <a href={socialLinks.github} target="_blank" rel="noopener noreferrer" className="btn btn-secondary btn-sm">
-                <Github size={14} /> GitHub
-              </a>
-            )}
-            {socialLinks.linkedin && (
-              <a href={socialLinks.linkedin} target="_blank" rel="noopener noreferrer" className="btn btn-secondary btn-sm">
-                <Linkedin size={14} /> LinkedIn
-              </a>
-            )}
-            {socialLinks.googleScholar && (
-              <a href={socialLinks.googleScholar} target="_blank" rel="noopener noreferrer" className="btn btn-secondary btn-sm">
-                <GraduationCap size={14} /> Google Scholar
-              </a>
-            )}
-            {socialLinks.researchGate && (
-              <a href={socialLinks.researchGate} target="_blank" rel="noopener noreferrer" className="btn btn-secondary btn-sm">
-                <BookOpen size={14} /> ResearchGate
-              </a>
-            )}
-            {!socialLinks.website && !socialLinks.github && !socialLinks.linkedin && !socialLinks.googleScholar && !socialLinks.researchGate && (
-              <div style={{ fontSize: '13px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                No external links provided.
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* History / Audit Timestamps */}
-        <div style={{ background: 'var(--bg-surface-subtle)', padding: '12px 14px', borderRadius: 'var(--radius-sm)', fontSize: '12px', color: 'var(--text-secondary)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
-            <Calendar size={13} />
-            <span>Requested: {formatDate(user.requestedAt || user.createdAt)}</span>
-          </div>
-          {user.approvedAt && (
-            <div>Approved: {formatDate(user.approvedAt)} (by {user.approvedBy || 'Admin'})</div>
-          )}
-          {user.rejectionReason && (
-            <div style={{ color: 'var(--status-rejected-text)', marginTop: '4px' }}>
-              <strong>Rejection note:</strong> {user.rejectionReason}
-            </div>
-          )}
-        </div>
-
-        {/* Contextual Action Buttons */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
-          {user.approvalStatus === 'pending' && (
-            <>
-              <Button
-                variant="danger"
-                icon={<XCircle size={15} />}
-                onClick={() => onActionClick(user, 'reject')}
-              >
-                Reject Application
-              </Button>
-              <Button
-                variant="success"
-                icon={<CheckCircle size={15} />}
-                onClick={() => onActionClick(user, 'approve')}
-              >
-                Approve Scholar
-              </Button>
-            </>
-          )}
-
-          {user.approvalStatus === 'approved' && (
-            <Button
-              variant="danger"
-              icon={<ShieldAlert size={15} />}
-              onClick={() => onActionClick(user, 'suspend')}
-            >
-              Suspend Account
-            </Button>
-          )}
-
-          {(user.approvalStatus === 'suspended' || user.approvalStatus === 'rejected') && (
-            <Button
-              variant="primary"
-              icon={<RotateCcw size={15} />}
-              onClick={() => onActionClick(user, 'reinstate')}
-            >
-              Reinstate to Approved
-            </Button>
-          )}
-        </div>
+        {/* History */}
+        <section>
+          <div className="section-label">History</div>
+          <ol className="timeline">
+            {timeline.map((t) => {
+              const Icon = t.icon;
+              return (
+                <li key={t.title}>
+                  <span className="timeline-dot" style={{ background: 'var(--bg-surface-subtle)', color: t.color }}>
+                    <Icon size={13} aria-hidden="true" />
+                  </span>
+                  <div>
+                    <div className="timeline-title">{t.title}</div>
+                    <div className="timeline-meta">{t.meta}</div>
+                    {t.note ? <div className="timeline-note">{t.note}</div> : null}
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+        </section>
       </div>
     </Modal>
   );
 };
-

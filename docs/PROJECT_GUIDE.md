@@ -120,7 +120,7 @@ npx --yes firebase-tools@15.35.0 deploy --only hosting --project cse-research-hu
 
 **Live:** `https://cse-research-hub.web.app` (deployed 26 Nov 2026). Google sign-in works there — the `web.app` / `firebaseapp.com` domains are authorised by default.
 
-`VITE_ADMIN_EMAIL` (in `admin-portal/.env.local`) is reduced to a **SHA-256 fingerprint at build time** (`vite.config.ts`), so the administrator's address never appears in the public JavaScript. Changing the admin email requires a rebuild and redeploy.
+`VITE_ADMIN_EMAIL` and the optional comma-separated `VITE_ADMIN_EMAILS` (in `admin-portal/.env.local`) are reduced to **SHA-256 fingerprints at build time** (`vite.config.ts`), so administrator addresses never appear in the public JavaScript. Adding or changing an admin email requires a rebuild and redeploy, plus an `admins/{uid}` record for that account in Firestore (Console only).
 
 ### Android preview APK (EAS)
 

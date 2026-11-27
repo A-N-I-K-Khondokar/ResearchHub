@@ -65,8 +65,8 @@ export const NotificationProvider: React.FC<{
               const newNotification: AdminNotification = {
                 id: `notif-${docId}-${Date.now()}`,
                 type: 'new_application',
-                title: 'New Account Request',
-                message: `New scholar registration submitted: ${applicantName}`,
+                title: 'New application',
+                message: `${applicantName} applied to join CSE Research Hub.`,
                 applicantUid: docId,
                 applicantName: applicantName,
                 timestamp: new Date(),

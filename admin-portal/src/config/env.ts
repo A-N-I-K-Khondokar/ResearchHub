@@ -8,7 +8,7 @@ interface EnvConfig {
   firebaseProjectId: string;
   firebaseAppId: string;
   firebaseMessagingSenderId: string;
-  /** True when an administrator email fingerprint was configured at build time. */
+  /** True when at least one administrator email fingerprint was configured at build time. */
   adminConfigured: boolean;
   isConfigured: boolean;
 }
@@ -20,7 +20,7 @@ const appId = import.meta.env.VITE_FIREBASE_APP_ID || '';
 const messagingSenderId = import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '';
 // Only a SHA-256 fingerprint of VITE_ADMIN_EMAIL is compiled in (see vite.config.ts).
 // No fallback: if it is missing, nobody is authorised (fail closed).
-const adminEmailSha256 = __ADMIN_EMAIL_SHA256__;
+const adminEmailSha256s: string[] = __ADMIN_EMAIL_SHA256S__;
 
 export const ENV: EnvConfig = {
   firebaseApiKey: apiKey,
@@ -28,8 +28,8 @@ export const ENV: EnvConfig = {
   firebaseProjectId: projectId,
   firebaseAppId: appId,
   firebaseMessagingSenderId: messagingSenderId,
-  adminConfigured: Boolean(adminEmailSha256),
-  isConfigured: Boolean(apiKey && projectId && adminEmailSha256)
+  adminConfigured: adminEmailSha256s.length > 0,
+  isConfigured: Boolean(apiKey && projectId && adminEmailSha256s.length > 0)
 };
 
 async function sha256Hex(value: string): Promise<string> {
@@ -40,8 +40,8 @@ async function sha256Hex(value: string): Promise<string> {
     .join('');
 }
 
-/** Compares the signed-in email with the configured administrator fingerprint. */
+/** Compares the signed-in email with the configured administrator fingerprints. */
 export async function isAuthorizedAdminEmail(email?: string | null): Promise<boolean> {
-  if (!email || !adminEmailSha256) return false;
-  return (await sha256Hex(email.toLowerCase().trim())) === adminEmailSha256;
+  if (!email || adminEmailSha256s.length === 0) return false;
+  return adminEmailSha256s.includes(await sha256Hex(email.toLowerCase().trim()));
 }

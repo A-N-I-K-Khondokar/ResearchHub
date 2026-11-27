@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Modal } from '../common/Modal';
 import { Button } from '../common/Button';
-import { AlertTriangle, CheckCircle, XCircle, ShieldAlert } from 'lucide-react';
+import { Avatar } from '../common/Avatar';
+import { AlertTriangle } from 'lucide-react';
 import type { UserProfile } from '../../types/user.types';
 
 export type ActionType = 'approve' | 'reject' | 'suspend' | 'reinstate';
@@ -14,57 +15,56 @@ interface ApprovalActionDialogProps {
   onConfirm: (user: UserProfile, reason?: string) => Promise<void>;
 }
 
-export const ApprovalActionDialog: React.FC<ApprovalActionDialogProps> = ({
-  isOpen,
-  onClose,
-  user,
-  actionType,
-  onConfirm
-}) => {
+const REJECT_TEMPLATES: { label: string; text: string }[] = [
+  { label: 'ID not verified', text: 'Your student / faculty ID could not be verified with department records. Please contact the CSE office and apply again.' },
+  { label: 'Not a CSE member', text: 'CSE Research Hub is limited to members of the CSE department.' },
+  { label: 'Incomplete profile', text: 'Your profile is missing required academic details. Please complete it and submit again.' },
+  { label: 'Duplicate account', text: 'An account already exists for you. Please sign in with your existing account.' }
+];
+
+const REASON_MAX = 500;
+
+export const ApprovalActionDialog: React.FC<ApprovalActionDialogProps> = ({ isOpen, onClose, user, actionType, onConfirm }) => {
   const [reason, setReason] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (!user) return null;
-
-  const getActionConfig = () => {
-    switch (actionType) {
-      case 'approve':
-        return {
-          title: 'Confirm Profile Approval',
-          icon: <CheckCircle size={22} color="#16A34A" />,
-          btnText: 'Confirm Approval',
-          btnVariant: 'success' as const,
-          description: `Are you sure you want to approve "${user.displayName}"? The scholar will be granted full access to CSE Research Hub collaboration and discovery features.`
-        };
-      case 'reject':
-        return {
-          title: 'Confirm Profile Rejection',
-          icon: <XCircle size={22} color="#DC2626" />,
-          btnText: 'Confirm Rejection',
-          btnVariant: 'danger' as const,
-          description: `Are you sure you want to decline the registration for "${user.displayName}"? The user will be barred from access.`
-        };
-      case 'suspend':
-        return {
-          title: 'Suspend Scholar Account',
-          icon: <ShieldAlert size={22} color="#DC2626" />,
-          btnText: 'Suspend Account',
-          btnVariant: 'danger' as const,
-          description: `Suspending "${user.displayName}" will immediately disable their access to platform features while preserving their profile data.`
-        };
-      case 'reinstate':
-        return {
-          title: 'Reinstate Scholar Account',
-          icon: <CheckCircle size={22} color="#2563EB" />,
-          btnText: 'Reinstate Account',
-          btnVariant: 'primary' as const,
-          description: `Reinstating "${user.displayName}" will restore their approved status and grant active access to the platform.`
-        };
+  useEffect(() => {
+    if (isOpen) {
+      setReason('');
+      setError(null);
     }
-  };
+  }, [isOpen, user?.uid, actionType]);
 
-  const config = getActionConfig();
+  if (!user) return null;
+  const name = user.displayName;
+
+  const config = {
+    approve: {
+      title: `Approve ${name}?`,
+      btnText: 'Approve',
+      btnVariant: 'success' as const,
+      description: 'They’ll get full access to CSE Research Hub and appear in the researcher directory.'
+    },
+    reject: {
+      title: `Reject ${name}’s application?`,
+      btnText: 'Reject application',
+      btnVariant: 'danger' as const,
+      description: 'They won’t be able to use the app. They can correct their details and apply again. The reason below is shown to them.'
+    },
+    suspend: {
+      title: `Suspend ${name}?`,
+      btnText: 'Suspend account',
+      btnVariant: 'danger' as const,
+      description: 'Their access is blocked right away and they’re removed from the researcher directory. Their data is kept, and you can reinstate them later.'
+    },
+    reinstate: {
+      title: `Reinstate ${name}?`,
+      btnText: 'Reinstate',
+      btnVariant: 'primary' as const,
+      description: 'Their account becomes approved again and they reappear in the researcher directory.'
+    }
+  }[actionType];
 
   const handleConfirm = async () => {
     setLoading(true);
@@ -72,74 +72,81 @@ export const ApprovalActionDialog: React.FC<ApprovalActionDialogProps> = ({
     try {
       await onConfirm(user, reason);
       onClose();
-      setReason('');
     } catch (err: any) {
-      setError(err.message || 'Operation failed.');
+      setError(err?.code === 'permission-denied' ? 'Permission denied by security rules.' : err?.message || 'Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={config.title} maxWidth="500px">
-      <div style={{ display: 'flex', gap: '14px', marginBottom: '16px' }}>
-        <div style={{ marginTop: '2px' }}>{config.icon}</div>
-        <div style={{ flex: 1 }}>
-          <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.5', margin: 0 }}>
-            {config.description}
-          </p>
+    <Modal
+      isOpen={isOpen}
+      onClose={() => !loading && onClose()}
+      title={config.title}
+      maxWidth="520px"
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose} disabled={loading}>Cancel</Button>
+          <Button variant={config.btnVariant} onClick={handleConfirm} loading={loading}>{config.btnText}</Button>
+        </>
+      }
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div className="person" style={{ padding: 12, borderRadius: 'var(--radius-md)', background: 'var(--bg-surface-subtle)' }}>
+          <Avatar name={user.displayName} photoURL={user.photoURL} size={36} />
+          <div style={{ minWidth: 0 }}>
+            <div className="person-name">{user.displayName}</div>
+            <div className="person-sub">
+              {user.designation} · {user.department}
+              {user.studentId ? ` · ID ${user.studentId}` : ''}
+            </div>
+          </div>
         </div>
-      </div>
 
-      {actionType === 'reject' && (
-        <div style={{ marginBottom: '20px' }}>
-          <label
-            htmlFor="rejection-reason"
-            style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '6px' }}
-          >
-            Rejection Reason / Office Note (Optional, max 500 chars):
-          </label>
-          <textarea
-            id="rejection-reason"
-            className="input"
-            rows={3}
-            maxLength={500}
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            placeholder="e.g. Enrollment ID could not be verified with department records. Please contact office."
-            style={{ resize: 'vertical', width: '100%' }}
-          />
-        </div>
-      )}
+        <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: 0 }}>{config.description}</p>
 
-      {error && (
-        <div
-          style={{
-            padding: '10px 14px',
-            backgroundColor: 'var(--status-rejected-bg)',
-            color: 'var(--status-rejected-text)',
-            borderRadius: 'var(--radius-sm)',
-            fontSize: '13px',
-            marginBottom: '16px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}
-        >
-          <AlertTriangle size={16} />
-          <span>{error}</span>
-        </div>
-      )}
+        {actionType === 'reject' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <label htmlFor="rejection-reason" style={{ fontSize: 13, fontWeight: 600 }}>
+              Reason <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(optional, shown to the applicant)</span>
+            </label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }} role="group" aria-label="Common reasons">
+              {REJECT_TEMPLATES.map((t) => (
+                <button
+                  key={t.label}
+                  type="button"
+                  className={`chip ${reason === t.text ? 'is-active' : ''}`}
+                  onClick={() => setReason(t.text)}
+                  aria-pressed={reason === t.text}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+            <textarea
+              id="rejection-reason"
+              className="input"
+              rows={3}
+              maxLength={REASON_MAX}
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="Pick a reason above or write your own."
+              style={{ resize: 'vertical' }}
+            />
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+              {reason.length}/{REASON_MAX}
+            </div>
+          </div>
+        )}
 
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '24px' }}>
-        <Button variant="secondary" onClick={onClose} disabled={loading}>
-          Cancel
-        </Button>
-        <Button variant={config.btnVariant} onClick={handleConfirm} loading={loading}>
-          {config.btnText}
-        </Button>
+        {error && (
+          <div role="alert" style={{ padding: '10px 14px', backgroundColor: 'var(--status-rejected-bg)', color: 'var(--status-rejected-text)', borderRadius: 'var(--radius-sm)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <AlertTriangle size={16} aria-hidden="true" />
+            <span>{error}</span>
+          </div>
+        )}
       </div>
     </Modal>
   );
 };
-

@@ -22,8 +22,8 @@ export const Badge: React.FC<BadgeProps> = ({ status, showIcon = true }) => {
   };
 
   return (
-    <span className={`badge badge-${status}`}>
-      {showIcon && getIcon()}
+    <span className={`badge badge-${status}`} aria-label={`Status: ${status}`}>
+      {showIcon && <span aria-hidden="true" style={{ display: 'inline-flex' }}>{getIcon()}</span>}
       <span>{status}</span>
     </span>
   );

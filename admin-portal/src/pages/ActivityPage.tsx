@@ -1,132 +1,161 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { Bell, CheckCheck, Trash2, History, RefreshCw } from 'lucide-react';
 import { useNotifications } from '../context/NotificationContext';
-import { Bell, ArrowRight, ShieldCheck, CheckCheck, Trash2 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/common/Button';
+import { Badge } from '../components/common/Badge';
+import { Avatar } from '../components/common/Avatar';
+import { PageHeader } from '../components/common/PageHeader';
+import { EmptyState } from '../components/common/EmptyState';
+import { SkeletonRows } from '../components/common/SkeletonRows';
+import { RelativeTime } from '../components/common/RelativeTime';
+import { getAdminDirectory, getRecentDecisions } from '../services/admin.service';
+import type { UserProfile } from '../types/user.types';
 
 interface ActivityPageProps {
   onInspectUser: (uid: string) => void;
+  reloadKey?: number;
 }
 
-export const ActivityPage: React.FC<ActivityPageProps> = ({ onInspectUser }) => {
-  const { notifications, unreadCount, markAllAsRead, clearNotifications } = useNotifications();
+const VERB: Record<string, string> = {
+  approved: 'Approved',
+  rejected: 'Rejected',
+  suspended: 'Suspended'
+};
+
+export const ActivityPage: React.FC<ActivityPageProps> = ({ onInspectUser, reloadKey = 0 }) => {
+  const { user: me } = useAuth();
+  const { notifications, unreadCount, markAllAsRead, clearNotifications, markAsRead } = useNotifications();
+  const [decisions, setDecisions] = useState<UserProfile[]>([]);
+  const [admins, setAdmins] = useState<Map<string, string>>(new Map());
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [list, dir] = await Promise.all([getRecentDecisions(30), getAdminDirectory()]);
+      setDecisions(list);
+      setAdmins(dir);
+    } catch (err) {
+      console.error('[ActivityPage] Failed to load decisions:', err);
+      setError('Could not load recent decisions.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reloadKey]);
+
+  const by = (uid?: string | null) => (!uid ? '' : uid === me?.uid ? ' by you' : ` by ${admins.get(uid) || 'another admin'}`);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
-        <div>
-          <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>
-            Session Event & Notification Log
+    <div className="stack">
+      <PageHeader
+        title="Activity"
+        subtitle="Recent account decisions and live alerts"
+        actions={
+          <Button variant="secondary" size="sm" icon={<RefreshCw size={14} aria-hidden="true" />} onClick={load} loading={loading}>
+            Refresh
+          </Button>
+        }
+      />
+
+      {/* Recent decisions (persistent, from stored account fields) */}
+      <section className="card" style={{ padding: 0, overflow: 'hidden' }} aria-labelledby="decisions-title">
+        <div className="card-header" style={{ padding: '16px 20px', marginBottom: 0 }}>
+          <h2 id="decisions-title" className="card-title">
+            <History size={17} color="var(--color-brand)" aria-hidden="true" /> Recent decisions
           </h2>
-          <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-            Real-time applicant arrivals detected while the administrative portal is active
-          </div>
         </div>
-
-        <div style={{ display: 'flex', gap: '8px' }}>
-          {unreadCount > 0 && (
-            <Button variant="secondary" size="sm" icon={<CheckCheck size={14} />} onClick={markAllAsRead}>
-              Mark All Read
-            </Button>
-          )}
-          {notifications.length > 0 && (
-            <Button variant="ghost" size="sm" icon={<Trash2 size={14} />} onClick={clearNotifications}>
-              Clear Session Log
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* Info Callout */}
-      <div
-        style={{
-          padding: '16px 20px',
-          backgroundColor: 'var(--bg-surface-subtle)',
-          border: '1px solid var(--border)',
-          borderRadius: 'var(--radius-lg)',
-          display: 'flex',
-          alignItems: 'flex-start',
-          gap: '12px',
-          fontSize: '13px',
-          color: 'var(--text-secondary)'
-        }}
-      >
-        <ShieldCheck size={18} color="var(--color-brand)" style={{ flexShrink: 0, marginTop: '2px' }} />
-        <div>
-          <strong>Operational Model Note:</strong> In-app notifications are captured in real-time while this Admin Portal remains open and authenticated. New applications are always waiting in the <strong>Pending</strong> queue, so nothing is missed while the portal is closed (no email or push alerts are sent).
-        </div>
-      </div>
-
-      {/* Event Items */}
-      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-        {notifications.length === 0 ? (
-          <div style={{ padding: '60px 24px', textAlign: 'center', color: 'var(--text-muted)' }}>
-            <Bell size={32} style={{ margin: '0 auto 12px auto', opacity: 0.4 }} />
-            <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
-              No Events Recorded in Current Session
-            </h3>
-            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', maxWidth: '400px', margin: '0 auto' }}>
-              As students and researchers submit profile registrations, live notifications will stream into this log.
-            </p>
-          </div>
+        {error ? (
+          <div role="alert" style={{ padding: 16, fontSize: 13, color: 'var(--status-rejected-text)' }}>{error}</div>
+        ) : loading ? (
+          <SkeletonRows rows={5} />
+        ) : decisions.length === 0 ? (
+          <EmptyState icon={History} title="No decisions yet" text="Approvals, rejections and suspensions will be listed here." />
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {notifications.map((item) => (
-              <div
-                key={item.id}
-                style={{
-                  padding: '16px 20px',
-                  borderBottom: '1px solid var(--border-subtle)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '16px',
-                  backgroundColor: item.read ? 'transparent' : 'var(--color-brand-light)',
-                  transition: 'background-color var(--transition-fast)'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                  <div
-                    style={{
-                      width: '38px',
-                      height: '38px',
-                      borderRadius: 'var(--radius-md)',
-                      backgroundColor: 'var(--bg-surface-subtle)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'var(--color-brand)'
-                    }}
-                  >
-                    <Bell size={18} />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                      {item.title} — {item.applicantName}
+          <ul className="list" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+            {decisions.map((u) => (
+              <li key={u.uid} className="list-row">
+                <div className="person" style={{ flex: 1 }}>
+                  <Avatar name={u.displayName} photoURL={u.photoURL} size={34} />
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 13.5 }}>
+                      <b>{VERB[u.approvalStatus] ?? 'Updated'}</b> {u.displayName}
+                      <span style={{ color: 'var(--text-secondary)' }}>{u.approvalStatus === 'suspended' ? '' : by(u.approvedBy)}</span>
                     </div>
-                    <div style={{ fontSize: '12.5px', color: 'var(--text-secondary)' }}>
-                      {item.message}
-                    </div>
-                    <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                      {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })} &bull; {new Date(item.timestamp).toLocaleDateString()}
+                    <div className="person-sub">
+                      <RelativeTime value={u.approvalStatus === 'approved' ? u.approvedAt || u.updatedAt : u.updatedAt} />
+                      {u.approvalStatus === 'rejected' && u.rejectionReason ? ` · “${u.rejectionReason}”` : ''}
                     </div>
                   </div>
                 </div>
-
-                {item.applicantUid && (
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    icon={<ArrowRight size={13} />}
-                    onClick={() => onInspectUser(item.applicantUid)}
-                  >
-                    Inspect Profile
-                  </Button>
-                )}
-              </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Badge status={u.approvalStatus} />
+                  <button className="btn btn-secondary btn-sm" onClick={() => onInspectUser(u.uid)}>View</button>
+                </div>
+              </li>
             ))}
-          </div>
+          </ul>
         )}
-      </div>
+      </section>
+
+      {/* Live alerts (this browser session) */}
+      <section className="card" style={{ padding: 0, overflow: 'hidden' }} aria-labelledby="alerts-title">
+        <div className="card-header" style={{ padding: '16px 20px', marginBottom: 0, gap: 8, flexWrap: 'wrap' }}>
+          <div>
+            <h2 id="alerts-title" className="card-title">
+              <Bell size={17} color="var(--color-brand)" aria-hidden="true" /> Live alerts
+            </h2>
+            <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', marginTop: 2 }}>
+              New applications that arrived while this page was open. Cleared when you reload.
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {unreadCount > 0 && (
+              <Button variant="secondary" size="sm" icon={<CheckCheck size={14} aria-hidden="true" />} onClick={markAllAsRead}>
+                Mark all read
+              </Button>
+            )}
+            {notifications.length > 0 && (
+              <Button variant="ghost" size="sm" icon={<Trash2 size={14} aria-hidden="true" />} onClick={clearNotifications}>
+                Clear
+              </Button>
+            )}
+          </div>
+        </div>
+        {notifications.length === 0 ? (
+          <EmptyState icon={Bell} title="No live alerts" text="Nothing new since you opened the portal. The Pending queue always has every waiting application." />
+        ) : (
+          <ul className="list" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+            {notifications.map((item) => (
+              <li key={item.id} className="list-row" style={{ background: item.read ? 'transparent' : 'var(--color-brand-light)' }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 700 }}>{item.title}</div>
+                  <div style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>{item.message}</div>
+                  <RelativeTime value={item.timestamp} style={{ fontSize: 12, color: 'var(--text-muted)' }} />
+                </div>
+                {item.applicantUid && (
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => {
+                      markAsRead(item.id);
+                      onInspectUser(item.applicantUid);
+                    }}
+                  >
+                    Review
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </div>
   );
 };

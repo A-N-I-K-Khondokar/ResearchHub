@@ -2,7 +2,7 @@ import React from 'react';
 import { Loader2 } from 'lucide-react';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'success' | 'danger' | 'ghost';
+  variant?: 'primary' | 'secondary' | 'success' | 'danger' | 'warning' | 'ghost';
   size?: 'sm' | 'md';
   loading?: boolean;
   icon?: React.ReactNode;
@@ -25,10 +25,11 @@ export const Button: React.FC<ButtonProps> = ({
     <button
       className={`btn ${variantClass} ${sizeClass} ${className}`.trim()}
       disabled={disabled || loading}
+      aria-busy={loading || undefined}
       {...props}
     >
       {loading ? (
-        <Loader2 size={16} className="animate-spin" style={{ animation: 'spin 1s linear infinite' }} />
+        <Loader2 size={16} className="animate-spin" aria-hidden="true" />
       ) : (
         icon
       )}

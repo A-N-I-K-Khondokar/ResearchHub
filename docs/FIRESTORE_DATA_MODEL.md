@@ -113,4 +113,4 @@ An application (`workId, authorUid, applicantUid, applicant snapshot, workTitle,
 
 ## Administrator access
 
-An account is an administrator only if `admins/{uid}` exists. That collection cannot be written by any client (`allow write: if false`); administrators are provisioned in the Firebase Console. The admin portal additionally checks the configured `VITE_ADMIN_EMAIL` and that the admin record's email matches the signed-in account.
+An account is an administrator only if `admins/{uid}` exists. That collection cannot be written by any client (`allow write: if false`); administrators are provisioned in the Firebase Console. The admin portal additionally checks the configured administrator emails (`VITE_ADMIN_EMAIL` / `VITE_ADMIN_EMAILS`) and that the admin record's email matches the signed-in account.

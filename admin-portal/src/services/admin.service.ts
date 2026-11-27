@@ -241,3 +241,29 @@ export async function syncPublicDirectory(): Promise<{ published: number; remove
     removed: ops.filter((o) => o.kind === 'delete').length
   };
 }
+
+/**
+ * Recent account decisions for the Activity page, read from the fields already
+ * stored on each user (approvalStatus, approvedBy, approvedAt, rejectionReason,
+ * updatedAt). Uses the automatic single-field `updatedAt` index.
+ */
+export async function getRecentDecisions(maxItems = 30): Promise<UserProfile[]> {
+  const snap = await getDocs(
+    query(collection(db, 'users'), orderBy('updatedAt', 'desc'), limit(maxItems * 2))
+  );
+  return snap.docs
+    .map((d) => ({ uid: d.id, ...d.data() } as UserProfile))
+    .filter((u) => u.approvalStatus !== 'pending')
+    .slice(0, maxItems);
+}
+
+/** uid -> admin email, to show who made a decision (admins may read `admins`). */
+export async function getAdminDirectory(): Promise<Map<string, string>> {
+  try {
+    const snap = await getDocs(collection(db, 'admins'));
+    return new Map(snap.docs.map((d) => [d.id, String(d.data().email ?? 'Admin')] as const));
+  } catch {
+    return new Map();
+  }
+}
+

@@ -1,177 +1,101 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
-import { GraduationCap, ShieldCheck, AlertTriangle, Info, ArrowRight } from 'lucide-react';
-import { Button } from '../components/common/Button';
+import { GraduationCap, LogIn, AlertTriangle, Info, Loader2, UserCheck, Users, History } from 'lucide-react';
 import { ENV } from '../config/env';
 
+/** Google "G" mark (official four colours). */
+const GoogleMark: React.FC = () => (
+  <svg width="16" height="16" viewBox="0 0 48 48" aria-hidden="true">
+    <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+    <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+    <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+    <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+  </svg>
+);
+
+/**
+ * Admin sign-in: sky / cloud backdrop with a soft glass card.
+ * Google-only (admin access is tied to the `admins/{uid}` record).
+ */
 export const LoginPage: React.FC = () => {
   const { signInWithGoogle, loading, error, setupRequired, attemptedUserUid, attemptedUserEmail, clearError } = useAuth();
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        width: '100%',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: 'var(--bg-canvas)',
-        padding: '24px 16px'
-      }}
-    >
-      <div
-        className="card"
-        style={{
-          maxWidth: '480px',
-          width: '100%',
-          padding: '40px 32px',
-          boxShadow: 'var(--shadow-xl)',
-          borderTop: '4px solid var(--color-brand)'
-        }}
-      >
-        {/* Brand Icon & Heading */}
-        <div style={{ textAlign: 'center', marginBottom: '28px' }}>
-          <div
-            style={{
-              width: '56px',
-              height: '56px',
-              borderRadius: 'var(--radius-lg)',
-              background: 'linear-gradient(135deg, #2563EB, #1D4ED8)',
-              color: '#FFFFFF',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 16px auto',
-              boxShadow: '0 4px 10px rgba(37,99,235,0.25)'
-            }}
-          >
-            <GraduationCap size={32} />
-          </div>
+    <main className="login-bg">
+      <div className="login-brand">
+        <span className="login-brand-mark">
+          <GraduationCap size={19} aria-hidden="true" />
+        </span>
+        CSE Research Hub
+      </div>
 
-          <h1 style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '6px' }}>
-            CSE Research Hub
-          </h1>
-          <div
-            style={{
-              fontSize: '12px',
-              fontWeight: 600,
-              color: 'var(--color-brand)',
-              letterSpacing: '0.8px',
-              textTransform: 'uppercase',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px'
-            }}
-          >
-            <ShieldCheck size={14} /> Administrative Gateway
-          </div>
+      <section className="login-card" aria-labelledby="login-title">
+        <div className="login-icon">
+          <LogIn size={26} aria-hidden="true" />
         </div>
 
-        {/* Informative Guidance */}
-        <p style={{ fontSize: '14px', color: 'var(--text-secondary)', textAlign: 'center', lineHeight: '1.5', marginBottom: '24px' }}>
-          Restricted access for authorized departmental administration. Access requires a verified Google account registered in the administrative directory.
+        <h1 id="login-title" className="login-title">Sign in to Admin</h1>
+        <p className="login-sub">
+          Review new researchers, manage accounts and keep the CSE community safe.
         </p>
 
-        {/* Error Notification */}
-        {error && (
-          <div
-            style={{
-              padding: '14px',
-              backgroundColor: 'var(--status-rejected-bg)',
-              color: 'var(--status-rejected-text)',
-              borderRadius: 'var(--radius-md)',
-              fontSize: '13px',
-              marginBottom: '20px',
-              border: '1px solid rgba(220, 38, 38, 0.2)'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-              <AlertTriangle size={18} style={{ flexShrink: 0, marginTop: '2px' }} />
-              <div style={{ flex: 1 }}>{error}</div>
+        {error ? (
+          <div className="login-alert is-error" role="alert">
+            <AlertTriangle size={17} aria-hidden="true" style={{ flexShrink: 0, marginTop: 1 }} />
+            <div style={{ flex: 1 }}>
+              {error}
+              <div>
+                <button type="button" className="login-link" onClick={clearError}>
+                  Dismiss
+                </button>
+              </div>
             </div>
           </div>
-        )}
+        ) : null}
 
-        {/* Setup Required Guidance Alert */}
-        {setupRequired && attemptedUserUid && (
-          <div
-            style={{
-              padding: '16px',
-              backgroundColor: 'var(--bg-surface-subtle)',
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--radius-md)',
-              fontSize: '12.5px',
-              color: 'var(--text-secondary)',
-              marginBottom: '20px',
-              lineHeight: '1.5'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '6px' }}>
-              <Info size={16} color="var(--color-brand)" /> Administrator Bootstrap Required
-            </div>
+        {setupRequired && attemptedUserUid ? (
+          <div className="login-alert is-info" role="status">
+            <Info size={17} aria-hidden="true" style={{ flexShrink: 0, marginTop: 1, color: 'var(--color-brand)' }} />
             <div>
-              Your Google sign-in was verified, but Cloud Firestore does not yet contain an administrator record for your UID:
-            </div>
-            <div
-              style={{
-                fontFamily: 'monospace',
-                fontSize: '11.5px',
-                background: 'var(--bg-canvas)',
-                padding: '6px 8px',
-                borderRadius: 'var(--radius-sm)',
-                margin: '8px 0',
-                wordBreak: 'break-all',
-                color: 'var(--text-primary)',
-                border: '1px solid var(--border)'
-              }}
-            >
-              Document ID: {attemptedUserUid}
-            </div>
-            <div>
-              To complete setup, open the <strong>Firebase Console</strong> $\rightarrow$ <strong>Firestore Database</strong>, create document <code>admins/{attemptedUserUid}</code> with field <code>email: "{attemptedUserEmail}"</code>, then retry sign-in.
+              <strong>One more setup step.</strong> This Google account isn't registered as an administrator yet. In the{' '}
+              <strong>Firebase Console</strong> → <strong>Firestore Database</strong>, create <code>admins/{attemptedUserUid}</code> with
+              the field <code>email: "{attemptedUserEmail}"</code>, then sign in again.
             </div>
           </div>
-        )}
+        ) : null}
 
-        {/* Sign In Button */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <Button
-            variant="primary"
-            onClick={signInWithGoogle}
-            loading={loading}
-            style={{ width: '100%', padding: '12px 20px', fontSize: '14.5px' }}
-          >
-            Sign in with Google <ArrowRight size={16} />
-          </Button>
-
-          {error && (
-            <button
-              onClick={clearError}
-              className="btn btn-ghost btn-sm"
-              style={{ fontSize: '12px', alignSelf: 'center' }}
-            >
-              Dismiss error
-            </button>
+        <button type="button" className="login-primary" onClick={signInWithGoogle} disabled={loading} aria-busy={loading || undefined}>
+          {loading ? (
+            <Loader2 size={18} className="animate-spin" aria-hidden="true" />
+          ) : (
+            <span className="login-g">
+              <GoogleMark />
+            </span>
           )}
-        </div>
+          {loading ? 'Signing in…' : 'Continue with Google'}
+        </button>
 
-        {/* Footer Reference */}
-        <div
-          style={{
-            marginTop: '28px',
-            paddingTop: '20px',
-            borderTop: '1px solid var(--border-subtle)',
-            fontSize: '11.5px',
-            color: 'var(--text-muted)',
-            textAlign: 'center',
-            lineHeight: '1.5'
-          }}
-        >
-          <div>Target Project: <code>{ENV.firebaseProjectId}</code></div>
-          {/* Never reveal the administrator address on a public page */}
-          <div>Administrator access: <code>{ENV.adminConfigured ? 'configured' : 'not configured'}</code></div>
+        <div className="login-divider" aria-hidden="true">What you can do</div>
+        <ul className="login-points" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+          <li className="login-point">
+            <UserCheck size={18} aria-hidden="true" />
+            Review applicants
+          </li>
+          <li className="login-point">
+            <Users size={18} aria-hidden="true" />
+            Manage users
+          </li>
+          <li className="login-point">
+            <History size={18} aria-hidden="true" />
+            Audit decisions
+          </li>
+        </ul>
+
+        {/* Never reveal the project id or administrator address on a public page */}
+        <div className="login-foot">
+          {ENV.adminConfigured ? 'For CSE department administrators only.' : 'Administrator access is not configured yet.'}
         </div>
-      </div>
-    </div>
+      </section>
+    </main>
   );
 };

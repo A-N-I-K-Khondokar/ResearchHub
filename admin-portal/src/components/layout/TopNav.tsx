@@ -1,7 +1,8 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Bell, Menu, CheckCheck, Trash2, ExternalLink } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Bell, Menu, CheckCheck, Trash2, ChevronRight } from 'lucide-react';
 import { useNotifications } from '../../context/NotificationContext';
-import type { NavTab } from './Sidebar';
+import { NAV_LABELS, type NavTab } from './Sidebar';
+import { RelativeTime } from '../common/RelativeTime';
 
 interface TopNavProps {
   currentTab: NavTab;
@@ -9,210 +10,113 @@ interface TopNavProps {
   onSelectApplicant?: (uid: string) => void;
 }
 
-export const TopNav: React.FC<TopNavProps> = ({
-  currentTab,
-  onOpenMobileMenu,
-  onSelectApplicant
-}) => {
+/**
+ * Slim top bar: menu button (small screens), breadcrumb, live alerts.
+ * The page title itself lives in each page's PageHeader (no duplicate titles).
+ */
+export const TopNav: React.FC<TopNavProps> = ({ currentTab, onOpenMobileMenu, onSelectApplicant }) => {
   const { notifications, unreadCount, markAllAsRead, clearNotifications, markAsRead } = useNotifications();
-  const [showNotifications, setShowNotifications] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
 
-  // Close dropdown on outside click
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setShowNotifications(false);
-      }
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const getPageTitle = () => {
-    switch (currentTab) {
-      case 'overview':
-        return { title: 'Dashboard Overview', subtitle: 'Academic researcher registration & platform analytics' };
-      case 'pending':
-        return { title: 'Pending Applications', subtitle: 'Review and authorize pending departmental scholar accounts' };
-      case 'users':
-        return { title: 'All Registered Scholars', subtitle: 'Directory and account status management' };
-      case 'activity':
-        return { title: 'Activity & Audit Log', subtitle: 'Session registration notifications and operational history' };
-    }
-  };
-
-  const { title, subtitle } = getPageTitle();
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
 
   return (
-    <header
-      style={{
-        height: '70px',
-        backgroundColor: 'var(--bg-surface)',
-        borderBottom: '1px solid var(--border)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '0 32px',
-        position: 'sticky',
-        top: 0,
-        zIndex: 30
-      }}
-    >
-      {/* Title & Mobile Toggle */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-        <button
-          onClick={onOpenMobileMenu}
-          className="btn btn-ghost btn-sm"
-          style={{ display: 'none', padding: '8px' }}
-          aria-label="Open sidebar menu"
-          id="mobile-menu-btn"
-        >
-          <Menu size={20} />
+    <header className="topnav">
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+        <button onClick={onOpenMobileMenu} className="icon-btn mobile-menu-btn" aria-label="Open menu">
+          <Menu size={18} />
         </button>
-
-        <div>
-          <h1 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.3px' }}>
-            {title}
-          </h1>
-          <div style={{ fontSize: '12.5px', color: 'var(--text-secondary)' }}>
-            {subtitle}
-          </div>
-        </div>
+        <nav className="crumbs" aria-label="Breadcrumb">
+          <span>Admin</span>
+          <ChevronRight size={14} aria-hidden="true" />
+          <strong aria-current="page">{NAV_LABELS[currentTab]}</strong>
+        </nav>
       </div>
 
-      {/* Right Controls: Notifications */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '14px', position: 'relative' }} ref={dropdownRef}>
+      <div style={{ position: 'relative' }} ref={ref}>
         <button
-          onClick={() => setShowNotifications(!showNotifications)}
-          className="btn btn-secondary"
-          style={{
-            position: 'relative',
-            padding: '8px 12px',
-            borderRadius: 'var(--radius-md)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px'
-          }}
-          aria-label="View notifications"
+          onClick={() => setOpen((v) => !v)}
+          className="icon-btn"
+          aria-label={unreadCount ? `Live alerts, ${unreadCount} unread` : 'Live alerts'}
+          aria-haspopup="dialog"
+          aria-expanded={open}
         >
           <Bell size={17} />
-          <span style={{ fontSize: '13px', fontWeight: 600 }}>Alerts</span>
-          {unreadCount > 0 && (
-            <span
-              style={{
-                position: 'absolute',
-                top: '-4px',
-                right: '-4px',
-                backgroundColor: '#DC2626',
-                color: '#FFFFFF',
-                fontSize: '10.5px',
-                fontWeight: 700,
-                padding: '1px 6px',
-                borderRadius: 'var(--radius-full)',
-                boxShadow: '0 0 0 2px var(--bg-surface)'
-              }}
-            >
-              {unreadCount}
-            </span>
-          )}
+          {unreadCount > 0 && <span className="count-dot">{unreadCount > 9 ? '9+' : unreadCount}</span>}
         </button>
 
-        {/* Notifications Popover Dropdown */}
-        {showNotifications && (
+        {open && (
           <div
+            role="dialog"
+            aria-label="Live alerts"
             style={{
-              position: 'absolute',
-              right: 0,
-              top: '48px',
-              width: '360px',
-              backgroundColor: 'var(--bg-surface-elevated)',
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--radius-lg)',
-              boxShadow: 'var(--shadow-xl)',
-              zIndex: 100,
-              overflow: 'hidden'
+              position: 'absolute', right: 0, top: 46, width: 360, maxWidth: 'calc(100vw - 32px)',
+              background: 'var(--bg-surface-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)',
+              boxShadow: 'var(--shadow-xl)', zIndex: 100, overflow: 'hidden'
             }}
           >
-            {/* Dropdown Header */}
-            <div
-              style={{
-                padding: '12px 16px',
-                borderBottom: '1px solid var(--border)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                background: 'var(--bg-surface-subtle)'
-              }}
-            >
-              <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                Session Alerts {unreadCount > 0 && `(${unreadCount} unread)`}
+            <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ fontSize: 13.5, fontWeight: 700 }}>
+                Live alerts{unreadCount > 0 ? ` · ${unreadCount} new` : ''}
               </div>
-              <div style={{ display: 'flex', gap: '8px' }}>
+              <div style={{ display: 'flex', gap: 2 }}>
                 {unreadCount > 0 && (
-                  <button
-                    onClick={markAllAsRead}
-                    title="Mark all as read"
-                    style={{ background: 'none', border: 'none', color: 'var(--color-brand)', cursor: 'pointer', padding: '2px' }}
-                  >
-                    <CheckCheck size={16} />
+                  <button onClick={markAllAsRead} className="btn btn-ghost btn-sm" style={{ padding: 6 }} aria-label="Mark all as read" title="Mark all as read">
+                    <CheckCheck size={15} />
                   </button>
                 )}
                 {notifications.length > 0 && (
-                  <button
-                    onClick={clearNotifications}
-                    title="Clear notification list"
-                    style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '2px' }}
-                  >
-                    <Trash2 size={16} />
+                  <button onClick={clearNotifications} className="btn btn-ghost btn-sm" style={{ padding: 6 }} aria-label="Clear alerts" title="Clear alerts">
+                    <Trash2 size={15} />
                   </button>
                 )}
               </div>
             </div>
 
-            {/* Notification Items List */}
-            <div style={{ maxHeight: '360px', overflowY: 'auto' }}>
+            <div style={{ maxHeight: 360, overflowY: 'auto' }}>
               {notifications.length === 0 ? (
-                <div style={{ padding: '32px 16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
-                  No new account notifications during this session.
-                  <div style={{ fontSize: '11.5px', marginTop: '4px', color: 'var(--text-secondary)' }}>
-                    New registrations will trigger live alerts here.
+                <div style={{ padding: '28px 16px', textAlign: 'center', fontSize: 13, color: 'var(--text-secondary)' }}>
+                  No new alerts.
+                  <div style={{ fontSize: 12, marginTop: 4, color: 'var(--text-muted)' }}>
+                    New applications appear here while this page is open.
                   </div>
                 </div>
               ) : (
                 notifications.map((item) => (
-                  <div
+                  <button
                     key={item.id}
+                    className="alert-item"
+                    style={{ background: item.read ? 'transparent' : 'var(--color-brand-light)' }}
                     onClick={() => {
                       markAsRead(item.id);
-                      if (onSelectApplicant && item.applicantUid) {
-                        onSelectApplicant(item.applicantUid);
-                        setShowNotifications(false);
+                      if (item.applicantUid) {
+                        onSelectApplicant?.(item.applicantUid);
+                        setOpen(false);
                       }
                     }}
-                    style={{
-                      padding: '12px 16px',
-                      borderBottom: '1px solid var(--border-subtle)',
-                      backgroundColor: item.read ? 'transparent' : 'var(--color-brand-light)',
-                      cursor: 'pointer',
-                      transition: 'background-color var(--transition-fast)'
-                    }}
                   >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2px' }}>
-                      <span style={{ fontSize: '13px', fontWeight: item.read ? 600 : 700, color: 'var(--text-primary)' }}>
-                        {item.title}
-                      </span>
-                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                        {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                      <span style={{ fontSize: 13, fontWeight: item.read ? 600 : 700 }}>{item.title}</span>
+                      <RelativeTime value={item.timestamp} style={{ fontSize: 11.5, color: 'var(--text-muted)', flexShrink: 0 }} />
                     </div>
-                    <div style={{ fontSize: '12.5px', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
-                      {item.message}
-                    </div>
-                    <div style={{ marginTop: '6px', fontSize: '11.5px', color: 'var(--color-brand)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '3px' }}>
-                      Review application <ExternalLink size={11} />
-                    </div>
-                  </div>
+                    <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', marginTop: 2 }}>{item.message}</div>
+                    {item.applicantUid ? (
+                      <div style={{ marginTop: 6, fontSize: 12, color: 'var(--color-brand)', fontWeight: 600 }}>Review application →</div>
+                    ) : null}
+                  </button>
                 ))
               )}
             </div>
@@ -222,4 +126,3 @@ export const TopNav: React.FC<TopNavProps> = ({
     </header>
   );
 };
-
