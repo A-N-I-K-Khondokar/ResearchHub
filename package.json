@@ -13,7 +13,8 @@
     "test:rules": "npx --yes firebase-tools@15.35.0 emulators:exec --only firestore --project demo-cse-research-hub \"node --no-warnings --experimental-strip-types --test tests/firestore/*.test.mjs\"",
     "demo:seed": "node scripts/demo/seed.cjs",
     "demo:clean": "node scripts/demo/clean.cjs",
-    "qa:smoke": "node scripts/qa/smoke-test.cjs"
+    "qa:smoke": "node scripts/qa/smoke-test.cjs",
+    "test:unit": "node --no-warnings --experimental-strip-types --test tests/unit/*.test.mjs"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.2.3",

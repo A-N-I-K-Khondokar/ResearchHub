@@ -72,6 +72,8 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           onPress={handleClear}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           style={styles.iconButton}
+          accessibilityRole="button"
+          accessibilityLabel="Clear search"
         >
           <X size={16} color={colors.textSecondary} />
         </TouchableOpacity>
