@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'rea
 import { Check } from 'lucide-react-native';
 import { ICON_STROKE } from '@/constants/icons';
 import { spacing, radius, typography, fontFamilies } from '@/constants';
+import { cardShadow } from '@/constants/cards';
 import { useTheme } from '@/context/ThemeContext';
 import { Avatar } from '../common/Avatar';
 
@@ -202,6 +203,7 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     alignItems: 'center',
     marginBottom: spacing.lg,
+    ...cardShadow(false),
   },
   avatarWrap: {
     width: 88,

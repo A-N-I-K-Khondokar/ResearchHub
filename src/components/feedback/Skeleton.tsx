@@ -9,6 +9,7 @@ import React, { useEffect, useRef } from 'react';
 import { Animated, Platform, StyleSheet, View, type DimensionValue, type ViewStyle } from 'react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { radius, spacing } from '@/constants';
+import { cardShadow } from '@/constants/cards';
 
 export const Skeleton: React.FC<{
   width?: DimensionValue;
@@ -39,39 +40,52 @@ export const Skeleton: React.FC<{
   );
 };
 
-/** Placeholder shaped like a CurrentWorkCard. */
+/** Placeholder shaped like a CurrentWorkCard (author · chips · title · text · tags · footer). */
 export const WorkCardSkeleton: React.FC = () => {
   const { colors } = useTheme();
   return (
-    <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}>
+    <View style={[styles.card, styles.workCard, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}>
       <View style={styles.row}>
-        <Skeleton width={44} height={44} rounded={22} />
+        <Skeleton width={40} height={40} rounded={20} />
         <View style={styles.flex}>
-          <Skeleton width="55%" height={14} />
-          <Skeleton width="35%" height={12} style={styles.gapTop} />
+          <Skeleton width="50%" height={14} />
+          <Skeleton width="32%" height={11} style={styles.gapTop} />
         </View>
       </View>
-      <Skeleton width="85%" height={18} style={styles.gapTopLg} />
+      <View style={[styles.row, styles.gapTopMd]}>
+        <Skeleton width={128} height={22} rounded={radius.full} />
+        <Skeleton width={72} height={22} rounded={radius.full} />
+      </View>
+      <Skeleton width="85%" height={18} style={styles.gapTopMd} />
       <Skeleton width="100%" height={12} style={styles.gapTop} />
       <Skeleton width="70%" height={12} style={styles.gapTop} />
-      <View style={[styles.row, styles.gapTopLg]}>
-        <Skeleton width={90} height={24} rounded={radius.full} />
-        <Skeleton width={70} height={24} rounded={radius.full} />
+      <View style={[styles.row, styles.gapTopMd]}>
+        <Skeleton width={84} height={24} rounded={radius.full} />
+        <Skeleton width={64} height={24} rounded={radius.full} />
+        <Skeleton width={74} height={24} rounded={radius.full} />
+      </View>
+      <View style={[styles.footer, { borderTopColor: colors.borderSubtle }]}>
+        <Skeleton width={70} height={11} />
+        <View style={styles.row}>
+          <Skeleton width={18} height={18} rounded={4} />
+          <Skeleton width={18} height={18} rounded={4} />
+        </View>
       </View>
     </View>
   );
 };
 
-/** Placeholder shaped like a ResearcherCard / list row. */
+/** Placeholder shaped like a PersonRow / WorkRow (avatar · two lines · action). */
 export const RowSkeleton: React.FC = () => {
   const { colors } = useTheme();
   return (
-    <View style={[styles.card, styles.row, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}>
+    <View style={[styles.card, styles.rowCard, styles.row, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}>
       <Skeleton width={40} height={40} rounded={20} />
       <View style={styles.flex}>
         <Skeleton width="60%" height={14} />
         <Skeleton width="40%" height={12} style={styles.gapTop} />
       </View>
+      <Skeleton width={84} height={36} rounded={radius.button} />
     </View>
   );
 };
@@ -98,6 +112,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     padding: spacing.md,
     marginBottom: spacing.sm,
+    ...cardShadow(false),
   },
   row: {
     flexDirection: 'row',
@@ -112,6 +127,23 @@ const styles = StyleSheet.create({
   },
   gapTopLg: {
     marginTop: spacing.md,
+  },
+  gapTopMd: {
+    marginTop: spacing.sm + 2,
+  },
+  workCard: {
+    marginBottom: spacing.md,
+  },
+  rowCard: {
+    padding: 12,
+  },
+  footer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderTopWidth: 1,
+    marginTop: spacing.md,
+    paddingTop: spacing.sm + 4,
   },
 });
 

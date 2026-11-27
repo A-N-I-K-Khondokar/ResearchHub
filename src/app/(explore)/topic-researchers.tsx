@@ -13,9 +13,8 @@ import { Filter, ArrowUpDown } from 'lucide-react-native';
 import { spacing, radius, typography, fontFamilies, shadows } from '@/constants';
 import { useTheme } from '@/context/ThemeContext';
 import { SectionHeader } from '@/components/common/SectionHeader';
-import { ResearcherDiscoveryCard } from '@/components/cards/ResearcherDiscoveryCard';
+import { PersonRow } from '@/components/search/SearchRows';
 import { CurrentWorkCard } from '@/components/cards/CurrentWorkCard';
-import { PublicationCard } from '@/components/cards/PublicationCard';
 import { EmptyState } from '@/components/feedback/EmptyState';
 import { getTopicDiscovery } from '@/utils/search';
 import { useResearchDirectory } from '@/hooks/useResearchDirectory';
@@ -227,17 +226,17 @@ export default function TopicResearchersScreen() {
                 null;
 
               return (
-                <ResearcherDiscoveryCard
+                <PersonRow
                   key={researcher.id}
-                  researcher={researcher}
-                  currentWork={matchingWork}
-                  connectionStatus={cardStatus(researcher.id)}
-                  onPress={() => router.push(`/(profile)/${researcher.id}` as any)}
-                  onConnectPress={() => {
+                  person={researcher}
+                  terms={[]}
+                  reason={matchingWork ? `Working on “${matchingWork.title}”` : `Interested in ${discoveryData.topic.name}`}
+                  status={cardStatus(researcher.id)}
+                  onPress={() => openAuthor(researcher.id)}
+                  onConnect={() => {
                     const profile = directory.profileByUid.get(researcher.id);
                     if (profile) handleConnectPress(profile);
                   }}
-                  onTopicPress={openTopic}
                 />
               );
             })
@@ -264,33 +263,6 @@ export default function TopicResearchersScreen() {
                 onAuthorPress={() => openAuthor(work.userId)}
                 {...collaborate(work)}
                 onTopicPress={openTopic}
-              />
-            ))}
-          </View>
-        )}
-
-        {/* 3. PREVIOUS PUBLICATIONS IN THIS TOPIC */}
-        {discoveryData.publications.length > 0 && (
-          <View style={styles.section}>
-            <SectionHeader
-              title={`Published Research in ${discoveryData.topic.name}`}
-              subtitle={`${discoveryData.publications.length} conference & journal records`}
-            />
-
-            {discoveryData.publications.map((pub) => (
-              <PublicationCard
-                key={pub.id}
-                publication={pub}
-                onPress={() => router.push(`/(research)/${pub.id}` as any)}
-                onExternalPress={() => {}}
-                onTopicPress={(t) => {
-                  if (t.toLowerCase() !== topicName.toLowerCase()) {
-                    router.push({
-                      pathname: '/(explore)/topic-researchers' as any,
-                      params: { topic: t },
-                    });
-                  }
-                }}
               />
             ))}
           </View>
@@ -381,6 +353,7 @@ const styles = StyleSheet.create({
   sortButtonText: { ...typography.buttonSmall },
   section: {
     marginBottom: spacing.lg,
+    gap: spacing.sm,
   },
   bottomSpacer: {
     height: 48,

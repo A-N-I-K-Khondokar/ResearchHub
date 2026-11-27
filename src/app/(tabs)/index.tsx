@@ -15,6 +15,7 @@ import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity } 
 import { useRouter } from 'expo-router';
 import { Bell, BellRing, BookOpen, CheckCircle2, ChevronRight, Sparkles, UserPlus, Users, X } from 'lucide-react-native';
 import { spacing, radius, typography, fontFamilies } from '../../constants';
+import { cardShadow } from '@/constants/cards';
 import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
 import { TOPIC_TAXONOMY, topicCounts } from '@/utils/search';
@@ -344,7 +345,7 @@ export default function HomeFeedScreen() {
             {greeting}, {firstName}
           </Text>
           <TouchableOpacity
-            activeOpacity={0.85}
+            activeOpacity={0.9}
             onPress={() => router.push({ pathname: '/(tabs)/share' as any, params: { mode: 'work' } })}
             style={[styles.composer, { backgroundColor: colors.background, borderColor: colors.borderSubtle }]}
             accessibilityRole="button"
@@ -385,6 +386,7 @@ export default function HomeFeedScreen() {
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.stripList}>
               {attention.map((a) => (
                 <TouchableOpacity
+        activeOpacity={0.9}
                   key={a.key}
                   onPress={a.onPress}
                   style={[styles.attentionCard, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}
@@ -500,7 +502,8 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     borderWidth: 1,
     borderRadius: radius.md,
-    padding: spacing.sm,
+    padding: 12,
+    ...cardShadow(false),
   },
   attentionIcon: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
   attentionCardTitle: { ...typography.label, fontFamily: fontFamilies.sansSemiBold },

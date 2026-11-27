@@ -36,6 +36,7 @@ import {
   Plus,
 } from 'lucide-react-native';
 import { spacing, radius, typography, fontFamilies, floatingButtonTokens } from '@/constants';
+import { cardShadow } from '@/constants/cards';
 import { linkIconFor } from '@/components/common/linkIcon';
 import { ICON_STROKE } from '@/constants/icons';
 import { useTheme } from '@/context/ThemeContext';
@@ -398,7 +399,7 @@ export default function ProfileTab() {
         {completeness < 100 ? (
           <View style={[styles.meterCard, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}>
             <TouchableOpacity
-              activeOpacity={0.85}
+              activeOpacity={0.9}
               onPress={() => setShowChecklist((v) => !v)}
               accessibilityRole="button"
               accessibilityState={{ expanded: showChecklist }}
@@ -541,7 +542,7 @@ export default function ProfileTab() {
             {/* My applications summary */}
             {myApplications.length > 0 ? (
               <TouchableOpacity
-                activeOpacity={0.85}
+                activeOpacity={0.9}
                 onPress={() => router.push({ pathname: '/(profile)/network' as any, params: { tab: 'teams' } })}
                 style={[styles.appsRow, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}
                 accessibilityRole="button"
@@ -601,7 +602,7 @@ export default function ProfileTab() {
                 />
               ) : (
                 <TouchableOpacity
-                  activeOpacity={0.85}
+                  activeOpacity={0.9}
                   onPress={openContactEditor}
                   style={[styles.contactCta, { backgroundColor: colors.primaryMuted, borderColor: colors.primaryLight }]}
                   accessibilityRole="button"
@@ -829,7 +830,7 @@ const styles = StyleSheet.create({
   activityEmptyText: { fontSize: 13, textAlign: 'center' },
   activityEmptyBtn: { paddingHorizontal: spacing.md, height: spacing.compactButtonHeight, borderRadius: radius.button, justifyContent: 'center' },
   activityEmptyBtnText: { ...typography.buttonSmall },
-  appsRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderWidth: 1, borderRadius: radius.md, padding: spacing.md, marginTop: spacing.md },
+  appsRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderWidth: 1, borderRadius: radius.md, padding: spacing.md, marginTop: spacing.md, ...cardShadow(false) },
   appsIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   appsTitle: { fontSize: 14, fontFamily: fontFamilies.sansSemiBold },
   appsSub: { fontSize: 12, marginTop: 2 },
@@ -866,6 +867,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     padding: spacing.md,
     marginBottom: spacing.lg,
+    ...cardShadow(false),
   },
   meterHeader: {
     flexDirection: 'row',

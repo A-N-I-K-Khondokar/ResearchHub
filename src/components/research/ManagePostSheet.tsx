@@ -87,6 +87,7 @@ export const ManagePostSheet: React.FC<ManagePostSheetProps> = ({
             {/* Publish (drafts) */}
             {work.status === 'draft' && onPublish ? (
               <TouchableOpacity
+        activeOpacity={0.9}
                 onPress={() => {
                   onClose();
                   setTimeout(onPublish, 250);
@@ -107,6 +108,7 @@ export const ManagePostSheet: React.FC<ManagePostSheetProps> = ({
 
             {/* Edit */}
             <TouchableOpacity
+        activeOpacity={0.9}
               onPress={() => {
                 onClose();
                 onEdit();

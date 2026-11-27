@@ -22,7 +22,7 @@ import {
 import type { ParticipantSource } from '@/utils/network';
 import type { Connection, RelationshipState } from '@/types/network.types';
 
-/** Status vocabulary understood by ResearcherCard / ResearcherDiscoveryCard. */
+/** Status vocabulary understood by PersonCard / PersonRow. */
 export type CardConnectionStatus = 'none' | 'pending' | 'connected';
 
 export function toCardStatus(state: RelationshipState): CardConnectionStatus {

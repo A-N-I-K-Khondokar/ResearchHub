@@ -16,6 +16,7 @@ import type { CurrentWork, UserProfile } from '@/types';
 import type { CollaborateProps } from '@/hooks/useCollaborate';
 import type { CardConnectionStatus } from '@/hooks/useConnections';
 import { fontFamilies, radius, spacing, typography } from '@/constants';
+import { cardShadow } from '@/constants/cards';
 
 export const HighlightText: React.FC<{
   text: string;
@@ -63,11 +64,11 @@ export const PersonRow: React.FC<{
   const pending = status === 'pending';
   return (
     <TouchableOpacity
-      activeOpacity={0.85}
+      activeOpacity={0.9}
       onPress={onPress}
       style={[styles.row, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}
       accessibilityRole="button"
-      accessibilityLabel={`${person.name}, ${person.designation ?? ''}`}
+      accessibilityLabel={`${person.name}${person.designation ? `, ${person.designation}` : ''}${connected ? ', connected' : pending ? ', request pending' : ''}${reason ? `. ${reason}` : ''}`}
     >
       <Avatar name={person.name} uri={person.photoURL} size="md" />
       <View style={styles.body}>
@@ -132,11 +133,11 @@ export const WorkRow: React.FC<{
 
   return (
     <TouchableOpacity
-      activeOpacity={0.85}
+      activeOpacity={0.9}
       onPress={onPress}
       style={[styles.row, styles.workRow, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}
       accessibilityRole="button"
-      accessibilityLabel={`${isCollab ? 'Collaboration' : 'Research work'}: ${work.title}`}
+      accessibilityLabel={`${isCollab ? 'Collaboration' : 'Research work'}${work.stage ? `, ${work.stage}` : ''}${isCollab ? (closed ? ', team formed' : ', open') : ''}, by ${work.authorName}: ${work.title}`}
     >
       <View style={[styles.iconBox, { backgroundColor: isCollab ? colors.primaryMuted : colors.surfaceSubtle }]}>
         <Icon size={18} color={isCollab ? colors.primary : colors.textSecondary} />
@@ -212,7 +213,7 @@ export const TopicRow: React.FC<{
   const { colors } = useTheme();
   return (
     <TouchableOpacity
-      activeOpacity={0.85}
+      activeOpacity={0.9}
       onPress={onPress}
       style={[styles.row, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}
       accessibilityRole="button"
@@ -238,8 +239,9 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     borderWidth: 1,
     borderRadius: radius.md,
-    padding: spacing.sm,
+    padding: 12,
     paddingRight: spacing.md,
+    ...cardShadow(false),
   },
   workRow: { alignItems: 'flex-start' },
   body: { flex: 1, minWidth: 0, gap: 2 },

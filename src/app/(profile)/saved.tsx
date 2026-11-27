@@ -19,6 +19,7 @@ import { ScreenHeader } from '../../components/layout/ScreenHeader';
 import { SkeletonList } from '../../components/feedback/Skeleton';
 import { HighlightText } from '@/components/search/SearchRows';
 import { spacing, radius, typography, fontFamilies, shadows } from '../../constants';
+import { cardShadow } from '@/constants/cards';
 import { useTheme } from '@/hooks/useTheme';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { useCollaborate } from '@/hooks/useCollaborate';
@@ -187,11 +188,11 @@ export default function SavedItemsScreen() {
     return (
       <TouchableOpacity
         key={saved.workId}
-        activeOpacity={0.85}
+        activeOpacity={0.9}
         onPress={() => router.push(`/(research)/${saved.workId}` as any)}
         style={[styles.row, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}
         accessibilityRole="button"
-        accessibilityLabel={`Open ${title}`}
+        accessibilityLabel={`${isCollab ? `Collaboration, ${closed ? 'team formed' : 'open'}` : 'Research work'}${stage ? `, ${stage}` : ''}: ${title}`}
       >
         <View style={[styles.icon, { backgroundColor: isCollab ? colors.primaryMuted : colors.surfaceSubtle }]}>
           <Icon size={18} color={isCollab ? colors.primary : colors.textSecondary} />
@@ -432,7 +433,8 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     borderWidth: 1,
     borderRadius: radius.md,
-    padding: spacing.sm,
+    padding: 12,
+    ...cardShadow(false),
   },
   icon: { width: 40, height: 40, borderRadius: radius.button, alignItems: 'center', justifyContent: 'center' },
   body: { flex: 1, minWidth: 0, gap: 2 },

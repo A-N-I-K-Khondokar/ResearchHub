@@ -1,16 +1,11 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Share } from 'react-native';
-import {
-  Bookmark,
-  Share2,
-  CheckCircle2,
-  MoreHorizontal,
-  Calendar,
-  Layers,
-  Users,
-} from 'lucide-react-native';
+import { Bookmark, BookOpen, Layers, MoreHorizontal, PenLine, Share2, Users } from 'lucide-react-native';
 import { CurrentWork } from '../../types';
 import { spacing, radius, typography, fontFamilies } from '../../constants';
+import { card, cardShadow } from '@/constants/cards';
+import { StatusChip } from '@/components/common/StatusChip';
+import { useAuth } from '@/context/AuthContext';
 import { collabStateIcon } from '@/components/common/collabStateIcon';
 import type { CollaborateState } from '@/hooks/useCollaborate';
 import { useTheme } from '@/context/ThemeContext';
@@ -42,6 +37,9 @@ export interface CurrentWorkCardProps {
   isLiked?: boolean;
 }
 
+const MAX_TOPICS = 3;
+const MAX_ROLES = 4;
+
 const asTag = (value: string) => (value.startsWith('#') ? value : `#${value.replace(/\s+/g, '')}`);
 
 export const CurrentWorkCard: React.FC<CurrentWorkCardProps> = ({
@@ -61,6 +59,7 @@ export const CurrentWorkCard: React.FC<CurrentWorkCardProps> = ({
   collaborateState,
 }) => {
   const { colors, isDark } = useTheme();
+  const { firebaseUser } = useAuth();
   const isCollaboration = work.postType === 'collaboration';
   const lookingFor = work.lookingFor ?? [];
   const teamFormed = isCollaboration && work.collabStatus === 'closed';
@@ -91,43 +90,45 @@ export const CurrentWorkCard: React.FC<CurrentWorkCardProps> = ({
   const dept = authorBatch?.split('•')[0]?.trim() || 'CSE';
   const subtitle = authorRole ? `${dept} • ${authorRole}` : dept;
 
+  const isOwn = Boolean(firebaseUser?.uid) && (work.userId === firebaseUser?.uid);
+  const isDraft = work.status === 'draft';
+  const edited = Boolean(work.updatedAt && work.createdAt) &&
+    new Date(work.updatedAt).getTime() - new Date(work.createdAt).getTime() > 60_000;
+  const topics = work.topics ?? [];
+  const shownTopics = topics.slice(0, MAX_TOPICS);
+  const hasCollabExtras = isCollaboration && (lookingFor.length > 0 || team.length > 0);
+  const statusWord = isCollaboration ? (teamFormed ? 'team formed' : 'open') : null;
+  const a11y = [
+    isDraft ? 'Draft' : null,
+    isCollaboration ? 'Collaboration' : 'Research work',
+    work.stage || null,
+    statusWord,
+    `by ${isOwn ? 'you' : authorName}`,
+  ]
+    .filter(Boolean)
+    .join(', ');
+
   return (
     <TouchableOpacity
-      activeOpacity={0.92}
+      activeOpacity={card.pressOpacity}
       onPress={onPress}
       style={[
         styles.card,
-        {
-          backgroundColor: colors.surface,
-          borderColor: isCollaboration ? colors.primaryLight : colors.borderSubtle,
-          shadowOpacity: isDark ? 0 : 0.03,
-          elevation: isDark ? 0 : 1,
-        },
+        { backgroundColor: colors.surface, borderColor: colors.borderSubtle },
+        cardShadow(isDark),
+        isDraft && { borderStyle: 'dashed', borderColor: colors.border },
       ]}
       accessibilityRole="button"
-      accessibilityLabel={`${isCollaboration ? 'Collaboration post' : 'Research work'}: ${work.title} by ${authorName}`}
+      accessibilityLabel={`${a11y}: ${work.title}`}
     >
-      {/* Collaboration badge */}
-      {isCollaboration ? (
-        <View style={[styles.collabBadge, { backgroundColor: teamFormed ? colors.successLight : colors.primaryMuted }]}>
-          <Users size={13} color={teamFormed ? colors.success : colors.primary} />
-          <Text style={[styles.collabBadgeText, { color: teamFormed ? colors.success : colors.primary }]}>
-            {teamFormed ? 'Team formed' : 'Looking for collaborators'}
-          </Text>
-        </View>
-      ) : null}
-
-      {/* Author header */}
+      {/* Author */}
       <View style={styles.header}>
-        <TouchableOpacity activeOpacity={0.8} onPress={onAuthorPress} style={styles.authorContainer}>
+        <TouchableOpacity activeOpacity={0.8} onPress={onAuthorPress} style={styles.authorContainer} accessibilityRole="button" accessibilityLabel={`Open ${authorName}'s profile`}>
           <Avatar name={authorName} uri={authorAvatar} size="md" />
           <View style={styles.authorInfo}>
-            <View style={styles.authorNameRow}>
-              <Text style={[styles.authorName, { color: colors.textPrimary }]} numberOfLines={1}>
-                {authorName}
-              </Text>
-              <CheckCircle2 size={14} color={colors.primary} style={styles.verifiedIcon} />
-            </View>
+            <Text style={[styles.authorName, { color: colors.textPrimary }]} numberOfLines={1}>
+              {authorName}
+            </Text>
             <Text style={[styles.authorSubtitle, { color: colors.textSecondary }]} numberOfLines={1}>
               {subtitle}
             </Text>
@@ -145,64 +146,69 @@ export const CurrentWorkCard: React.FC<CurrentWorkCardProps> = ({
         </TouchableOpacity>
       </View>
 
+      {/* Type · stage · ownership */}
+      <View style={styles.chips}>
+        {isDraft ? <StatusChip label="Draft" tone="neutral" icon={PenLine} outlined /> : null}
+        {isCollaboration ? (
+          <StatusChip
+            label={teamFormed ? 'Collaboration · Team formed' : 'Collaboration · Open'}
+            tone={teamFormed ? 'success' : 'primary'}
+            icon={Users}
+          />
+        ) : (
+          <StatusChip label="Research" tone="neutral" icon={BookOpen} />
+        )}
+        {work.stage ? <StatusChip label={work.stage} tone="neutral" icon={Layers} /> : null}
+        {isOwn && !isDraft ? <StatusChip label="Your post" tone="primary" /> : null}
+      </View>
+
       <Text style={[styles.title, { color: colors.textPrimary }]} numberOfLines={2}>
         {work.title}
       </Text>
 
-      <Text style={[styles.description, { color: colors.textSecondary }]} numberOfLines={2}>
+      <Text style={[styles.description, { color: colors.textSecondary }]} numberOfLines={hasCollabExtras ? 2 : 3}>
         {work.shortDescription || work.description}
       </Text>
-
-      {/* Team (accepted collaborators) */}
-      {isCollaboration && team.length > 0 ? (
-        <View style={styles.teamRow}>
-          <View style={styles.teamAvatars}>
-            {team.slice(0, 4).map((m, i) => (
-              <View key={m.uid} style={[styles.teamAvatar, { marginLeft: i === 0 ? 0 : -8, borderColor: colors.surface }]}>
-                <Avatar name={m.displayName} uri={m.photoURL} size="xs" />
-              </View>
-            ))}
-          </View>
-          <Text style={[styles.teamText, { color: colors.textSecondary }]} numberOfLines={1}>
-            Team: {team.map((m) => m.displayName.split(' ')[0]).join(', ')}
-          </Text>
-        </View>
-      ) : null}
 
       {/* Looking for (collaboration) */}
       {isCollaboration && lookingFor.length > 0 && !teamFormed ? (
         <View style={styles.lookingForBlock}>
           <Text style={[styles.lookingForLabel, { color: colors.textPrimary }]}>Looking for</Text>
           <View style={styles.topicsRow}>
-            {lookingFor.slice(0, 4).map((role) => (
+            {lookingFor.slice(0, MAX_ROLES).map((role) => (
               <View key={role} style={[styles.rolePill, { backgroundColor: colors.primaryMuted }]}>
                 <Text style={[styles.rolePillText, { color: colors.primary }]} numberOfLines={1}>
-                  {asTag(role)}
+                  {role}
                 </Text>
               </View>
             ))}
-            {lookingFor.length > 4 ? (
-              <Text style={[styles.moreRoles, { color: colors.textSecondary }]}>+{lookingFor.length - 4}</Text>
+            {lookingFor.length > MAX_ROLES ? (
+              <Text style={[styles.moreRoles, { color: colors.textSecondary }]}>+{lookingFor.length - MAX_ROLES}</Text>
             ) : null}
           </View>
         </View>
       ) : null}
 
-      {/* Topic tags */}
-      {work.topics && work.topics.length > 0 ? (
+      {/* Topic tags (max 3 + N) */}
+      {shownTopics.length > 0 ? (
         <View style={styles.topicsRow}>
-          {work.topics.map((topic, index) => (
+          {shownTopics.map((topic, index) => (
             <TouchableOpacity
               key={`${topic}-${index}`}
               activeOpacity={0.75}
               onPress={() => onTopicPress?.(topic)}
               style={[styles.topicPill, { backgroundColor: colors.surfaceSubtle, borderColor: colors.borderSubtle }]}
+              accessibilityRole="button"
+              accessibilityLabel={`Topic ${topic}`}
             >
               <Text style={[styles.topicPillText, { color: colors.textSecondary }]} numberOfLines={1} ellipsizeMode="tail">
                 {asTag(topic)}
               </Text>
             </TouchableOpacity>
           ))}
+          {topics.length > MAX_TOPICS ? (
+            <Text style={[styles.moreRoles, { color: colors.textMuted }]}>+{topics.length - MAX_TOPICS}</Text>
+          ) : null}
         </View>
       ) : null}
 
@@ -230,21 +236,25 @@ export const CurrentWorkCard: React.FC<CurrentWorkCardProps> = ({
 
       <View style={[styles.divider, { backgroundColor: colors.borderSubtle }]} />
 
-      {/* Footer: real metadata + actions */}
+      {/* Footer: team · time · actions */}
       <View style={styles.footer}>
         <View style={styles.footerLeft}>
-          <View style={styles.metaItem}>
-            <Calendar size={14} color={colors.textSecondary} />
-            <Text style={[styles.metaText, { color: colors.textSecondary }]}>{formatRelativeDate(work.createdAt)}</Text>
-          </View>
-          {work.stage ? (
-            <View style={styles.metaItem}>
-              <Layers size={14} color={colors.textSecondary} />
-              <Text style={[styles.metaText, { color: colors.textSecondary }]} numberOfLines={1}>
-                {work.stage}
-              </Text>
+          {isCollaboration && team.length > 0 ? (
+            <View style={styles.teamAvatars} accessibilityLabel={`${team.length} on the team`}>
+              {team.slice(0, 3).map((m, i) => (
+                <View key={m.uid} style={[styles.teamAvatar, { marginLeft: i === 0 ? 0 : -8, borderColor: colors.surface }]}>
+                  <Avatar name={m.displayName} uri={m.photoURL} size="xs" />
+                </View>
+              ))}
+              {team.length > 3 ? (
+                <Text style={[styles.metaText, { color: colors.textMuted, marginLeft: 4 }]}>+{team.length - 3}</Text>
+              ) : null}
             </View>
           ) : null}
+          <Text style={[styles.metaText, { color: colors.textMuted }]} numberOfLines={1}>
+            {formatRelativeDate(work.createdAt)}
+            {edited ? ' · Edited' : ''}
+          </Text>
         </View>
 
         <View style={styles.footerRight}>
@@ -280,13 +290,16 @@ export const CurrentWorkCard: React.FC<CurrentWorkCardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 20,
-    borderWidth: 1,
-    padding: spacing.md,
+    borderRadius: card.radius,
+    borderWidth: card.borderWidth,
+    padding: card.padding,
     marginBottom: spacing.md,
-    shadowColor: '#071A3E',
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 12,
+  },
+  chips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: spacing.sm,
   },
   collabBadge: {
     flexDirection: 'row',
@@ -306,7 +319,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: spacing.sm + 4,
+    marginBottom: spacing.sm + 2,
   },
   authorContainer: {
     flexDirection: 'row',
@@ -364,6 +377,7 @@ const styles = StyleSheet.create({
   },
   teamAvatars: {
     flexDirection: 'row',
+    alignItems: 'center',
   },
   teamAvatar: {
     borderWidth: 2,
@@ -439,7 +453,7 @@ const styles = StyleSheet.create({
   footerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
+    gap: spacing.sm,
     flexShrink: 1,
   },
   metaItem: {

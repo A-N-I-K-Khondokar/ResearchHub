@@ -356,7 +356,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     borderWidth: 1,
     borderRadius: radius.md,
-    padding: spacing.sm,
+    padding: 12,
   },
   rowTitle: { ...typography.label, fontFamily: fontFamilies.sansSemiBold },
   rowSub: { ...typography.bodySmall },

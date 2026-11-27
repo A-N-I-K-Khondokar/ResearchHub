@@ -350,6 +350,7 @@ export function toCurrentWork(work: ResearchWork): CurrentWork {
     postType: work.postType,
     lookingFor: work.lookingFor,
     collabStatus: work.collabStatus,
+    status: work.status === 'draft' ? 'draft' : 'published',
     team: work.team,
     likesCount: 0,
     commentsCount: 0,

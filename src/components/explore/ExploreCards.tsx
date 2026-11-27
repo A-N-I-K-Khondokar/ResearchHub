@@ -11,7 +11,9 @@
 
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Check, ChevronRight, Clock, FileText, Star, UserPlus, Users } from 'lucide-react-native';
+import { Check, ChevronRight, Clock, FileText, Layers, Star, UserPlus, Users } from 'lucide-react-native';
+import { card, cardShadow } from '@/constants/cards';
+import { StatusChip } from '@/components/common/StatusChip';
 import { TopicIcon } from '@/components/common/TopicIcon';
 import { useTheme } from '@/context/ThemeContext';
 import { Avatar } from '@/components/common/Avatar';
@@ -68,27 +70,25 @@ export const CollabCard: React.FC<{
   action: CollaborateProps;
   onPress: () => void;
 }> = ({ work, hint, action, onPress }) => {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const team = work.team ?? [];
   const canApply = Boolean(action.onCollaboratePress && !action.collaborateDisabled);
+  const closed = work.collabStatus === 'closed';
   return (
     <TouchableOpacity
-      activeOpacity={0.88}
+      activeOpacity={card.pressOpacity}
       onPress={onPress}
-      style={[styles.collabCard, { backgroundColor: colors.surface, borderColor: colors.primaryLight }]}
+      style={[styles.collabCard, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }, cardShadow(isDark)]}
       accessibilityRole="button"
-      accessibilityLabel={`Collaboration: ${work.title}`}
+      accessibilityLabel={`Collaboration, ${work.stage ? `${work.stage}, ` : ''}${closed ? 'team formed' : 'open'}, by ${work.authorName}: ${work.title}`}
     >
       <View style={styles.collabTop}>
-        <View style={[styles.badge, { backgroundColor: colors.primaryMuted }]}>
-          <Users size={12} color={colors.primary} />
-          <Text style={[styles.badgeText, { color: colors.primary }]}>Open</Text>
-        </View>
-        {work.stage ? (
-          <Text style={[styles.micro, { color: colors.textMuted }]} numberOfLines={1}>
-            {work.stage}
-          </Text>
-        ) : null}
+        <StatusChip
+          label={closed ? 'Collaboration · Team formed' : 'Collaboration · Open'}
+          tone={closed ? 'success' : 'primary'}
+          icon={Users}
+        />
+        {work.stage ? <StatusChip label={work.stage} icon={Layers} /> : null}
       </View>
 
       <Text style={[styles.cardTitle, { color: colors.textPrimary }]} numberOfLines={2}>
@@ -170,17 +170,25 @@ export const PersonCard: React.FC<{
   onPress: () => void;
   onConnect: () => void;
 }> = ({ person, shared, status, onPress, onConnect }) => {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const connected = status === 'connected';
   const pending = status === 'pending';
   return (
     <TouchableOpacity
-      activeOpacity={0.88}
+      activeOpacity={card.pressOpacity}
       onPress={onPress}
-      style={[styles.personCard, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}
+      style={[styles.personCard, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }, cardShadow(isDark)]}
       accessibilityRole="button"
-      accessibilityLabel={`${person.name}, ${shared.length} shared interests`}
+      accessibilityLabel={`${person.name}${connected ? ', connected' : pending ? ', request pending' : ''}, ${shared.length} shared interests`}
     >
+      {connected || pending ? (
+        <StatusChip
+          label={connected ? 'Connected' : 'Pending'}
+          tone={connected ? 'success' : 'neutral'}
+          icon={connected ? Check : Clock}
+          style={styles.personStatus}
+        />
+      ) : null}
       <Avatar name={person.name} uri={person.photoURL} size="lg" />
       <Text style={[styles.personName, { color: colors.textPrimary }]} numberOfLines={1}>
         {person.name}
@@ -188,12 +196,12 @@ export const PersonCard: React.FC<{
       <Text style={[styles.caption, { color: colors.textSecondary, textAlign: 'center' }]} numberOfLines={1}>
         {person.designation || person.department}
       </Text>
-      <View style={[styles.badge, { backgroundColor: colors.successLight, marginTop: spacing.xs }]}>
-        <Star size={11} color={colors.success} />
-        <Text style={[styles.badgeText, { color: colors.success }]}>
-          {shared.length} shared interest{shared.length === 1 ? '' : 's'}
-        </Text>
-      </View>
+      <StatusChip
+        label={`${shared.length} shared interest${shared.length === 1 ? '' : 's'}`}
+        tone="success"
+        icon={Star}
+        style={{ marginTop: spacing.xs, alignSelf: 'center' }}
+      />
       <Text style={[styles.micro, { color: colors.textMuted, textAlign: 'center', marginTop: 4 }]} numberOfLines={2}>
         {shared.slice(0, 2).join(' · ')}
       </Text>
@@ -232,7 +240,7 @@ export const TopicCard: React.FC<{
   const { colors } = useTheme();
   return (
     <TouchableOpacity
-      activeOpacity={0.85}
+      activeOpacity={card.pressOpacity}
       onPress={onPress}
       style={[
         styles.topicCard,
@@ -308,8 +316,8 @@ const styles = StyleSheet.create({
   hint: { ...typography.micro, fontFamily: fontFamilies.sansSemiBold },
   hintRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
 
-  collabCard: { width: 264, borderWidth: 1, borderRadius: radius.md, padding: spacing.md, gap: spacing.xs },
-  collabTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  collabCard: { width: 272, borderWidth: card.borderWidth, borderRadius: card.radius, padding: card.padding, gap: spacing.xs },
+  collabTop: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginBottom: 2 },
   cardTitle: { ...typography.label, fontFamily: fontFamilies.sansSemiBold, fontSize: 15, lineHeight: 20, minHeight: 40 },
   authorLine: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   roles: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4, minHeight: 24 },
@@ -318,11 +326,12 @@ const styles = StyleSheet.create({
   collabBottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: spacing.xs, gap: spacing.xs },
   teamLine: { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, minWidth: 0 },
   stack: { flexDirection: 'row' },
-  stackItem: { borderWidth: 2, borderRadius: 14 },
+  stackItem: { borderWidth: 2, borderRadius: radius.full },
   smallBtn: { paddingHorizontal: 12, height: spacing.compactButtonHeight, borderRadius: radius.button, borderWidth: 1, alignItems: 'center', justifyContent: 'center', maxWidth: 150 },
   smallBtnText: { ...typography.buttonSmall },
 
-  personCard: { width: 176, borderWidth: 1, borderRadius: radius.md, padding: spacing.md, alignItems: 'center' },
+  personCard: { width: 176, borderWidth: card.borderWidth, borderRadius: card.radius, padding: card.padding, paddingTop: spacing.lg, alignItems: 'center' },
+  personStatus: { position: 'absolute', top: spacing.sm, right: spacing.sm },
   personName: { ...typography.label, fontFamily: fontFamilies.sansSemiBold, marginTop: spacing.sm, textAlign: 'center' },
   connectBtn: {
     flexDirection: 'row',
@@ -336,13 +345,13 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
   },
 
-  topicCard: { flexBasis: '48%', flexGrow: 1, borderWidth: 1, borderRadius: radius.md, padding: spacing.sm, minHeight: 72, justifyContent: 'space-between', gap: 6 },
+  topicCard: { flexBasis: '48%', flexGrow: 1, borderWidth: card.borderWidth, borderRadius: card.radius, padding: card.rowPadding, minHeight: 72, justifyContent: 'space-between', gap: 6 },
   topicTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   topicIcon: { width: 30, height: 30, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
   topicName: { ...typography.label, fontFamily: fontFamilies.sansSemiBold },
   topicCounts: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: spacing.xs },
 
-  prompt: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderWidth: 1, borderRadius: radius.md, padding: spacing.md },
+  prompt: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderWidth: card.borderWidth, borderRadius: card.radius, padding: card.padding },
   promptIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   promptTitle: { ...typography.label, fontFamily: fontFamilies.sansSemiBold },
 });

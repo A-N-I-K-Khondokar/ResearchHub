@@ -1124,7 +1124,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   formCard: {
-    borderRadius: 20,
+    borderRadius: radius.md,
     borderWidth: 1,
     padding: spacing.lg,
     shadowColor: '#071A3E',

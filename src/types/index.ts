@@ -58,6 +58,8 @@ export interface CurrentWork {
   lookingFor?: string[];
   collabStatus?: 'open' | 'closed';
   team?: { uid: string; displayName: string; photoURL: string | null; role: string }[];
+  /** 'draft' posts are only visible to their author. */
+  status?: 'draft' | 'published';
   likesCount?: number;
   commentsCount?: number;
   isBookmarked?: boolean;

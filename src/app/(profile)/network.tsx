@@ -28,6 +28,7 @@ import {
 } from 'lucide-react-native';
 import { FieldFrame } from '@/components/common/TextField';
 import { spacing, radius, typography, fontFamilies } from '../../constants';
+import { cardShadow } from '@/constants/cards';
 import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
 import { useCollab } from '@/context/CollabContext';
@@ -313,6 +314,7 @@ export default function MyNetworkScreen() {
       ) : (
         connectionRows.map(({ c, p }) => (
           <TouchableOpacity
+        activeOpacity={0.9}
             key={c.id}
             onPress={() => openProfile(p.uid)}
             style={[styles.row, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}
@@ -438,6 +440,7 @@ export default function MyNetworkScreen() {
           <Title icon={<Inbox size={16} color={colors.warning} />} text="Waiting for you" />
           {waiting.map((w) => (
             <TouchableOpacity
+        activeOpacity={0.9}
               key={w.workId}
               onPress={() => router.push({ pathname: `/(research)/${w.workId}` as any, params: { manage: '1' } })}
               style={[styles.row, { backgroundColor: colors.surface, borderColor: colors.primaryLight }]}
@@ -471,6 +474,7 @@ export default function MyNetworkScreen() {
         ) : (
           teamsILead.map((w) => (
             <TouchableOpacity
+        activeOpacity={0.9}
               key={w.id}
               onPress={() => router.push(`/(research)/${w.id}` as any)}
               style={[styles.row, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}
@@ -511,6 +515,7 @@ export default function MyNetworkScreen() {
         ) : (
           joinedWorks.map((w) => (
             <TouchableOpacity
+        activeOpacity={0.9}
               key={w.id}
               onPress={() => router.push(`/(research)/${w.id}` as any)}
               style={[styles.row, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}
@@ -542,6 +547,7 @@ export default function MyNetworkScreen() {
         ) : (
           openApps.map((r) => (
             <TouchableOpacity
+        activeOpacity={0.9}
               key={r.id}
               onPress={() => router.push(`/(research)/${r.workId}` as any)}
               style={[styles.row, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}
@@ -569,6 +575,7 @@ export default function MyNetworkScreen() {
             {showDeclined
               ? declinedApps.map((r) => (
                   <TouchableOpacity
+        activeOpacity={0.9}
                     key={r.id}
                     onPress={() => router.push(`/(research)/${r.workId}` as any)}
                     style={[styles.row, { backgroundColor: colors.surface, borderColor: colors.borderSubtle, opacity: 0.75 }]}
@@ -689,7 +696,8 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     borderWidth: 1,
     borderRadius: radius.md,
-    padding: spacing.sm,
+    padding: 12,
+    ...cardShadow(false),
   },
   rowTap: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, minWidth: 0 },
   rowBody: { flex: 1, minWidth: 0, gap: 2 },
@@ -706,7 +714,7 @@ const styles = StyleSheet.create({
   chipText: { ...typography.micro, fontFamily: fontFamilies.sansSemiBold },
   teamLine: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 },
   stack: { flexDirection: 'row' },
-  stackItem: { borderWidth: 2, borderRadius: 14 },
+  stackItem: { borderWidth: 2, borderRadius: radius.full},
   hList: { gap: spacing.sm, paddingRight: spacing.md },
   foldBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', paddingVertical: 6 },
   foldText: { ...typography.caption, fontFamily: fontFamilies.sansSemiBold },

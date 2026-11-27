@@ -45,6 +45,7 @@ import {
 } from 'lucide-react-native';
 import { ICON_STROKE } from '@/constants/icons';
 import { spacing, radius, typography, fontFamilies, shadows } from '../../constants';
+import { cardShadow } from '@/constants/cards';
 import { collabStateIcon } from '@/components/common/collabStateIcon';
 import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
@@ -937,7 +938,7 @@ export default function ResearchDetailScreen() {
                   {moreWorks.map((w) => (
                     <TouchableOpacity
                       key={w.id}
-                      activeOpacity={0.85}
+                      activeOpacity={0.9}
                       onPress={() => router.push(`/(research)/${w.id}` as any)}
                       style={[styles.moreCard, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}
                       accessibilityRole="button"
@@ -972,7 +973,7 @@ export default function ResearchDetailScreen() {
                   {related.map((w) => (
                     <TouchableOpacity
                       key={w.id}
-                      activeOpacity={0.85}
+                      activeOpacity={0.9}
                       onPress={() => router.push(`/(research)/${w.id}` as any)}
                       style={[styles.moreCard, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}
                       accessibilityRole="button"
@@ -1074,7 +1075,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   connectText: { ...typography.caption, fontFamily: fontFamilies.sansSemiBold },
-  progressCard: { borderWidth: 1, borderRadius: radius.md, padding: spacing.md, marginTop: spacing.md },
+  progressCard: { borderWidth: 1, borderRadius: radius.md, padding: spacing.md, marginTop: spacing.md, ...cardShadow(false) },
 
   // sections
   divider: { height: 1, marginHorizontal: spacing.md },
@@ -1109,7 +1110,7 @@ const styles = StyleSheet.create({
     padding: spacing.sm,
   },
   stack: { flexDirection: 'row', alignItems: 'center' },
-  stackItem: { borderWidth: 2, borderRadius: 20 },
+  stackItem: { borderWidth: 2, borderRadius: radius.full},
   stackOverlap: { marginLeft: -10 },
   stackMore: { width: 36, height: 36, borderRadius: 18, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   stackMoreText: { ...typography.micro, fontFamily: fontFamilies.sansSemiBold },
@@ -1134,7 +1135,7 @@ const styles = StyleSheet.create({
 
   // more from
   moreRow: { paddingHorizontal: spacing.md, gap: spacing.sm, paddingBottom: spacing.sm },
-  moreCard: { width: 220, borderWidth: 1, borderRadius: radius.md, padding: spacing.md, overflow: 'hidden' },
+  moreCard: { width: 220, borderWidth: 1, borderRadius: radius.md, padding: spacing.md, overflow: 'hidden', ...cardShadow(false) },
   moreAccent: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 3 },
   moreType: { ...typography.micro, fontFamily: fontFamilies.sansSemiBold, marginBottom: 4 },
   moreTitle: { ...typography.label, fontFamily: fontFamilies.sansSemiBold, minHeight: 40 },

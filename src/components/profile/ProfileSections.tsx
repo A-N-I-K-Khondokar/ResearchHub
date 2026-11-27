@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Calendar, Layers, ChevronRight, ExternalLink, Users } from 'lucide-react-native';
 import { spacing, radius, typography, fontFamilies } from '@/constants';
+import { cardShadow } from '@/constants/cards';
 import { useTheme } from '@/context/ThemeContext';
 import { SectionHeader } from '../common/SectionHeader';
 import { formatWorkDate } from '@/services/research.service';
@@ -38,11 +39,11 @@ export const WorkListItem: React.FC<{ work: ResearchWork; onPress: () => void; b
   const { colors } = useTheme();
   return (
     <TouchableOpacity
-      activeOpacity={0.85}
+      activeOpacity={0.9}
       onPress={onPress}
       style={[styles.workRow, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}
       accessibilityRole="button"
-      accessibilityLabel={`Open ${work.title}`}
+      accessibilityLabel={`${work.status === 'draft' ? 'Draft, ' : ''}${work.postType === 'collaboration' ? `Collaboration, ${work.collabStatus === 'closed' ? 'team formed' : 'open'}` : 'Research work'}${work.stage ? `, ${work.stage}` : ''}: ${work.title}`}
     >
       <View style={styles.workBody}>
         {badge ? (
@@ -194,6 +195,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: radius.md,
     padding: spacing.md,
+    ...cardShadow(false),
   },
   workBody: {
     flex: 1,
@@ -239,6 +241,7 @@ const styles = StyleSheet.create({
   listCard: {
     borderWidth: 1,
     borderRadius: radius.md,
+    ...cardShadow(false),
   },
   listRow: {
     flexDirection: 'row',
