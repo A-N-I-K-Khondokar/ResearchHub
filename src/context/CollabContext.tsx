@@ -19,6 +19,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { COMPACT_FONT_SCALE } from '@/constants/typography';
 import { Users, X } from 'lucide-react-native';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
@@ -202,7 +203,7 @@ export const CollabProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             </View>
 
             <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.body}>
-              <Text style={[styles.label, { color: colors.textPrimary }]}>I can help as</Text>
+              <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.label, { color: colors.textPrimary }]}>I can help as</Text>
               <View style={styles.rolesRow}>
                 {(target?.lookingFor ?? []).map((r) => {
                   const active = r === role;
@@ -219,13 +220,13 @@ export const CollabProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                       accessibilityRole="radio"
                       accessibilityState={{ selected: active }}
                     >
-                      <Text style={[styles.roleText, { color: active ? '#FFFFFF' : colors.textPrimary }]}>{r}</Text>
+                      <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.roleText, { color: active ? '#FFFFFF' : colors.textPrimary }]}>{r}</Text>
                     </TouchableOpacity>
                   );
                 })}
               </View>
 
-              <Text style={[styles.label, { color: colors.textPrimary }]}>
+              <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.label, { color: colors.textPrimary }]}>
                 Message <Text style={{ color: colors.textMuted }}>(optional)</Text>
               </Text>
               <TextField
@@ -289,8 +290,8 @@ const styles = StyleSheet.create({
   label: { ...typography.label, marginTop: spacing.sm },
   rolesRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   rolePill: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: radius.full, borderWidth: 1 },
-  roleText: { ...typography.caption, fontSize: 13, fontFamily: fontFamilies.sansSemiBold },
+  roleText: { ...typography.bodySmall, fontFamily: fontFamilies.sansSemiBold },
   input: {},
-  counter: { ...typography.micro, alignSelf: 'flex-end' },
+  counter: { ...typography.micro, alignSelf: 'flex-end', fontVariant: ['tabular-nums'] },
   note: { ...typography.caption, textAlign: 'center', marginTop: spacing.xs },
 });

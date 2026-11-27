@@ -9,6 +9,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Linking, Modal, Platform, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { COMPACT_FONT_SCALE } from '@/constants/typography';
 import { Copy, ExternalLink, Link2, Mail, MessageCircle, Phone, Send, User, X } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { useToast } from '@/context/ToastContext';
@@ -102,7 +103,7 @@ export const ContactSheet: React.FC<ContactSheetProps> = ({ person, onClose, onV
           accessibilityLabel={actionLabel}
         >
           <ExternalLink size={13} color="#FFFFFF" />
-          <Text style={styles.actionText}>{actionLabel}</Text>
+          <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={styles.actionText}>{actionLabel}</Text>
         </TouchableOpacity>
       ) : null}
     </View>

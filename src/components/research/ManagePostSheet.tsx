@@ -8,6 +8,7 @@
 
 import React from 'react';
 import { Modal, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
+import { COMPACT_FONT_SCALE } from '@/constants/typography';
 import { useRouter } from 'expo-router';
 import { Check, CheckCircle2, ChevronRight, Pencil, Send, Settings2, X, XCircle } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
@@ -150,7 +151,7 @@ export const ManagePostSheet: React.FC<ManagePostSheetProps> = ({
 
                 {/* Applicants */}
                 <Text style={[styles.section, { color: colors.textSecondary }]}>
-                  APPLICANTS ({applicants.length}){pending ? ` · ${pending} WAITING` : ''}
+                  Applicants ({applicants.length}){pending ? ` · ${pending} waiting` : ''}
                 </Text>
                 {sorted.length === 0 ? (
                   <Text style={[styles.empty, { color: colors.textSecondary }]}>
@@ -177,14 +178,14 @@ export const ManagePostSheet: React.FC<ManagePostSheetProps> = ({
                           </Text>
                         </View>
                         <View style={[styles.rolePill, { backgroundColor: colors.primaryMuted }]}>
-                          <Text style={[styles.roleText, { color: colors.primary }]} numberOfLines={1}>
+                          <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.roleText, { color: colors.primary }]} numberOfLines={1}>
                             {r.role}
                           </Text>
                         </View>
                       </TouchableOpacity>
                       {r.message ? (
-                        <Text style={[styles.message, { color: colors.textPrimary, backgroundColor: colors.surfaceSubtle }]}>
-                          “{r.message}”
+                        <Text style={[styles.message, { color: colors.textPrimary, backgroundColor: colors.surfaceSubtle, borderLeftColor: colors.primaryLight }]}>
+                          {r.message}
                         </Text>
                       ) : null}
                       {r.status === 'pending' ? (
@@ -195,7 +196,7 @@ export const ManagePostSheet: React.FC<ManagePostSheetProps> = ({
                             style={[styles.actionBtn, { borderColor: colors.border, backgroundColor: colors.surface }]}
                             accessibilityRole="button"
                           >
-                            <Text style={[styles.actionText, { color: colors.textPrimary }]}>Decline</Text>
+                            <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.actionText, { color: colors.textPrimary }]}>Decline</Text>
                           </TouchableOpacity>
                           <TouchableOpacity
                             onPress={() => onRespond(r, true)}
@@ -204,7 +205,7 @@ export const ManagePostSheet: React.FC<ManagePostSheetProps> = ({
                             accessibilityRole="button"
                           >
                             <Check size={15} color="#FFFFFF" />
-                            <Text style={[styles.actionText, { color: '#FFFFFF' }]}>
+                            <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.actionText, { color: '#FFFFFF' }]}>
                               {busyRequest === r.id ? 'Saving…' : 'Accept'}
                             </Text>
                           </TouchableOpacity>
@@ -268,13 +269,13 @@ const styles = StyleSheet.create({
   },
   rowTitle: { ...typography.label, fontFamily: fontFamilies.sansSemiBold },
   rowSub: { ...typography.caption },
-  section: { ...typography.micro, fontFamily: fontFamilies.sansSemiBold, letterSpacing: 0.6, marginTop: spacing.sm },
+  section: { ...typography.overline, marginTop: spacing.sm },
   empty: { ...typography.bodySmall },
   applicant: { borderWidth: 1, borderRadius: radius.md, padding: spacing.sm },
   person: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   rolePill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: radius.full, maxWidth: 140 },
   roleText: { ...typography.caption, fontFamily: fontFamilies.sansSemiBold },
-  message: { ...typography.bodySmall, padding: spacing.sm, borderRadius: radius.sm, marginTop: spacing.sm },
+  message: { ...typography.bodySmall, paddingVertical: 6, paddingHorizontal: spacing.sm, borderLeftWidth: 3, borderTopRightRadius: radius.sm, borderBottomRightRadius: radius.sm, marginTop: spacing.sm },
   actions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm },
   actionBtn: {
     flex: 1,

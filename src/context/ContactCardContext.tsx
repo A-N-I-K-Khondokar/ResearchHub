@@ -23,6 +23,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { COMPACT_FONT_SCALE } from '@/constants/typography';
 import { Check, ExternalLink, IdCard, Link2, Mail, MessageCircle, Pencil, Phone, Send, X } from 'lucide-react-native';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
@@ -291,7 +292,7 @@ export const ContactCardProvider: React.FC<{ children: React.ReactNode }> = ({ c
                         <Text style={[styles.previewText, { color: colors.textPrimary }]} numberOfLines={1}>{userProfile?.email}</Text>
                         <View style={[styles.previewBtn, { backgroundColor: colors.primary }]}>
                           <ExternalLink size={12} color="#FFFFFF" />
-                          <Text style={styles.previewBtnText}>Email</Text>
+                          <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={styles.previewBtnText}>Email</Text>
                         </View>
                       </View>
                     ) : null}
@@ -302,7 +303,7 @@ export const ContactCardProvider: React.FC<{ children: React.ReactNode }> = ({ c
                         {previewAction ? (
                           <View style={[styles.previewBtn, { backgroundColor: colors.primary }]}>
                             <ExternalLink size={12} color="#FFFFFF" />
-                            <Text style={styles.previewBtnText}>{previewAction.label}</Text>
+                            <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={styles.previewBtnText}>{previewAction.label}</Text>
                           </View>
                         ) : null}
                       </View>
@@ -370,11 +371,11 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
     borderWidth: 1,
   },
-  methodText: { ...typography.caption, fontSize: 13, fontFamily: fontFamilies.sansSemiBold },
+  methodText: { ...typography.bodySmall, fontFamily: fontFamilies.sansSemiBold },
   dot: { width: 6, height: 6, borderRadius: 3 },
   inputWrap: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: spacing.xs },
   prefix: { ...typography.bodyCompact },
-  input: { flex: 1, paddingVertical: 10, ...typography.body },
+  input: { flex: 1, paddingVertical: 10, ...typography.body, lineHeight: undefined },
   hint: { ...typography.micro },
   preview: { borderWidth: 1, borderRadius: radius.md, padding: spacing.sm, gap: spacing.sm, marginBottom: spacing.sm },
   previewRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },

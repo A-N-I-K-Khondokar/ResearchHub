@@ -1,5 +1,6 @@
 import React from 'react';
 import { Pressable, Text, View, StyleSheet, ViewStyle, Image, Insets } from 'react-native';
+import { COMPACT_FONT_SCALE } from '@/constants/typography';
 import { radius, spacing, typography, fontFamilies } from '@/constants';
 import { useTheme } from '@/context/ThemeContext';
 
@@ -53,7 +54,7 @@ export const SocialAuthButton: React.FC<SocialAuthButtonProps> = ({
             resizeMode="contain"
           />
         </View>
-        <Text style={[styles.buttonText, { color: colors.textPrimary }]}>Continue with Google</Text>
+        <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.buttonText, { color: colors.textPrimary }]}>Continue with Google</Text>
       </View>
     </Pressable>
   );
@@ -88,9 +89,8 @@ const styles = StyleSheet.create({
     height: 20,
   },
   buttonText: {
+    ...typography.body,
     fontFamily: fontFamilies.sansSemiBold,
-    fontSize: 15,
-    lineHeight: 20,
     fontWeight: '600',
     textAlign: 'center',
     textAlignVertical: 'center',

@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { COMPACT_FONT_SCALE } from '@/constants/typography';
 import { Tabs } from 'expo-router';
 import { Home, Compass, Plus, Bell, User } from 'lucide-react-native';
 import { ICON_STROKE } from '@/constants/icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/ThemeContext';
-import { fontFamilies, shadows } from '@/constants';
+import { fontFamilies, shadows, typography } from '@/constants';
 import { useAuth } from '@/context/AuthContext';
 import { subscribeUnreadCount } from '@/services/network.service';
 import { Avatar } from '@/components/common/Avatar';
@@ -45,7 +46,7 @@ export default function TabLayout() {
   // We draw icon + label ourselves (tabBarShowLabel: false): the library's
   // item has a fixed 5px padding that clipped the built-in label.
   const label = (text: string, focused: boolean) => (
-    <Text
+    <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE}
       numberOfLines={1}
       style={[
         styles.label,
@@ -155,7 +156,7 @@ export default function TabLayout() {
                 <Bell size={21} color={color} strokeWidth={focused ? 2.3 : 1.8} />
                 {unreadCount > 0 ? (
                   <View style={[styles.badge, { backgroundColor: badgeColor, borderColor: colors.surface }]}>
-                    <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                    <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
                   </View>
                 ) : null}
               </View>,
@@ -193,7 +194,7 @@ export default function TabLayout() {
 
 const styles = StyleSheet.create({
   tab: { width: 80, height: 50, alignItems: 'center', justifyContent: 'flex-start', paddingTop: 2 },
-  label: { fontSize: 11, lineHeight: 14, marginTop: 4, fontFamily: fontFamilies.sansMedium, maxWidth: 80, textAlign: 'center' },
+  label: { ...typography.micro, marginTop: 4, fontFamily: fontFamilies.sansMedium, maxWidth: 80, textAlign: 'center' },
   pill: {
     width: 56,
     height: 28,
@@ -224,6 +225,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  badgeText: { color: '#FFFFFF', fontSize: 10, lineHeight: 12, fontFamily: fontFamilies.sansBold },
+  badgeText: { color: '#FFFFFF', fontSize: 10, lineHeight: 12, fontFamily: fontFamilies.sansBold, fontVariant: ['tabular-nums'] },
   avatarRing: { borderWidth: 2, borderRadius: 16, padding: 1 },
 });

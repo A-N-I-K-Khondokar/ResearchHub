@@ -148,15 +148,12 @@ const styles = StyleSheet.create({
   },
   title: {
     ...typography.display,
-    fontSize: 28,
-    lineHeight: 34,
     textAlign: 'center',
     marginBottom: spacing.xs,
   },
   subtitle: {
     ...typography.body,
     textAlign: 'center',
-    lineHeight: 22,
   },
   card: {
     borderRadius: radius.md,

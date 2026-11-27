@@ -1,8 +1,9 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { COMPACT_FONT_SCALE } from '@/constants/typography';
 import { Link, Stack } from 'expo-router';
 import { useTheme } from '@/context/ThemeContext';
-import { fontFamilies, radius, spacing, floatingButtonTokens } from '@/constants';
+import { fontFamilies, radius, spacing, floatingButtonTokens, typography } from '@/constants';
 import { FileQuestion, ArrowLeft } from 'lucide-react-native';
 import { ICON_STROKE } from '@/constants/icons';
 
@@ -38,7 +39,7 @@ export default function NotFoundScreen() {
           >
             <View style={styles.buttonContent}>
               <ArrowLeft size={16} color="#FFFFFF" />
-              <Text style={styles.buttonText}>Back to Research Hub</Text>
+              <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={styles.buttonText}>Back to Research Hub</Text>
             </View>
           </Link>
         </View>
@@ -74,16 +75,15 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   title: {
+    ...typography.headline,
     fontFamily: fontFamilies.serifBold,
-    fontSize: 22,
     fontWeight: '700',
     marginBottom: spacing.xs,
     textAlign: 'center',
   },
   message: {
+    ...typography.bodyCompact,
     fontFamily: fontFamilies.sansRegular,
-    fontSize: 14,
-    lineHeight: 20,
     textAlign: 'center',
     marginBottom: spacing.lg,
   },
@@ -101,8 +101,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   buttonText: {
+    ...typography.bodyCompact,
     fontFamily: fontFamilies.sansSemiBold,
-    fontSize: 14,
     fontWeight: '600',
     color: '#FFFFFF',
   },

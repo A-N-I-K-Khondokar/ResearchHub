@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ViewStyle } from 'react-native';
+import { COMPACT_FONT_SCALE } from '@/constants/typography';
 import { ArrowRight } from 'lucide-react-native';
 import { spacing, radius, typography, fontFamilies } from '@/constants';
 import { useTheme } from '@/context/ThemeContext';
@@ -60,7 +61,7 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
               { backgroundColor: badge.dotColor || colors.secondary },
             ]}
           />
-          <Text style={[styles.badgeText, { color: colors.textSecondary }]}>
+          <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.badgeText, { color: colors.textSecondary }]}>
             {badge.text}
           </Text>
         </View>
@@ -70,7 +71,7 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
           onPress={onActionPress}
           style={styles.actionButton}
         >
-          <Text style={[styles.actionLabel, { color: colors.primary }]}>{actionLabel}</Text>
+          <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.actionLabel, { color: colors.primary }]}>{actionLabel}</Text>
           <ArrowRight size={14} color={colors.primary} />
         </TouchableOpacity>
       ) : null}
@@ -103,11 +104,9 @@ const styles = StyleSheet.create({
     flex: 1,
     flexShrink: 1,
   },
-  title: {
-    ...typography.sectionHeader,
-  },
+  title: { ...typography.sectionTitle },
   subtitle: {
-    ...typography.subhead,
+    ...typography.bodySmall,
     marginTop: 2,
   },
   badgeContainer: {
@@ -122,8 +121,9 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   badgeText: {
-    fontSize: 13,
+    ...typography.bodySmall,
     fontFamily: fontFamilies.sansMedium,
+    fontVariant: ['tabular-nums'],
   },
   actionButton: {
     flexDirection: 'row',
@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   actionLabel: {
-    fontSize: 13,
+    ...typography.bodySmall,
     fontFamily: fontFamilies.sansSemiBold,
     fontWeight: '600',
   },

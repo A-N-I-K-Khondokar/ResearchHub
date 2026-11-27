@@ -126,8 +126,6 @@ const styles = StyleSheet.create({
   },
   brandTitle: {
     ...typography.display,
-    fontSize: 28,
-    lineHeight: 36,
     textAlign: 'center',
     marginBottom: spacing.xs,
   },
@@ -145,11 +143,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
     borderWidth: 1,
   },
-  loadingText: {
-    ...typography.caption,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-  },
+  loadingText: { ...typography.overline },
   footer: {
     alignItems: 'center',
   },

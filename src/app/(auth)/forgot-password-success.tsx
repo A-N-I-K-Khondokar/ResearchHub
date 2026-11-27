@@ -90,7 +90,6 @@ const styles = StyleSheet.create({
   body: {
     ...typography.body,
     textAlign: 'center',
-    lineHeight: 22,
     marginBottom: spacing.xl,
     paddingHorizontal: spacing.md,
   },

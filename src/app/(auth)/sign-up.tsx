@@ -306,9 +306,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   errorBannerText: {
+    ...typography.bodySmall,
     fontFamily: fontFamilies.sansRegular,
-    fontSize: 13,
-    lineHeight: 18,
   },
   affiliationSection: {
     marginTop: spacing.xs,
@@ -316,14 +315,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     marginBottom: spacing.xs,
   },
-  affiliationTitle: {
-    fontFamily: fontFamilies.sansSemiBold,
-    fontSize: 12,
-    fontWeight: '600',
-    marginBottom: spacing.sm,
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-  },
+  affiliationTitle: { ...typography.overline, marginBottom: spacing.sm },
   createButton: {
     marginTop: spacing.sm,
   },
@@ -336,12 +328,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 1,
   },
-  dividerText: {
-    ...typography.caption,
-    marginHorizontal: spacing.md,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
+  dividerText: { ...typography.overline, marginHorizontal: spacing.md },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -349,12 +336,12 @@ const styles = StyleSheet.create({
     marginTop: spacing.xl,
   },
   footerText: {
+    ...typography.body,
     fontFamily: fontFamilies.sansRegular,
-    fontSize: 15,
   },
   signInText: {
+    ...typography.body,
     fontFamily: fontFamilies.sansSemiBold,
-    fontSize: 15,
     fontWeight: '600',
   },
 });

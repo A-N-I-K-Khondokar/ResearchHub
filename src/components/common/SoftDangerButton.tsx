@@ -9,6 +9,7 @@
 
 import React from 'react';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { COMPACT_FONT_SCALE } from '@/constants/typography';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { Trash2 } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
@@ -54,7 +55,7 @@ export const SoftDangerButton: React.FC<SoftDangerButtonProps> = ({ label, onPre
       ) : (
         <Trash2 size={16} color={palette.text} />
       )}
-      <Text style={[styles.label, { color: palette.text }]}>{loading ? 'Deleting…' : label}</Text>
+      <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.label, { color: palette.text }]}>{loading ? 'Deleting…' : label}</Text>
     </TouchableOpacity>
   );
 };

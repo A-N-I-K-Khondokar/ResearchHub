@@ -378,7 +378,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: spacing.md,
   },
-  stateTitle: { ...typography.headlineSmall, textAlign: 'center' },
+  stateTitle: { ...typography.title, textAlign: 'center' },
   stateText: { ...typography.bodySmall, textAlign: 'center', marginTop: spacing.xs },
   retry: {
     marginTop: spacing.md,

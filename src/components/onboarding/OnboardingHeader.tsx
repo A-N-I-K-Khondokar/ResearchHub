@@ -63,10 +63,5 @@ const styles = StyleSheet.create({
   placeholder: {
     width: 36,
   },
-  stepText: {
-    ...typography.caption,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-  },
+  stepText: { ...typography.overline },
 });

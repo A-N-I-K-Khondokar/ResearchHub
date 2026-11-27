@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
 } from 'react-native';
+import { COMPACT_FONT_SCALE } from '@/constants/typography';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenHeader } from '@/components/layout/ScreenHeader';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -121,7 +122,7 @@ export default function TopicResearchersScreen() {
                 },
               ]}
             >
-              <Text
+              <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE}
                 style={[
                   styles.roleText,
                   {
@@ -145,7 +146,7 @@ export default function TopicResearchersScreen() {
                 },
               ]}
             >
-              <Text
+              <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE}
                 style={[
                   styles.roleText,
                   {
@@ -169,7 +170,7 @@ export default function TopicResearchersScreen() {
                 },
               ]}
             >
-              <Text
+              <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE}
                 style={[
                   styles.roleText,
                   {
@@ -196,7 +197,7 @@ export default function TopicResearchersScreen() {
             ]}
           >
             <ArrowUpDown size={14} color={colors.primary} />
-            <Text style={[styles.sortButtonText, { color: colors.primary }]}>
+            <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.sortButtonText, { color: colors.primary }]}>
               {sortBy === 'name' ? 'Name (A-Z)' : 'Most Relevant'}
             </Text>
           </TouchableOpacity>
@@ -306,13 +307,10 @@ const styles = StyleSheet.create({
   },
   topicTitle: {
     ...typography.display,
-    fontSize: 28,
-    lineHeight: 34,
     marginBottom: 4,
   },
   topicDescription: {
     ...typography.body,
-    lineHeight: 20,
   },
   controlsBar: {
     flexDirection: 'row',

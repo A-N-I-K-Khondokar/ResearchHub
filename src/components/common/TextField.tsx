@@ -24,6 +24,7 @@ import {
   type ViewProps,
   type ViewStyle,
 } from 'react-native';
+import { COMPACT_FONT_SCALE } from '@/constants/typography';
 import { useTheme } from '@/context/ThemeContext';
 import { fontFamilies, radius, spacing, typography } from '@/constants';
 
@@ -62,6 +63,7 @@ export const TextField = forwardRef<TextInput, TextInputProps>(
         placeholderTextColor={placeholderTextColor ?? colors.textMuted}
         selectionColor={colors.primary}
         cursorColor={colors.primary}
+        maxFontSizeMultiplier={COMPACT_FONT_SCALE}
         onFocus={(e) => {
           setFocused(true);
           onFocus?.(e);
@@ -73,7 +75,7 @@ export const TextField = forwardRef<TextInput, TextInputProps>(
         style={[
           styles.field,
           { color: colors.textPrimary },
-          multiline && styles.multiline,
+          multiline ? styles.multiline : styles.singleLine,
           style,
           state,
           noWebOutline,
@@ -126,6 +128,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.button,
     paddingHorizontal: 14,
     paddingVertical: 0,
+  },
+  singleLine: {
+    lineHeight: undefined,
   },
   multiline: {
     minHeight: FIELD_MULTILINE_MIN,

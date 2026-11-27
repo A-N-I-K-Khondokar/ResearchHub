@@ -7,6 +7,7 @@
 
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View, type TextStyle, type StyleProp } from 'react-native';
+import { COMPACT_FONT_SCALE } from '@/constants/typography';
 import { BookOpen, Check, Clock, Layers, UserPlus, Users } from 'lucide-react-native';
 import { TopicIcon } from '@/components/common/TopicIcon';
 import { useTheme } from '@/context/ThemeContext';
@@ -100,7 +101,7 @@ export const PersonRow: React.FC<{
         ) : (
           <UserPlus size={13} color="#FFFFFF" />
         )}
-        <Text
+        <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE}
           style={[
             styles.pillText,
             { color: connected ? colors.success : pending ? colors.textMuted : '#FFFFFF' },
@@ -143,7 +144,7 @@ export const WorkRow: React.FC<{
         <Icon size={18} color={isCollab ? colors.primary : colors.textSecondary} />
       </View>
       <View style={styles.body}>
-        <HighlightText text={work.title} terms={terms} style={[styles.title, { color: colors.textPrimary }]} numberOfLines={2} />
+        <HighlightText text={work.title} terms={terms} style={[styles.postTitle, { color: colors.textPrimary }]} numberOfLines={2} />
         <View style={styles.metaLine}>
           <Text style={[styles.meta, { color: colors.textSecondary, flexShrink: 1 }]} numberOfLines={1}>
             {work.authorName}
@@ -187,7 +188,7 @@ export const WorkRow: React.FC<{
                 accessibilityRole="button"
                 accessibilityLabel={action.collaborateLabel}
               >
-                <Text style={[styles.pillText, { color: canApply ? '#FFFFFF' : colors.textMuted }]} numberOfLines={1}>
+                <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.pillText, { color: canApply ? '#FFFFFF' : colors.textMuted }]} numberOfLines={1}>
                   {canApply ? 'Apply' : action.collaborateLabel}
                 </Text>
               </TouchableOpacity>
@@ -244,11 +245,12 @@ const styles = StyleSheet.create({
     ...cardShadow(false),
   },
   workRow: { alignItems: 'flex-start' },
+  postTitle: { ...typography.cardTitle },
   body: { flex: 1, minWidth: 0, gap: 2 },
   title: { ...typography.label, fontFamily: fontFamilies.sansSemiBold },
   meta: { ...typography.caption },
   metaLine: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  reason: { ...typography.caption, fontStyle: 'italic' },
+  reason: { ...typography.caption },
   iconBox: { width: 40, height: 40, borderRadius: radius.button, alignItems: 'center', justifyContent: 'center' },
   pill: {
     flexDirection: 'row',

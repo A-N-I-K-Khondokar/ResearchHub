@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { COMPACT_FONT_SCALE } from '@/constants/typography';
 import { Check } from 'lucide-react-native';
 import { ICON_STROKE } from '@/constants/icons';
 import { spacing, radius, typography, fontFamilies } from '@/constants';
@@ -66,7 +67,7 @@ export const ProfileHero: React.FC<ProfileHeroProps> = ({
 
       {role ? (
         <View style={[styles.rolePill, { backgroundColor: colors.primaryMuted }]}>
-          <Text style={[styles.roleText, { color: colors.primary }]} numberOfLines={1}>
+          <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.roleText, { color: colors.primary }]} numberOfLines={1}>
             {role}
           </Text>
         </View>
@@ -91,7 +92,7 @@ export const ProfileHero: React.FC<ProfileHeroProps> = ({
           hitSlop={8}
           style={[styles.bioBox, { borderTopColor: colors.borderSubtle }]}
         >
-          <Text style={[styles.bio, { color: colors.textMuted, fontStyle: 'italic' }]}>{emptyBioPrompt}</Text>
+          <Text style={[styles.bio, { color: colors.textMuted }]}>{emptyBioPrompt}</Text>
         </TouchableOpacity>
       ) : null}
 
@@ -170,7 +171,7 @@ export const HeroActionButton: React.FC<HeroActionButtonProps> = ({
       accessibilityLabel={label}
     >
       {loading ? <ActivityIndicator size="small" color={primary ? '#FFFFFF' : colors.primary} /> : icon}
-      <Text style={[styles.actionText, { color: primary ? '#FFFFFF' : colors.textPrimary }]} numberOfLines={1}>
+      <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.actionText, { color: primary ? '#FFFFFF' : colors.textPrimary }]} numberOfLines={1}>
         {label}
       </Text>
     </TouchableOpacity>
@@ -243,7 +244,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: spacing.sm,
     paddingHorizontal: spacing.md,
-    lineHeight: 20,
   },
   bioBox: {
     alignSelf: 'stretch',
@@ -255,7 +255,6 @@ const styles = StyleSheet.create({
   bio: {
     ...typography.bodyCompact,
     textAlign: 'center',
-    lineHeight: 22,
   },
   actionsRow: {
     flexDirection: 'row',
@@ -298,6 +297,7 @@ const styles = StyleSheet.create({
   statValue: {
     ...typography.title,
     fontFamily: fontFamilies.sansBold,
+    fontVariant: ['tabular-nums'],
   },
   statLabel: {
     ...typography.caption,

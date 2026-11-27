@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { COMPACT_FONT_SCALE } from '@/constants/typography';
 import { Topic } from '../../types';
 import { spacing, radius, typography, fontFamilies, shadows } from '../../constants';
 import { useTheme } from '@/context/ThemeContext';
@@ -64,7 +65,7 @@ export const TopicShortcutRow: React.FC<TopicShortcutRowProps> = ({
                 color={isSelected ? colors.textInverse : isMarked ? colors.primary : colors.textSecondary}
               />
             </View>
-            <Text
+            <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE}
               style={[
                 styles.label,
                 { color: isSelected ? colors.textInverse : isMarked ? colors.primary : colors.textPrimary },
@@ -81,7 +82,7 @@ export const TopicShortcutRow: React.FC<TopicShortcutRowProps> = ({
                   isSelected && { backgroundColor: 'rgba(255,255,255,0.22)' },
                 ]}
               >
-                <Text
+                <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE}
                   style={[
                     styles.countText,
                     { color: isSelected ? colors.textInverse : colors.textSecondary },
@@ -134,7 +135,8 @@ const styles = StyleSheet.create({
     // Color set dynamically via inline style on the View
   },
   countText: {
-    fontSize: 11,
+    ...typography.micro,
     fontFamily: fontFamilies.sansBold,
+    fontVariant: ['tabular-nums'],
   },
 });

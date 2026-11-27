@@ -9,6 +9,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, RefreshControl } from 'react-native';
+import { COMPACT_FONT_SCALE } from '@/constants/typography';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import {
@@ -221,7 +222,7 @@ export default function MyNetworkScreen() {
       <Text style={[styles.emptyText, { color: colors.textSecondary }]}>{text}</Text>
       {action && onAction ? (
         <TouchableOpacity onPress={onAction} style={[styles.emptyBtn, { backgroundColor: colors.primaryMuted }]} accessibilityRole="button">
-          <Text style={[styles.btnText, { color: colors.primary }]}>{action}</Text>
+          <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.btnText, { color: colors.primary }]}>{action}</Text>
         </TouchableOpacity>
       ) : null}
     </View>
@@ -239,7 +240,7 @@ export default function MyNetworkScreen() {
       accessibilityRole="button"
     >
       {icon}
-      <Text style={[styles.btnText, { color: primary ? '#FFFFFF' : colors.textPrimary }]}>{label}</Text>
+      <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.btnText, { color: primary ? '#FFFFFF' : colors.textPrimary }]}>{label}</Text>
     </TouchableOpacity>
   );
 
@@ -261,7 +262,7 @@ export default function MyNetworkScreen() {
     }[status];
     return (
       <View style={[styles.chip, { backgroundColor: map.bg }]}>
-        <Text style={[styles.chipText, { color: map.fg }]}>{map.text}</Text>
+        <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.chipText, { color: map.fg }]}>{map.text}</Text>
       </View>
     );
   };
@@ -296,7 +297,7 @@ export default function MyNetworkScreen() {
           accessibilityRole="button"
           accessibilityLabel={`Sorted by ${sort === 'recent' ? 'most recent' : 'name'}. Tap to change`}
         >
-          <Text style={[styles.sortText, { color: colors.textSecondary }]}>{sort === 'recent' ? 'Recent' : 'A–Z'}</Text>
+          <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.sortText, { color: colors.textSecondary }]}>{sort === 'recent' ? 'Recent' : 'A–Z'}</Text>
           <ChevronDown size={14} color={colors.textMuted} />
         </TouchableOpacity>
       </View>
@@ -450,7 +451,7 @@ export default function MyNetworkScreen() {
                 <Users size={18} color={colors.primary} />
               </View>
               <View style={styles.rowBody}>
-                <Text style={[styles.name, { color: colors.textPrimary }]} numberOfLines={1}>{w.title}</Text>
+                <Text style={[styles.workName, { color: colors.textPrimary }]} numberOfLines={1}>{w.title}</Text>
                 <Text style={[styles.meta, { color: colors.primary }]}>
                   {w.pending} applicant{w.pending === 1 ? '' : 's'} to review
                 </Text>
@@ -481,7 +482,7 @@ export default function MyNetworkScreen() {
               accessibilityRole="button"
             >
               <View style={styles.rowBody}>
-                <Text style={[styles.name, { color: colors.textPrimary }]} numberOfLines={1}>{w.title}</Text>
+                <Text style={[styles.workName, { color: colors.textPrimary }]} numberOfLines={1}>{w.title}</Text>
                 <View style={styles.teamLine}>
                   {w.team.length ? (
                     <View style={styles.stack}>
@@ -523,7 +524,7 @@ export default function MyNetworkScreen() {
             >
               <Avatar name={w.authorName} uri={w.authorPhotoURL} size="md" />
               <View style={styles.rowBody}>
-                <Text style={[styles.name, { color: colors.textPrimary }]} numberOfLines={1}>{w.title}</Text>
+                <Text style={[styles.workName, { color: colors.textPrimary }]} numberOfLines={1}>{w.title}</Text>
                 <Text style={[styles.meta, { color: colors.textSecondary }]} numberOfLines={1}>
                   {roleFor.get(w.id) ?? 'Member'} · led by {w.authorName.split(' ')[0]}
                 </Text>
@@ -554,7 +555,7 @@ export default function MyNetworkScreen() {
               accessibilityRole="button"
             >
               <View style={styles.rowBody}>
-                <Text style={[styles.name, { color: colors.textPrimary }]} numberOfLines={1}>{r.workTitle}</Text>
+                <Text style={[styles.workName, { color: colors.textPrimary }]} numberOfLines={1}>{r.workTitle}</Text>
                 <Text style={[styles.meta, { color: colors.textSecondary }]} numberOfLines={1}>
                   As {r.role} · {formatRelativeDate(r.createdAt)}
                 </Text>
@@ -582,7 +583,7 @@ export default function MyNetworkScreen() {
                     accessibilityRole="button"
                   >
                     <View style={styles.rowBody}>
-                      <Text style={[styles.name, { color: colors.textPrimary }]} numberOfLines={1}>{r.workTitle}</Text>
+                      <Text style={[styles.workName, { color: colors.textPrimary }]} numberOfLines={1}>{r.workTitle}</Text>
                       <Text style={[styles.meta, { color: colors.textSecondary }]} numberOfLines={1}>As {r.role}</Text>
                     </View>
                     {statusChip(r.status)}
@@ -614,7 +615,7 @@ export default function MyNetworkScreen() {
               accessibilityLabel={`${t.label}, ${t.count}`}
             >
               <View style={styles.tabLabelRow}>
-                <Text
+                <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE}
                   style={[
                     styles.tabLabel,
                     { color: active ? colors.primary : colors.textSecondary },
@@ -633,7 +634,7 @@ export default function MyNetworkScreen() {
                       },
                     ]}
                   >
-                    <Text
+                    <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE}
                       style={[
                         styles.countText,
                         { color: attention ? '#FFFFFF' : active ? colors.primary : colors.textSecondary },
@@ -673,22 +674,22 @@ const styles = StyleSheet.create({
   },
   tabItem: { flex: 1, alignItems: 'center', paddingTop: spacing.sm },
   tabLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 28, paddingHorizontal: 4 },
-  tabLabel: { fontSize: 14, fontFamily: fontFamilies.sansMedium, flexShrink: 1 },
+  tabLabel: { ...typography.bodyCompact, fontFamily: fontFamilies.sansMedium, flexShrink: 1 },
   tabUnderline: { alignSelf: 'stretch', height: 3, borderTopLeftRadius: 3, borderTopRightRadius: 3, marginTop: 8, marginHorizontal: spacing.md },
   countBadge: { minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 5, alignItems: 'center', justifyContent: 'center' },
-  countText: { fontSize: 11, fontFamily: fontFamilies.sansBold },
+  countText: { ...typography.micro, fontFamily: fontFamilies.sansBold, fontVariant: ['tabular-nums'] },
   content: { padding: spacing.md, paddingBottom: spacing.xxl, gap: spacing.sm },
 
   toolbar: { flexDirection: 'row', gap: spacing.xs },
   search: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: radius.button, paddingHorizontal: 12, height: spacing.secondaryButtonHeight },
-  searchInput: { flex: 1, ...typography.bodyCompact, paddingVertical: 0 },
+  searchInput: { flex: 1, ...typography.bodyCompact, paddingVertical: 0, lineHeight: undefined },
   sortBtn: { flexDirection: 'row', alignItems: 'center', gap: 2, borderWidth: 1, borderRadius: radius.button, paddingHorizontal: 12, height: spacing.secondaryButtonHeight },
   sortText: { ...typography.caption, fontFamily: fontFamilies.sansSemiBold },
 
   block: { marginTop: spacing.md, gap: spacing.sm },
   blockFirst: { gap: spacing.sm },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  title: { ...typography.label, fontFamily: fontFamilies.sansSemiBold, fontSize: 15 },
+  title: { ...typography.sectionTitle },
 
   row: {
     flexDirection: 'row',
@@ -702,6 +703,7 @@ const styles = StyleSheet.create({
   rowTap: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, minWidth: 0 },
   rowBody: { flex: 1, minWidth: 0, gap: 2 },
   name: { ...typography.label, fontFamily: fontFamilies.sansSemiBold },
+  workName: { ...typography.body },
   meta: { ...typography.caption },
   shared: { ...typography.micro, fontFamily: fontFamilies.sansSemiBold },
   sharedRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },

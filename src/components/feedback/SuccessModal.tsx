@@ -9,7 +9,7 @@ import {
 import { Check } from 'lucide-react-native';
 import { ICON_STROKE } from '@/constants/icons';
 import { useTheme } from '@/context/ThemeContext';
-import { fontFamilies, radius, spacing } from '@/constants';
+import { fontFamilies, radius, spacing, typography } from '@/constants';
 import { Button } from '../common/Button';
 
 export interface SuccessModalProps {
@@ -132,16 +132,14 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   title: {
+    ...typography.headline,
     fontFamily: fontFamilies.serifBold,
-    fontSize: 22,
-    lineHeight: 28,
     textAlign: 'center',
     marginBottom: spacing.xs,
   },
   message: {
+    ...typography.bodyCompact,
     fontFamily: fontFamilies.sansRegular,
-    fontSize: 14,
-    lineHeight: 20,
     textAlign: 'center',
     marginBottom: spacing.xl,
   },

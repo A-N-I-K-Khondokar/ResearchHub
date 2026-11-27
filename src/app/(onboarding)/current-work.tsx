@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
+import { COMPACT_FONT_SCALE } from '@/constants/typography';
 import { useRouter } from 'expo-router';
 import { ArrowRight, Info, UploadCloud, Check } from 'lucide-react-native';
 import { ICON_STROKE } from '@/constants/icons';
@@ -136,7 +137,7 @@ export default function CurrentWorkScreen() {
                 />
               )}
 
-              <Text
+              <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE}
                 style={[
                   styles.autofillButtonText,
                   {
@@ -290,15 +291,12 @@ const styles = StyleSheet.create({
   },
   title: {
     ...typography.display,
-    fontSize: 28,
-    lineHeight: 34,
     textAlign: 'center',
     marginBottom: spacing.xs,
   },
   subtitle: {
     ...typography.body,
     textAlign: 'center',
-    lineHeight: 22,
   },
   card: {
     borderRadius: radius.md,
@@ -324,7 +322,7 @@ const styles = StyleSheet.create({
     minHeight: 44,
   },
   autofillButtonText: {
-    fontSize: 14,
+    ...typography.bodyCompact,
     fontFamily: fontFamilies.sansSemiBold,
     letterSpacing: 0.1,
   },
@@ -338,7 +336,7 @@ const styles = StyleSheet.create({
     height: 1,
   },
   dividerText: {
-    fontSize: 12,
+    ...typography.caption,
     fontFamily: fontFamilies.sansRegular,
     marginHorizontal: spacing.sm,
   },

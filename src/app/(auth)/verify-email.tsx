@@ -242,15 +242,14 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   emailLabel: {
+    ...typography.bodySmall,
     fontFamily: fontFamilies.sansRegular,
-    fontSize: 13,
     textAlign: 'center',
     marginBottom: spacing.sm,
   },
   body: {
     ...typography.body,
     textAlign: 'center',
-    lineHeight: 22,
     marginBottom: spacing.xl,
     paddingHorizontal: spacing.sm,
   },
@@ -262,9 +261,8 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
   },
   errorText: {
+    ...typography.bodySmall,
     fontFamily: fontFamilies.sansRegular,
-    fontSize: 13,
-    lineHeight: 18,
   },
   actions: {
     width: '100%',

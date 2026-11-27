@@ -7,6 +7,7 @@
 
 import React from 'react';
 import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { COMPACT_FONT_SCALE } from '@/constants/typography';
 import type { LucideIcon } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { fontFamilies, radius, typography } from '@/constants';
@@ -38,7 +39,7 @@ export const StatusChip: React.FC<{
       ]}
     >
       {Icon ? <Icon size={12} color={palette.fg} /> : null}
-      <Text style={[styles.text, { color: palette.fg }]} numberOfLines={1}>
+      <Text style={[styles.text, { color: palette.fg }]} numberOfLines={1} maxFontSizeMultiplier={COMPACT_FONT_SCALE}>
         {label}
       </Text>
     </View>

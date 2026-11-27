@@ -81,7 +81,6 @@ const styles = StyleSheet.create({
   description: {
     ...typography.bodySmall,
     textAlign: 'center',
-    lineHeight: 18,
     maxWidth: 280,
   },
   actionButton: {

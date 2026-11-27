@@ -42,7 +42,7 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({ title, subtitle, onB
         <ArrowLeft size={20} color={colors.textPrimary} />
       </TouchableOpacity>
       <View style={styles.titleCol}>
-        <Text style={[styles.title, { color: colors.textPrimary }]} numberOfLines={1} accessibilityRole="header">
+        <Text style={[styles.title, { color: colors.textPrimary }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.82} accessibilityRole="header">
           {title}
         </Text>
         {subtitle ? (
@@ -91,12 +91,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   titleCol: { flex: 1, minWidth: 0 },
-  title: {
-    ...typography.titleSmall,
-    fontSize: 17,
-    lineHeight: 22,
-    fontFamily: fontFamilies.sansSemiBold,
-  },
+  title: { ...typography.screenTitle },
   subtitle: { ...typography.caption },
   actions: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   action: {

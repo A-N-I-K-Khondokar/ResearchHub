@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Platform,
 } from 'react-native';
+import { COMPACT_FONT_SCALE } from '@/constants/typography';
 import { useRouter } from 'expo-router';
 import {
   Clock,
@@ -582,7 +583,7 @@ export default function AccountSetupScreen() {
               ]}
             >
               <Clock size={13} color={colors.accent} />
-              <Text style={[styles.statusBadgeText, { color: colors.accent }]}>
+              <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.statusBadgeText, { color: colors.accent }]}>
                 Awaiting Administrative Review
               </Text>
             </View>
@@ -681,7 +682,7 @@ export default function AccountSetupScreen() {
                             },
                           ]}
                         >
-                          <Text style={[styles.chipText, { color: colors.primaryDark }]}>
+                          <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.chipText, { color: colors.primaryDark }]}>
                             {interest}
                           </Text>
                         </View>
@@ -784,7 +785,7 @@ export default function AccountSetupScreen() {
               ]}
             >
               <CircleAlert size={13} color={colors.error} />
-              <Text style={[styles.statusBadgeText, { color: colors.error }]}>
+              <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.statusBadgeText, { color: colors.error }]}>
                 Status: Application Rejected
               </Text>
             </View>
@@ -899,7 +900,7 @@ export default function AccountSetupScreen() {
               ]}
             >
               <TriangleAlert size={13} color={colors.error} />
-              <Text style={[styles.statusBadgeText, { color: colors.error }]}>
+              <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.statusBadgeText, { color: colors.error }]}>
                 Access Suspended
               </Text>
             </View>
@@ -974,7 +975,7 @@ export default function AccountSetupScreen() {
             ]}
           >
             <GraduationCap size={14} color={colors.primary} />
-            <Text style={[styles.headerBadgeText, { color: colors.primary }]}>
+            <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.headerBadgeText, { color: colors.primary }]}>
               CSE Department Onboarding
             </Text>
           </View>
@@ -1034,7 +1035,7 @@ export default function AccountSetupScreen() {
               ]}
             >
               <ShieldCheck size={12} color={colors.secondary} />
-              <Text style={[styles.verifiedPillText, { color: colors.secondaryDark }]}>
+              <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.verifiedPillText, { color: colors.secondaryDark }]}>
                 Verified Firebase Identity
               </Text>
             </View>
@@ -1276,7 +1277,7 @@ export default function AccountSetupScreen() {
                     },
                   ]}
                 >
-                  <Text
+                  <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE}
                     style={[
                       styles.chipText,
                       {
@@ -1339,7 +1340,7 @@ export default function AccountSetupScreen() {
                     },
                   ]}
                 >
-                  <Text
+                  <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE}
                     style={[
                       styles.chipText,
                       {
@@ -1510,7 +1511,7 @@ export default function AccountSetupScreen() {
             {/* Selected Interests Chips */}
             {researchInterests.length > 0 ? (
               <View style={styles.selectedChipsContainer}>
-                <Text style={[styles.selectedChipsLabel, { color: colors.textSecondary }]}>
+                <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.selectedChipsLabel, { color: colors.textSecondary }]}>
                   Selected ({researchInterests.length}):
                 </Text>
                 <View style={styles.chipRow}>
@@ -1528,7 +1529,7 @@ export default function AccountSetupScreen() {
                         },
                       ]}
                     >
-                      <Text style={[styles.chipText, { color: colors.primaryDark }]}>
+                      <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.chipText, { color: colors.primaryDark }]}>
                         {interest}
                       </Text>
                       <X size={12} color={colors.primaryDark} style={{ marginLeft: 4 }} />
@@ -1572,7 +1573,7 @@ export default function AccountSetupScreen() {
                           style={{ marginRight: 4 }}
                         />
                       ) : null}
-                      <Text
+                      <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE}
                         style={[
                           styles.chipText,
                           {
@@ -1869,17 +1870,15 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs + 4,
   },
   headerBadgeText: {
+    ...typography.caption,
     fontFamily: fontFamilies.sansSemiBold,
-    fontSize: 12,
   },
   headerTitle: {
     ...typography.headline,
-    fontSize: 22,
     marginBottom: 4,
   },
   headerSubtitle: {
-    ...typography.subhead,
-    lineHeight: 20,
+    ...typography.bodySmall,
   },
 
   // Identity Card
@@ -1896,8 +1895,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   identityName: {
+    ...typography.body,
     fontFamily: fontFamilies.sansSemiBold,
-    fontSize: 15,
     marginBottom: 2,
   },
   emailRow: {
@@ -1907,8 +1906,8 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   identityEmail: {
+    ...typography.bodySmall,
     fontFamily: fontFamilies.sansRegular,
-    fontSize: 13,
   },
   verifiedPill: {
     flexDirection: 'row',
@@ -1921,8 +1920,8 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   verifiedPillText: {
+    ...typography.micro,
     fontFamily: fontFamilies.sansMedium,
-    fontSize: 11,
     fontWeight: '600',
   },
 
@@ -1952,13 +1951,10 @@ const styles = StyleSheet.create({
   stepCaption: {
     ...typography.caption,
   },
-  sectionTitle: {
-    fontFamily: fontFamilies.sansSemiBold,
-    fontSize: 15,
-  },
+  sectionTitle: { ...typography.sectionTitle },
   subSectionTitle: {
+    ...typography.bodyCompact,
     fontFamily: fontFamilies.sansSemiBold,
-    fontSize: 14,
     marginBottom: spacing.sm,
   },
 
@@ -1966,27 +1962,28 @@ const styles = StyleSheet.create({
   inputGroup: {
     marginBottom: spacing.md,
   },
-  inputLabel: { ...typography.bodySmall, fontFamily: fontFamilies.sansSemiBold, marginBottom: 6 },
+  inputLabel: { ...typography.bodySmall, fontFamily: fontFamilies.sansSemiBold, marginBottom: 6, lineHeight: undefined },
   optionalTag: {
+    ...typography.caption,
     fontFamily: fontFamilies.sansRegular,
-    fontSize: 12,
   },
   inputWrapper: { height: 48, flexDirection: 'row', alignItems: 'center' },
   inputIcon: {
     marginRight: 8,
   },
-  textInput: { flex: 1, height: '100%', fontFamily: fontFamilies.sansRegular, fontSize: 15, paddingVertical: 0 },
+  textInput: { ...typography.body, flex: 1, height: '100%', fontFamily: fontFamilies.sansRegular, paddingVertical: 0, lineHeight: undefined },
   textAreaWrapper: { minHeight: 112, flexDirection: 'column', alignItems: 'stretch', paddingVertical: 12 },
-  textArea: { fontFamily: fontFamilies.sansRegular, fontSize: 15, lineHeight: 22, minHeight: 72, padding: 0 },
+  textArea: { ...typography.body, fontFamily: fontFamilies.sansRegular, minHeight: 72, padding: 0 },
   charCount: {
+    ...typography.micro,
     fontFamily: fontFamilies.sansRegular,
-    fontSize: 11,
     textAlign: 'right',
     marginTop: 4,
+    fontVariant: ['tabular-nums'],
   },
   errorText: {
+    ...typography.caption,
     fontFamily: fontFamilies.sansMedium,
-    fontSize: 12,
     marginTop: 4,
   },
   twoColumnRow: {
@@ -2009,15 +2006,15 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   addTagText: {
+    ...typography.bodySmall,
     fontFamily: fontFamilies.sansSemiBold,
-    fontSize: 13,
   },
   selectedChipsContainer: {
     marginTop: spacing.sm,
   },
   selectedChipsLabel: {
+    ...typography.caption,
     fontFamily: fontFamilies.sansMedium,
-    fontSize: 12,
     marginBottom: 6,
   },
   chipRow: {
@@ -2038,12 +2035,12 @@ const styles = StyleSheet.create({
     paddingRight: 8,
   },
   chipText: {
-    fontSize: 12,
+    ...typography.caption,
     fontFamily: fontFamilies.sansRegular,
   },
   suggestedLabel: {
+    ...typography.caption,
     fontFamily: fontFamilies.sansRegular,
-    fontSize: 12,
     marginBottom: 4,
   },
 
@@ -2057,10 +2054,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   errorBannerText: {
+    ...typography.bodySmall,
     flex: 1,
     fontFamily: fontFamilies.sansMedium,
-    fontSize: 13,
-    lineHeight: 18,
   },
 
   // Actions
@@ -2086,13 +2082,12 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   statusBadgeText: {
+    ...typography.caption,
     fontFamily: fontFamilies.sansSemiBold,
-    fontSize: 12,
   },
   body: {
     ...typography.body,
     textAlign: 'center',
-    lineHeight: 22,
     paddingHorizontal: spacing.sm,
   },
   detailsContainer: {
@@ -2102,25 +2097,19 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     marginBottom: spacing.md,
   },
-  detailsHeader: {
-    fontFamily: fontFamilies.sansSemiBold,
-    fontSize: 13,
-    marginBottom: spacing.sm,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
+  detailsHeader: { ...typography.overline, marginBottom: spacing.sm },
   detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingVertical: 4,
   },
   detailLabel: {
+    ...typography.bodySmall,
     fontFamily: fontFamilies.sansRegular,
-    fontSize: 13,
   },
   detailValue: {
+    ...typography.bodySmall,
     fontFamily: fontFamilies.sansSemiBold,
-    fontSize: 13,
   },
   noticeBox: {
     borderWidth: 1,
@@ -2130,9 +2119,8 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   noticeText: {
+    ...typography.caption,
     fontFamily: fontFamilies.sansRegular,
-    fontSize: 12,
-    lineHeight: 18,
     textAlign: 'center',
   },
   rejectionReasonBox: {
@@ -2143,13 +2131,12 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   rejectionReasonTitle: {
+    ...typography.caption,
     fontFamily: fontFamilies.sansSemiBold,
-    fontSize: 12,
     marginBottom: 2,
   },
   rejectionReasonText: {
+    ...typography.bodySmall,
     fontFamily: fontFamilies.sansRegular,
-    fontSize: 13,
-    lineHeight: 18,
   },
 });

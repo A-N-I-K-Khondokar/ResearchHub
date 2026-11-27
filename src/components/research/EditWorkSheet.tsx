@@ -19,6 +19,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { COMPACT_FONT_SCALE } from '@/constants/typography';
 import { Pencil, Plus, X } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { TextField } from '@/components/common/TextField';
@@ -148,7 +149,7 @@ export const EditWorkSheet: React.FC<EditWorkSheetProps> = ({ work, visible, onC
           accessibilityRole="button"
           accessibilityLabel={`Remove ${tag}`}
         >
-          <Text style={[styles.chipText, { color: accent ? colors.primary : colors.textPrimary }]}>{tag}</Text>
+          <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.chipText, { color: accent ? colors.primary : colors.textPrimary }]}>{tag}</Text>
           <X size={12} color={accent ? colors.primary : colors.textSecondary} />
         </TouchableOpacity>
       ))}
@@ -178,10 +179,10 @@ export const EditWorkSheet: React.FC<EditWorkSheetProps> = ({ work, visible, onC
           </View>
 
           <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.body}>
-            <Text style={[styles.label, { color: colors.textPrimary }]}>Title</Text>
+            <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.label, { color: colors.textPrimary }]}>Title</Text>
             <TextField value={title} onChangeText={setTitle} maxLength={RESEARCH_LIMITS.titleMax} style={inputStyle} />
 
-            <Text style={[styles.label, { color: colors.textPrimary }]}>Stage</Text>
+            <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.label, { color: colors.textPrimary }]}>Stage</Text>
             <View style={styles.chips}>
               {RESEARCH_STAGE_IDS.map((s) => {
                 const active = s === stage;
@@ -198,13 +199,13 @@ export const EditWorkSheet: React.FC<EditWorkSheetProps> = ({ work, visible, onC
                     accessibilityRole="radio"
                     accessibilityState={{ selected: active }}
                   >
-                    <Text style={[styles.chipText, { color: active ? '#FFFFFF' : colors.textPrimary }]}>{s}</Text>
+                    <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.chipText, { color: active ? '#FFFFFF' : colors.textPrimary }]}>{s}</Text>
                   </TouchableOpacity>
                 );
               })}
             </View>
 
-            <Text style={[styles.label, { color: colors.textPrimary }]}>Description</Text>
+            <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.label, { color: colors.textPrimary }]}>Description</Text>
             <TextField
               value={description}
               onChangeText={setDescription}
@@ -219,7 +220,7 @@ export const EditWorkSheet: React.FC<EditWorkSheetProps> = ({ work, visible, onC
 
             {isCollab ? (
               <>
-                <Text style={[styles.label, { color: colors.textPrimary }]}>Looking for</Text>
+                <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.label, { color: colors.textPrimary }]}>Looking for</Text>
                 {chipList(roles, setRoles, true)}
                 <View style={styles.addRow}>
                   <TextField
@@ -262,7 +263,7 @@ export const EditWorkSheet: React.FC<EditWorkSheetProps> = ({ work, visible, onC
               </>
             ) : null}
 
-            <Text style={[styles.label, { color: colors.textPrimary }]}>Topics</Text>
+            <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.label, { color: colors.textPrimary }]}>Topics</Text>
             {chipList(tags, setTags, false)}
             <View style={styles.addRow}>
               <TextField
@@ -289,7 +290,7 @@ export const EditWorkSheet: React.FC<EditWorkSheetProps> = ({ work, visible, onC
               </TouchableOpacity>
             </View>
 
-            <Text style={[styles.label, { color: colors.textPrimary }]}>
+            <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.label, { color: colors.textPrimary }]}>
               Link <Text style={{ color: colors.textMuted }}>(optional)</Text>
             </Text>
             <TextField
@@ -340,10 +341,10 @@ const styles = StyleSheet.create({
   label: { ...typography.bodySmall, fontFamily: fontFamilies.sansSemiBold, marginTop: spacing.sm },
   input: {},
   multiline: {},
-  counter: { ...typography.micro, alignSelf: 'flex-end' },
+  counter: { ...typography.micro, alignSelf: 'flex-end', fontVariant: ['tabular-nums'] },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, height: 32, borderRadius: radius.full, borderWidth: 1 },
-  chipText: { ...typography.caption, fontSize: 13, fontFamily: fontFamilies.sansSemiBold },
+  chipText: { ...typography.bodySmall, fontFamily: fontFamilies.sansSemiBold },
   stage: { paddingHorizontal: 12, height: 34, justifyContent: 'center', borderRadius: radius.full, borderWidth: 1 },
   addRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   addBtn: { width: 44, height: 44, borderRadius: radius.button, alignItems: 'center', justifyContent: 'center' },

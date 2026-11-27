@@ -87,12 +87,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: spacing.xs,
   },
-  stepText: {
-    ...typography.caption,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-  },
+  stepText: { ...typography.overline },
   iconContainer: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -126,15 +121,12 @@ const styles = StyleSheet.create({
   },
   title: {
     ...typography.display,
-    fontSize: 28,
-    lineHeight: 36,
     textAlign: 'center',
     marginBottom: spacing.sm,
   },
   body: {
     ...typography.body,
     textAlign: 'center',
-    lineHeight: 22,
     paddingHorizontal: spacing.sm,
   },
   actionContainer: {

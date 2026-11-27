@@ -12,6 +12,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { COMPACT_FONT_SCALE } from '@/constants/typography';
 import { AlertTriangle, Info, LogOut, Trash2 } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { registerDialogHandler, type ActionOption, type ConfirmOptions } from '@/utils/dialogs';
@@ -126,7 +127,7 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                   style={[styles.button, { borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface }]}
                   accessibilityRole="button"
                 >
-                  <Text style={[styles.buttonText, { color: colors.textPrimary }]}>{dialog.cancelLabel}</Text>
+                  <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.buttonText, { color: colors.textPrimary }]}>{dialog.cancelLabel}</Text>
                 </TouchableOpacity>
               ) : null}
               <TouchableOpacity
@@ -134,7 +135,7 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 style={[styles.button, { backgroundColor: accent }]}
                 accessibilityRole="button"
               >
-                <Text style={[styles.buttonText, { color: '#FFFFFF' }]}>{dialog?.confirmLabel}</Text>
+                <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.buttonText, { color: '#FFFFFF' }]}>{dialog?.confirmLabel}</Text>
               </TouchableOpacity>
             </View>
           </Animated.View>
@@ -199,7 +200,7 @@ const styles = StyleSheet.create({
   },
   iconCircle: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md },
   title: { ...typography.title, fontSize: 19, textAlign: 'center' },
-  message: { ...typography.bodySmall, textAlign: 'center', marginTop: spacing.xs, lineHeight: 20 },
+  message: { ...typography.bodySmall, textAlign: 'center', marginTop: spacing.xs},
   buttons: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.lg, alignSelf: 'stretch' },
   button: { flex: 1, height: spacing.secondaryButtonHeight, borderRadius: radius.button, alignItems: 'center', justifyContent: 'center' },
   buttonText: { ...typography.button },

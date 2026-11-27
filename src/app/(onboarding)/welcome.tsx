@@ -126,12 +126,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: spacing.xs,
   },
-  stepText: {
-    ...typography.caption,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-  },
+  stepText: { ...typography.overline },
   heroContainer: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -187,24 +182,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     marginBottom: spacing.lg,
   },
-  tagline: {
-    ...typography.caption,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: spacing.xs,
-  },
+  tagline: { ...typography.caption, letterSpacing: 1, marginBottom: spacing.xs },
   title: {
     ...typography.display,
-    fontSize: 28,
-    lineHeight: 34,
     textAlign: 'center',
     marginBottom: spacing.sm,
   },
   body: {
     ...typography.body,
     textAlign: 'center',
-    lineHeight: 22,
     paddingHorizontal: spacing.sm,
   },
   actionContainer: {

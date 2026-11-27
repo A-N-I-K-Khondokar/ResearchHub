@@ -1,5 +1,6 @@
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, ViewStyle, TextStyle, View } from 'react-native';
+import { COMPACT_FONT_SCALE } from '@/constants/typography';
 import { radius, spacing, typography } from '@/constants';
 import { useTheme } from '@/context/ThemeContext';
 
@@ -120,7 +121,7 @@ export const TopicChip: React.FC<TopicChipProps> = ({
             { backgroundColor: selected ? colors.primaryDark : colors.border },
           ]}
         >
-          <Text
+          <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE}
             style={[
               styles.countText,
               { color: selected ? colors.textInverse : colors.textSecondary },
@@ -183,7 +184,8 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
   },
   countText: {
-    fontSize: 11,
+    ...typography.micro,
     fontWeight: '600',
+    fontVariant: ['tabular-nums'],
   },
 });

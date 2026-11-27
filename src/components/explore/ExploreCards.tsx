@@ -11,6 +11,7 @@
 
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { COMPACT_FONT_SCALE } from '@/constants/typography';
 import { Check, ChevronRight, Clock, FileText, Layers, Star, UserPlus, Users } from 'lucide-react-native';
 import { card, cardShadow } from '@/constants/cards';
 import { StatusChip } from '@/components/common/StatusChip';
@@ -51,7 +52,7 @@ export const SectionTitle: React.FC<{
       </View>
       {onAction ? (
         <TouchableOpacity onPress={onAction} hitSlop={8} style={styles.seeAll} accessibilityRole="button" accessibilityLabel={`${actionLabel}: ${title}`}>
-          <Text style={[styles.seeAllText, { color: colors.primary }]}>{actionLabel}</Text>
+          <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.seeAllText, { color: colors.primary }]}>{actionLabel}</Text>
           <ChevronRight size={15} color={colors.primary} />
         </TouchableOpacity>
       ) : null}
@@ -105,7 +106,7 @@ export const CollabCard: React.FC<{
       <View style={styles.roles}>
         {(work.lookingFor ?? []).slice(0, 3).map((role) => (
           <View key={role} style={[styles.role, { backgroundColor: colors.primaryMuted }]}>
-            <Text style={[styles.roleText, { color: colors.primary }]} numberOfLines={1}>
+            <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.roleText, { color: colors.primary }]} numberOfLines={1}>
               {role}
             </Text>
           </View>
@@ -150,7 +151,7 @@ export const CollabCard: React.FC<{
           accessibilityRole="button"
           accessibilityLabel={action.collaborateLabel}
         >
-          <Text style={[styles.smallBtnText, { color: canApply ? '#FFFFFF' : colors.textMuted }]} numberOfLines={1}>
+          <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.smallBtnText, { color: canApply ? '#FFFFFF' : colors.textMuted }]} numberOfLines={1}>
             {canApply ? 'Apply' : action.collaborateLabel?.replace(' · Tap to withdraw', '')}
           </Text>
         </TouchableOpacity>
@@ -218,7 +219,7 @@ export const PersonCard: React.FC<{
         accessibilityLabel={connected ? 'Connected' : pending ? 'Request pending' : `Connect with ${person.name}`}
       >
         {connected ? <Check size={14} color={colors.success} /> : pending ? <Clock size={14} color={colors.textMuted} /> : <UserPlus size={14} color="#FFFFFF" />}
-        <Text style={[styles.smallBtnText, { color: connected ? colors.success : pending ? colors.textMuted : '#FFFFFF' }]}>
+        <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.smallBtnText, { color: connected ? colors.success : pending ? colors.textMuted : '#FFFFFF' }]}>
           {connected ? 'Connected' : pending ? 'Pending' : 'Connect'}
         </Text>
       </TouchableOpacity>
@@ -294,7 +295,7 @@ export const PromptCard: React.FC<{
         style={[styles.smallBtn, { backgroundColor: colors.primary, borderColor: colors.primary }]}
         accessibilityRole="button"
       >
-        <Text style={[styles.smallBtnText, { color: '#FFFFFF' }]}>{actionLabel}</Text>
+        <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.smallBtnText, { color: '#FFFFFF' }]}>{actionLabel}</Text>
       </TouchableOpacity>
     </View>
   );
@@ -304,13 +305,13 @@ const styles = StyleSheet.create({
   sectionHeader: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: spacing.sm, gap: spacing.sm },
   sectionLeft: { flex: 1, minWidth: 0 },
   sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  sectionTitle: { ...typography.title, fontSize: 18 },
+  sectionTitle: { ...typography.sectionTitle },
   sectionSubtitle: { ...typography.caption, marginTop: 2 },
   seeAll: { flexDirection: 'row', alignItems: 'center', gap: 2, paddingBottom: 2 },
   seeAllText: { ...typography.label, fontFamily: fontFamilies.sansSemiBold },
 
   badge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: radius.full, alignSelf: 'flex-start' },
-  badgeText: { ...typography.micro, fontFamily: fontFamilies.sansSemiBold },
+  badgeText: { ...typography.micro, fontFamily: fontFamilies.sansSemiBold, fontVariant: ['tabular-nums'] },
   micro: { ...typography.micro },
   caption: { ...typography.caption },
   hint: { ...typography.micro, fontFamily: fontFamilies.sansSemiBold },
@@ -318,7 +319,7 @@ const styles = StyleSheet.create({
 
   collabCard: { width: 272, borderWidth: card.borderWidth, borderRadius: card.radius, padding: card.padding, gap: spacing.xs },
   collabTop: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginBottom: 2 },
-  cardTitle: { ...typography.label, fontFamily: fontFamilies.sansSemiBold, fontSize: 15, lineHeight: 20, minHeight: 40 },
+  cardTitle: { ...typography.cardTitle, minHeight: 44 },
   authorLine: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   roles: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4, minHeight: 24 },
   role: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: radius.full, maxWidth: 140 },

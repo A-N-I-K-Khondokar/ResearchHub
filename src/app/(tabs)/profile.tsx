@@ -12,6 +12,7 @@ import {
   Platform,
   ActivityIndicator,
 } from 'react-native';
+import { COMPACT_FONT_SCALE } from '@/constants/typography';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TabHeader, HeaderIconButton } from '@/components/layout/TabHeader';
 import { SettingsSheet } from '@/components/profile/SettingsSheet';
@@ -457,7 +458,7 @@ export default function ProfileTab() {
                 accessibilityRole="tab"
                 accessibilityState={{ selected: active }}
               >
-                <Text style={[styles.tabText, { color: active ? colors.textPrimary : colors.textSecondary }, active && { fontFamily: fontFamilies.sansSemiBold }]}>
+                <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.tabText, { color: active ? colors.textPrimary : colors.textSecondary }, active && { fontFamily: fontFamilies.sansSemiBold }]}>
                   {t === 'activity' ? 'Activity' : 'About'}
                 </Text>
               </TouchableOpacity>
@@ -483,7 +484,7 @@ export default function ProfileTab() {
                     accessibilityRole="button"
                     accessibilityState={{ selected: active }}
                   >
-                    <Text style={[styles.activityChipText, { color: active ? '#FFFFFF' : colors.textSecondary }, active && { fontFamily: fontFamilies.sansSemiBold }]}>
+                    <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.activityChipText, { color: active ? '#FFFFFF' : colors.textSecondary }, active && { fontFamily: fontFamilies.sansSemiBold }]}>
                       {f.label} {activityLists[f.key].length}
                     </Text>
                   </TouchableOpacity>
@@ -508,7 +509,7 @@ export default function ProfileTab() {
                     }
                     style={[styles.activityEmptyBtn, { backgroundColor: colors.primaryMuted }]}
                   >
-                    <Text style={[styles.activityEmptyBtnText, { color: colors.primary }]}>
+                    <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.activityEmptyBtnText, { color: colors.primary }]}>
                       {activityFilter === 'collaborations' ? 'Post collaboration' : 'Share update'}
                     </Text>
                   </TouchableOpacity>
@@ -517,7 +518,7 @@ export default function ProfileTab() {
                     onPress={() => router.push({ pathname: '/(explore)/search' as any, params: { category: 'collaborations' } })}
                     style={[styles.activityEmptyBtn, { backgroundColor: colors.primaryMuted }]}
                   >
-                    <Text style={[styles.activityEmptyBtnText, { color: colors.primary }]}>Browse open collaborations</Text>
+                    <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.activityEmptyBtnText, { color: colors.primary }]}>Browse open collaborations</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -817,23 +818,23 @@ const styles = StyleSheet.create({
   aboutContent: { marginTop: spacing.lg },
   checklist: { marginTop: spacing.sm, gap: 2 },
   checkRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, minHeight: 36 },
-  checkText: { fontSize: 13, lineHeight: 18, fontFamily: fontFamilies.sansMedium, flex: 1 },
+  checkText: { ...typography.bodySmall, fontFamily: fontFamilies.sansMedium, flex: 1 },
   checkDone: { textDecorationLine: 'line-through' },
   tabs: { flexDirection: 'row', borderWidth: 1, borderRadius: radius.button, padding: 3, gap: 3, marginTop: spacing.md },
   tabBtn: { flex: 1, height: 38, borderRadius: radius.button - 3, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'transparent' },
-  tabText: { fontSize: 14, fontFamily: fontFamilies.sansMedium },
+  tabText: { ...typography.bodyCompact, fontFamily: fontFamilies.sansMedium },
   activityChips: { gap: spacing.xs, paddingVertical: spacing.md },
   activityChip: { paddingHorizontal: 14, height: 34, borderRadius: radius.full, borderWidth: 1, justifyContent: 'center' },
-  activityChipText: { fontSize: 13, fontFamily: fontFamilies.sansMedium },
-  activityHint: { fontSize: 12, marginBottom: spacing.xs },
+  activityChipText: { ...typography.bodySmall, fontFamily: fontFamilies.sansMedium },
+  activityHint: { ...typography.caption, marginBottom: spacing.xs },
   activityEmpty: { borderWidth: 1, borderRadius: radius.md, padding: spacing.lg, alignItems: 'center', gap: spacing.sm },
-  activityEmptyText: { fontSize: 13, textAlign: 'center' },
+  activityEmptyText: { ...typography.bodySmall, textAlign: 'center' },
   activityEmptyBtn: { paddingHorizontal: spacing.md, height: spacing.compactButtonHeight, borderRadius: radius.button, justifyContent: 'center' },
   activityEmptyBtnText: { ...typography.buttonSmall },
   appsRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderWidth: 1, borderRadius: radius.md, padding: spacing.md, marginTop: spacing.md, ...cardShadow(false) },
   appsIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  appsTitle: { fontSize: 14, fontFamily: fontFamilies.sansSemiBold },
-  appsSub: { fontSize: 12, marginTop: 2 },
+  appsTitle: { ...typography.bodyCompact, fontFamily: fontFamilies.sansSemiBold },
+  appsSub: { ...typography.caption, marginTop: 2 },
   contactCta: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -880,6 +881,7 @@ const styles = StyleSheet.create({
   },
   meterPercent: {
     ...typography.label,
+    fontVariant: ['tabular-nums'],
   },
   meterTrack: {
     height: 8,

@@ -9,6 +9,7 @@ import {
   Platform,
   KeyboardAvoidingView,
 } from 'react-native';
+import { COMPACT_FONT_SCALE } from '@/constants/typography';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TabHeader } from '@/components/layout/TabHeader';
 import {
@@ -438,7 +439,7 @@ export default function ShareTab() {
                   accessibilityState={{ selected: active }}
                 >
                   <Icon size={15} strokeWidth={2} color={active ? colors.primary : colors.textSecondary} />
-                  <Text style={[styles.segmentText, { color: active ? colors.primary : colors.textSecondary }]} numberOfLines={1}>
+                  <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.segmentText, { color: active ? colors.primary : colors.textSecondary }]} numberOfLines={1}>
                     {opt.label}
                   </Text>
                 </TouchableOpacity>
@@ -637,7 +638,7 @@ export default function ShareTab() {
                         accessibilityRole="button"
                         accessibilityLabel={`Remove role ${role}`}
                       >
-                        <Text style={[styles.tagPillText, { color: colors.primary }]} numberOfLines={1}>
+                        <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.tagPillText, { color: colors.primary }]} numberOfLines={1}>
                           {role}
                         </Text>
                         <View style={styles.tagCloseIconWrapper}>
@@ -657,7 +658,7 @@ export default function ShareTab() {
                       accessibilityRole="button"
                       accessibilityLabel={`Add role ${role}`}
                     >
-                      <Text style={[styles.suggestedPillText, { color: colors.textSecondary }]} numberOfLines={1}>
+                      <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.suggestedPillText, { color: colors.textSecondary }]} numberOfLines={1}>
                         + {role}
                       </Text>
                     </TouchableOpacity>
@@ -729,7 +730,7 @@ export default function ShareTab() {
                       accessibilityLabel={`Remove tag ${tag}`}
                       accessibilityHint="Double tap to remove"
                     >
-                      <Text
+                      <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE}
                         style={[styles.tagPillText, { color: colors.textPrimary }]}
                         numberOfLines={1}
                         ellipsizeMode="tail"
@@ -785,7 +786,7 @@ export default function ShareTab() {
                         ) : (
                           <Plus size={13} color={colors.textMuted} />
                         )}
-                        <Text
+                        <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE}
                           style={[
                             styles.suggestedPillText,
                             {
@@ -848,7 +849,7 @@ export default function ShareTab() {
                           color={isSelected ? colors.textInverse : colors.textSecondary}
                         />
                       </View>
-                      <Text
+                      <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE}
                         style={[
                           styles.stagePillText,
                           {
@@ -978,7 +979,7 @@ export default function ShareTab() {
                 accessibilityRole="button"
                 accessibilityLabel="Clear form"
               >
-                <Text style={[styles.clearText, { color: hasContent ? colors.textSecondary : colors.textMuted }]}>Clear</Text>
+                <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.clearText, { color: hasContent ? colors.textSecondary : colors.textMuted }]}>Clear</Text>
               </TouchableOpacity>
               <View style={styles.submitActions}>
                 <Button
@@ -1047,7 +1048,7 @@ const styles = StyleSheet.create({
   previewBody: { marginTop: spacing.sm },
   checklist: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, marginTop: spacing.md, marginBottom: spacing.sm },
   checkItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  checkText: { fontSize: 12, fontFamily: fontFamilies.sansMedium },
+  checkText: { ...typography.caption, fontFamily: fontFamilies.sansMedium },
   safeArea: {
     flex: 1,
   },
@@ -1072,18 +1073,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   segmentText: {
+    ...typography.bodyCompact,
     fontFamily: fontFamilies.sansSemiBold,
-    fontSize: 14,
     flexShrink: 1,
   },
   segmentHint: {
-    fontSize: 13,
-    lineHeight: 18,
+    ...typography.bodySmall,
     fontFamily: fontFamilies.sansRegular,
     marginTop: spacing.sm,
   },
   roleInputRow: { flexDirection: 'row', alignItems: 'center' },
-  roleTextInput: { flex: 1, minHeight: 46, ...typography.body },
+  roleTextInput: { flex: 1, minHeight: 46, ...typography.body, lineHeight: undefined },
   previewSection: {
     marginTop: spacing.lg,
   },
@@ -1108,13 +1108,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   userName: {
-    fontSize: 15,
+    ...typography.body,
     fontFamily: fontFamilies.sansSemiBold,
     letterSpacing: 0.1,
     marginBottom: 2,
   },
   statusText: {
-    fontSize: 14,
+    ...typography.bodyCompact,
     fontFamily: fontFamilies.sansRegular,
   },
   headerDivider: {
@@ -1142,7 +1142,7 @@ const styles = StyleSheet.create({
   },
   fieldLabel: { ...typography.bodySmall, fontFamily: fontFamilies.sansSemiBold, letterSpacing: 0.1 },
   optionalText: {
-    fontSize: 12,
+    ...typography.caption,
     fontFamily: fontFamilies.sansRegular,
     fontWeight: '400',
     opacity: 0.7,
@@ -1156,16 +1156,17 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   charCount: {
-    fontSize: 12,
+    ...typography.caption,
     fontFamily: fontFamilies.sansRegular,
+    fontVariant: ['tabular-nums'],
   },
   errorText: {
-    fontSize: 12,
+    ...typography.caption,
     fontFamily: fontFamilies.sansRegular,
     marginTop: 4,
   },
   tagInputContainer: { flexDirection: 'row', alignItems: 'center' },
-  tagTextInput: { flex: 1, paddingVertical: 10, ...typography.body },
+  tagTextInput: { flex: 1, paddingVertical: 10, ...typography.body, lineHeight: undefined },
   tagAddBtn: {
     width: 26,
     height: 26,
@@ -1192,7 +1193,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   tagPillText: {
-    fontSize: 13,
+    ...typography.bodySmall,
     fontFamily: fontFamilies.sansMedium,
     flexShrink: 1,
   },
@@ -1204,7 +1205,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   suggestedLabel: {
-    fontSize: 12,
+    ...typography.caption,
     fontFamily: fontFamilies.sansRegular,
     marginBottom: 6,
     letterSpacing: 0.1,
@@ -1225,7 +1226,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   suggestedPillText: {
-    fontSize: 13,
+    ...typography.bodySmall,
     flexShrink: 1,
   },
   stagesGrid: {
@@ -1249,7 +1250,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   stagePillText: {
-    fontSize: 13,
+    ...typography.bodySmall,
     flexShrink: 1,
   },
 });

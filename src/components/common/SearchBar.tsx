@@ -7,6 +7,7 @@ import {
   ViewStyle,
   TextInputProps,
 } from 'react-native';
+import { COMPACT_FONT_SCALE } from '@/constants/typography';
 import { Search, X, SlidersHorizontal } from 'lucide-react-native';
 import { radius, spacing, typography } from '@/constants';
 import { useTheme } from '@/context/ThemeContext';
@@ -64,6 +65,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         autoCorrect={false}
         returnKeyType="search"
         selectionColor={colors.primary}
+        maxFontSizeMultiplier={COMPACT_FONT_SCALE}
         cursorColor={colors.primary}
         accessibilityLabel={placeholder}
         style={[styles.input, { color: colors.textPrimary }]}
@@ -114,6 +116,7 @@ const styles = StyleSheet.create({
     height: '100%',
     ...typography.body,
     paddingVertical: 0,
+    lineHeight: undefined,
   },
   iconButton: {
     padding: spacing.xs,

@@ -10,6 +10,7 @@
 
 import React from 'react';
 import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { COMPACT_FONT_SCALE } from '@/constants/typography';
 import Constants from 'expo-constants';
 import { ChevronRight, IdCard, Info, LogOut, Mail, Moon, Pencil, ShieldCheck, Smartphone, Sun, X } from 'lucide-react-native';
 import { useTheme, type ThemeMode } from '@/context/ThemeContext';
@@ -110,7 +111,7 @@ export const SettingsSheet: React.FC<SettingsSheetProps> = ({
 
           <ScrollView contentContainerStyle={styles.body}>
             {/* Appearance */}
-            <Text style={[styles.section, { color: colors.textSecondary }]}>APPEARANCE</Text>
+            <Text style={[styles.section, { color: colors.textSecondary }]}>Appearance</Text>
             <View style={[styles.segment, { backgroundColor: colors.surfaceSubtle, borderColor: colors.borderSubtle }]}>
               {THEMES.map(({ mode, label, icon: Icon }) => {
                 const active = themeMode === mode;
@@ -127,7 +128,7 @@ export const SettingsSheet: React.FC<SettingsSheetProps> = ({
                     accessibilityLabel={`${label} theme`}
                   >
                     <Icon size={16} color={active ? colors.primary : colors.textSecondary} />
-                    <Text
+                    <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE}
                       style={[
                         styles.segmentText,
                         { color: active ? colors.textPrimary : colors.textSecondary },
@@ -143,7 +144,7 @@ export const SettingsSheet: React.FC<SettingsSheetProps> = ({
             <Text style={[styles.hint, { color: colors.textMuted }]}>{current.hint}</Text>
 
             {/* Account */}
-            <Text style={[styles.section, { color: colors.textSecondary }]}>ACCOUNT</Text>
+            <Text style={[styles.section, { color: colors.textSecondary }]}>Account</Text>
             <View style={[styles.card, { borderColor: colors.borderSubtle, backgroundColor: colors.background }]}>
               {row('email', Mail, 'Signed in as', email)}
               {row('edit', Pencil, 'Edit profile', 'Name, bio, interests and links', go(onEditProfile))}
@@ -158,7 +159,7 @@ export const SettingsSheet: React.FC<SettingsSheetProps> = ({
             </View>
 
             {/* About */}
-            <Text style={[styles.section, { color: colors.textSecondary }]}>ABOUT</Text>
+            <Text style={[styles.section, { color: colors.textSecondary }]}>About</Text>
             <View style={[styles.card, { borderColor: colors.borderSubtle, backgroundColor: colors.background }]}>
               {row('version', Info, 'CSE Research Hub', version ? `Version ${version}` : undefined)}
               {row('privacy', ShieldCheck, 'Privacy', 'Your email and student ID are never shown publicly', undefined, true)}
@@ -196,13 +197,7 @@ const styles = StyleSheet.create({
   title: { ...typography.title, fontSize: 20, flex: 1 },
   close: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   body: { padding: spacing.md, paddingBottom: spacing.xl },
-  section: {
-    ...typography.micro,
-    fontFamily: fontFamilies.sansSemiBold,
-    letterSpacing: 0.6,
-    marginTop: spacing.md,
-    marginBottom: spacing.xs,
-  },
+  section: { ...typography.overline, marginTop: spacing.md, marginBottom: spacing.xs },
   segment: { flexDirection: 'row', borderWidth: 1, borderRadius: radius.button, padding: 3, gap: 3 },
   segmentItem: {
     flex: 1,

@@ -10,6 +10,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, RefreshControl, Animated } from 'react-native';
+import { COMPACT_FONT_SCALE } from '@/constants/typography';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { AlertTriangle, Bookmark, BookOpen, ChevronDown, Layers, Search, Users, X } from 'lucide-react-native';
@@ -169,7 +170,7 @@ export default function SavedItemsScreen() {
             accessibilityRole="button"
             accessibilityLabel={`Remove ${saved.workTitle}`}
           >
-            <Text style={[styles.smallBtnText, { color: colors.textPrimary }]}>Remove</Text>
+            <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.smallBtnText, { color: colors.textPrimary }]}>Remove</Text>
           </TouchableOpacity>
         </View>
       );
@@ -226,7 +227,7 @@ export default function SavedItemsScreen() {
                   accessibilityRole="button"
                   accessibilityLabel={action.collaborateLabel}
                 >
-                  <Text style={[styles.smallBtnText, { color: canApply ? '#FFFFFF' : colors.textMuted }]} numberOfLines={1}>
+                  <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.smallBtnText, { color: canApply ? '#FFFFFF' : colors.textMuted }]} numberOfLines={1}>
                     {canApply ? 'Apply' : action.collaborateLabel.replace(' · Tap to withdraw', '')}
                   </Text>
                 </TouchableOpacity>
@@ -270,7 +271,7 @@ export default function SavedItemsScreen() {
           <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>Could not load saved items</Text>
           <Text style={[styles.emptyText, { color: colors.textSecondary }]}>Check your connection and try again.</Text>
           <TouchableOpacity onPress={retry} style={[styles.cta, { backgroundColor: colors.primaryMuted }]} accessibilityRole="button">
-            <Text style={[styles.ctaText, { color: colors.primary }]}>Retry</Text>
+            <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.ctaText, { color: colors.primary }]}>Retry</Text>
           </TouchableOpacity>
         </View>
       ) : items.length === 0 ? (
@@ -287,7 +288,7 @@ export default function SavedItemsScreen() {
             style={[styles.cta, { backgroundColor: colors.primaryMuted }]}
             accessibilityRole="button"
           >
-            <Text style={[styles.ctaText, { color: colors.primary }]}>Explore research</Text>
+            <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.ctaText, { color: colors.primary }]}>Explore research</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -324,7 +325,7 @@ export default function SavedItemsScreen() {
               accessibilityRole="button"
               accessibilityLabel={`Sorted by recently ${sort}. Tap to change`}
             >
-              <Text style={[styles.sortText, { color: colors.textSecondary }]}>{sort === 'saved' ? 'Saved' : 'Updated'}</Text>
+              <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.sortText, { color: colors.textSecondary }]}>{sort === 'saved' ? 'Saved' : 'Updated'}</Text>
               <ChevronDown size={14} color={colors.textMuted} />
             </TouchableOpacity>
           </View>
@@ -420,12 +421,12 @@ const styles = StyleSheet.create({
 
   toolbar: { flexDirection: 'row', gap: spacing.xs },
   search: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: radius.button, paddingHorizontal: 12, height: spacing.secondaryButtonHeight },
-  searchInput: { flex: 1, ...typography.bodyCompact, paddingVertical: 0 },
+  searchInput: { flex: 1, ...typography.bodyCompact, paddingVertical: 0, lineHeight: undefined },
   sortBtn: { flexDirection: 'row', alignItems: 'center', gap: 2, borderWidth: 1, borderRadius: radius.button, paddingHorizontal: 12, height: spacing.secondaryButtonHeight },
   sortText: { ...typography.caption, fontFamily: fontFamilies.sansSemiBold },
   filters: { gap: spacing.xs, paddingVertical: 2 },
   filterChip: { paddingHorizontal: 14, height: 34, borderRadius: radius.full, borderWidth: 1, justifyContent: 'center' },
-  filterText: { ...typography.caption, fontSize: 13 },
+  filterText: { ...typography.bodySmall },
 
   row: {
     flexDirection: 'row',
@@ -438,7 +439,7 @@ const styles = StyleSheet.create({
   },
   icon: { width: 40, height: 40, borderRadius: radius.button, alignItems: 'center', justifyContent: 'center' },
   body: { flex: 1, minWidth: 0, gap: 2 },
-  title: { ...typography.label, fontFamily: fontFamilies.sansSemiBold },
+  title: { ...typography.cardTitle },
   meta: { ...typography.caption },
   metaLine: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   collabLine: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginTop: 6 },

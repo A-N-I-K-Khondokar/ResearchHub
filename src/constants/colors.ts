@@ -97,7 +97,7 @@ export const lightColors: ThemeColors = {
   // Typography (Deep Ocean Navy replacing pure black)
   textPrimary: '#071A3E',            // Deep Ocean Navy (on-surface / high optical weight)
   textSecondary: '#424754',          // Slate navy for metadata & subheads (on-surface-variant)
-  textMuted: '#6C717E',              // Outline / placeholder text  // WCAG AA: >= 4.6:1
+  textMuted: '#666B78',              // Outline / placeholder text  // WCAG AA: 4.8:1 on surfaceSubtle
   textInverse: '#FFFFFF',            // Crisp white text on primary buttons
   onSurface: '#071A3E',
   onSurfaceVariant: '#424754',
@@ -161,7 +161,7 @@ export const darkColors: ThemeColors = {
   // Typography
   textPrimary: '#EEF0FF',            // Inverse-on-surface high contrast readability
   textSecondary: '#A5B0C8',          // Clean slate metadata
-  textMuted: '#808591',              // Outline / placeholder text  // WCAG AA: >= 4.6:1 on dark surfaces
+  textMuted: '#868B97',              // Outline / placeholder text  // WCAG AA: 4.75:1 on dark surfaceSubtle
   textInverse: '#071A3E',            // Deep navy text on bright buttons
   onSurface: '#EEF0FF',
   onSurfaceVariant: '#A5B0C8',

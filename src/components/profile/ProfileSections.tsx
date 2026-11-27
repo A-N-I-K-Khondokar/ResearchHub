@@ -201,9 +201,7 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
   },
-  workTitle: {
-    ...typography.titleSmall,
-  },
+  workTitle: { ...typography.cardTitle },
   workDescription: {
     ...typography.bodySmall,
     marginTop: 2,

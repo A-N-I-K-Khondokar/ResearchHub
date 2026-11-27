@@ -12,6 +12,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
+import { COMPACT_FONT_SCALE } from '@/constants/typography';
 import { useRouter } from 'expo-router';
 import { Bell, BellRing, BookOpen, CheckCircle2, ChevronRight, Sparkles, UserPlus, Users, X } from 'lucide-react-native';
 import { spacing, radius, typography, fontFamilies } from '../../constants';
@@ -243,7 +244,7 @@ export default function HomeFeedScreen() {
           <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>Feed unavailable</Text>
           <Text style={[styles.emptyText, { color: colors.textSecondary }]}>Could not load the research feed.</Text>
           <TouchableOpacity onPress={onRefresh} style={[styles.emptyBtn, { backgroundColor: colors.primaryMuted }]}>
-            <Text style={[styles.emptyBtnText, { color: colors.primary }]}>Retry</Text>
+            <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.emptyBtnText, { color: colors.primary }]}>Retry</Text>
           </TouchableOpacity>
         </View>
       );
@@ -270,7 +271,7 @@ export default function HomeFeedScreen() {
             }
             style={[styles.emptyBtn, { backgroundColor: colors.primaryMuted }]}
           >
-            <Text style={[styles.emptyBtnText, { color: colors.primary }]}>
+            <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.emptyBtnText, { color: colors.primary }]}>
               {selectedTopic ? 'Show all posts' : tab === 'collaborations' ? 'Post collaboration' : 'Share your work'}
             </Text>
           </TouchableOpacity>
@@ -315,7 +316,7 @@ export default function HomeFeedScreen() {
             style={[styles.moreBtn, { borderColor: colors.border, backgroundColor: colors.surface }]}
             accessibilityRole="button"
           >
-            <Text style={[styles.moreText, { color: colors.primary }]}>
+            <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.moreText, { color: colors.primary }]}>
               Show more ({feed.length - visible})
             </Text>
           </TouchableOpacity>
@@ -363,7 +364,7 @@ export default function HomeFeedScreen() {
               accessibilityRole="button"
             >
               <BookOpen size={15} color={colors.textPrimary} />
-              <Text style={[styles.quickText, { color: colors.textPrimary }]}>Share update</Text>
+              <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.quickText, { color: colors.textPrimary }]}>Share update</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => router.push({ pathname: '/(tabs)/share' as any, params: { mode: 'collaboration' } })}
@@ -371,7 +372,7 @@ export default function HomeFeedScreen() {
               accessibilityRole="button"
             >
               <Users size={15} color={colors.primary} />
-              <Text style={[styles.quickText, { color: colors.primary }]}>Post collaboration</Text>
+              <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.quickText, { color: colors.primary }]}>Post collaboration</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -428,7 +429,7 @@ export default function HomeFeedScreen() {
                   accessibilityRole="tab"
                   accessibilityState={{ selected: active }}
                 >
-                  <Text
+                  <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE}
                     style={[
                       styles.tabText,
                       { color: active ? colors.primary : colors.textSecondary },

@@ -10,6 +10,7 @@ import {
   Insets,
   Platform,
 } from 'react-native';
+import { COMPACT_FONT_SCALE } from '@/constants/typography';
 import { radius, spacing, typography, fontFamilies, floatingButtonTokens } from '@/constants';
 import { useTheme } from '@/context/ThemeContext';
 
@@ -197,7 +198,7 @@ export const Button: React.FC<ButtonProps> = ({
     >
       <View style={[styles.contentRow, loading && styles.hidden]}>
         {icon && iconPosition === 'left' && <View style={size === 'sm' ? styles.iconLeftSm : styles.iconLeft}>{icon}</View>}
-        <Text style={getLabelStyles()} numberOfLines={1}>{label}</Text>
+        <Text style={getLabelStyles()} numberOfLines={1} maxFontSizeMultiplier={COMPACT_FONT_SCALE}>{label}</Text>
         {icon && iconPosition === 'right' && <View style={size === 'sm' ? styles.iconRightSm : styles.iconRight}>{icon}</View>}
       </View>
       {loading ? (

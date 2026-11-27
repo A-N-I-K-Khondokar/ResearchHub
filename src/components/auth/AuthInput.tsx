@@ -8,6 +8,7 @@ import {
   ViewStyle,
   TextInputProps,
 } from 'react-native';
+import { COMPACT_FONT_SCALE } from '@/constants/typography';
 import { AlertCircle, Eye, EyeOff } from 'lucide-react-native';
 import { radius, spacing, typography, fontFamilies } from '@/constants';
 import { useTheme } from '@/context/ThemeContext';
@@ -51,14 +52,14 @@ export const AuthInput: React.FC<AuthInputProps> = ({
   return (
     <View style={[styles.container, style]}>
       <View style={styles.labelRow}>
-        <Text style={[styles.label, { color: colors.textPrimary }]}>{label}</Text>
+        <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.label, { color: colors.textPrimary }]}>{label}</Text>
         {rightAction && (
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={rightAction.onPress}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Text style={[styles.rightActionLabel, { color: colors.primary }]}>{rightAction.label}</Text>
+            <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.rightActionLabel, { color: colors.primary }]}>{rightAction.label}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -93,6 +94,7 @@ export const AuthInput: React.FC<AuthInputProps> = ({
           placeholder={placeholder}
           placeholderTextColor={colors.textMuted}
           selectionColor={colors.primary}
+          maxFontSizeMultiplier={COMPACT_FONT_SCALE}
           cursorColor={colors.primary}
           accessibilityLabel={label}
           accessibilityHint={error || undefined}
@@ -144,14 +146,14 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   label: {
+    ...typography.bodySmall,
     fontFamily: fontFamilies.sansSemiBold,
-    fontSize: 13,
     fontWeight: '600',
     letterSpacing: 0.1,
   },
   rightActionLabel: {
+    ...typography.bodySmall,
     fontFamily: fontFamilies.sansSemiBold,
-    fontSize: 13,
     fontWeight: '600',
   },
   inputWrapper: {
@@ -166,11 +168,12 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   input: {
+    ...typography.body,
     flex: 1,
     height: '100%',
     fontFamily: fontFamilies.sansRegular,
-    fontSize: 15,
     paddingVertical: 0,
+    lineHeight: undefined,
   },
   passwordToggle: {
     padding: spacing.xs,
@@ -183,8 +186,8 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   errorText: {
+    ...typography.caption,
     fontFamily: fontFamilies.sansMedium,
-    fontSize: 12,
     flexShrink: 1,
   },
 });

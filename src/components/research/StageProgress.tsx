@@ -7,6 +7,7 @@
 
 import React, { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { COMPACT_FONT_SCALE } from '@/constants/typography';
 import { Check } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { RESEARCH_STAGE_IDS, type ResearchStage } from '@/types/research.types';
@@ -55,7 +56,7 @@ export const StageProgress: React.FC<StageProgressProps> = ({ stage, editable, b
       </View>
       <View style={styles.labels}>
         {RESEARCH_STAGE_IDS.map((s, i) => (
-          <Text
+          <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE}
             key={s}
             numberOfLines={1}
             style={[
@@ -88,7 +89,7 @@ export const StageProgress: React.FC<StageProgressProps> = ({ stage, editable, b
                 accessibilityState={{ selected: active }}
               >
                 {active ? <Check size={13} color="#FFFFFF" /> : null}
-                <Text style={[styles.pillText, { color: active ? '#FFFFFF' : colors.textPrimary }]}>{s}</Text>
+                <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.pillText, { color: active ? '#FFFFFF' : colors.textPrimary }]}>{s}</Text>
               </TouchableOpacity>
             );
           })}
@@ -116,5 +117,5 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
     borderWidth: 1,
   },
-  pillText: { ...typography.caption, fontSize: 13, fontFamily: fontFamilies.sansSemiBold },
+  pillText: { ...typography.bodySmall, fontFamily: fontFamilies.sansSemiBold },
 });

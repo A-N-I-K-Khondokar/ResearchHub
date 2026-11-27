@@ -14,7 +14,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Clock, Hash, Sparkles, UserPlus, Users } from 'lucide-react-native';
-import { spacing } from '@/constants';
+import { spacing, typography } from '@/constants';
 import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
 import { TabHeader } from '@/components/layout/TabHeader';
@@ -320,5 +320,5 @@ const styles = StyleSheet.create({
   hList: { gap: spacing.sm, paddingRight: spacing.md },
   vList: { gap: spacing.sm },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  muted: { fontSize: 13, lineHeight: 18 },
+  muted: { ...typography.bodySmall },
 });

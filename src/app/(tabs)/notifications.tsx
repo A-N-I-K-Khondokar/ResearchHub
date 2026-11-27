@@ -21,6 +21,7 @@ import {
   RefreshControl,
   ActivityIndicator,
 } from 'react-native';
+import { COMPACT_FONT_SCALE } from '@/constants/typography';
 import { useRouter } from 'expo-router';
 import { BadgeCheck, BellOff, Check, CheckCheck, UserPlus, Users, XCircle } from 'lucide-react-native';
 import { ICON_STROKE } from '@/constants/icons';
@@ -320,7 +321,7 @@ export default function NotificationsTab() {
       accessibilityRole="button"
     >
       {icon}
-      <Text style={[styles.btnText, { color: primary ? '#FFFFFF' : colors.textPrimary }]}>{label}</Text>
+      <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.btnText, { color: primary ? '#FFFFFF' : colors.textPrimary }]}>{label}</Text>
     </TouchableOpacity>
   );
 
@@ -353,7 +354,7 @@ export default function NotificationsTab() {
       return (
         <>
           {req.message ? (
-            <Text style={[styles.quote, { color: colors.textPrimary, backgroundColor: colors.surfaceSubtle }]} numberOfLines={3}>
+            <Text style={[styles.quote, { color: colors.textPrimary, backgroundColor: colors.surfaceSubtle, borderLeftColor: colors.primaryLight }]} numberOfLines={3}>
               “{req.message}”
             </Text>
           ) : null}
@@ -508,7 +509,7 @@ export default function NotificationsTab() {
               accessibilityLabel="Mark all as read"
             >
               <CheckCheck size={14} color={colors.primary} />
-              <Text style={[styles.headerBtnText, { color: colors.primary }]}>Mark all read</Text>
+              <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.headerBtnText, { color: colors.primary }]}>Mark all read</Text>
             </TouchableOpacity>
           ) : null
         }
@@ -553,7 +554,7 @@ export default function NotificationsTab() {
         renderItem={renderRow}
         renderSectionHeader={({ section }) => (
           <View style={[styles.sectionHead, { backgroundColor: colors.background }]}>
-            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{section.title.toUpperCase()}</Text>
+            <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>{section.title}</Text>
           </View>
         )}
         stickySectionHeadersEnabled={false}
@@ -580,12 +581,12 @@ export default function NotificationsTab() {
                   style={[styles.footerBtn, { borderColor: colors.border, backgroundColor: colors.surface }]}
                   accessibilityRole="button"
                 >
-                  <Text style={[styles.footerBtnText, { color: colors.primary }]}>Show older</Text>
+                  <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.footerBtnText, { color: colors.primary }]}>Show older</Text>
                 </TouchableOpacity>
               ) : null}
               {readCount > 0 ? (
                 <TouchableOpacity onPress={handleClearRead} hitSlop={8} accessibilityRole="button">
-                  <Text style={[styles.clearText, { color: colors.textSecondary }]}>Clear {readCount} read</Text>
+                  <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.clearText, { color: colors.textSecondary }]}>Clear {readCount} read</Text>
                 </TouchableOpacity>
               ) : null}
             </View>
@@ -610,7 +611,7 @@ export default function NotificationsTab() {
                   onPress={() => setFilter('all')}
                   style={[styles.footerBtn, { borderColor: colors.border, backgroundColor: colors.surface }]}
                 >
-                  <Text style={[styles.footerBtnText, { color: colors.primary }]}>View all notifications</Text>
+                  <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.footerBtnText, { color: colors.primary }]}>View all notifications</Text>
                 </TouchableOpacity>
               ) : null}
             </View>
@@ -637,10 +638,10 @@ const styles = StyleSheet.create({
   filterScroll: { marginHorizontal: -spacing.md },
   filterContent: { paddingHorizontal: spacing.md, gap: spacing.xs },
   filterPill: { paddingHorizontal: 14, height: 34, borderRadius: radius.full, borderWidth: 1, justifyContent: 'center' },
-  filterText: { ...typography.caption, fontSize: 13 },
+  filterText: { ...typography.bodySmall },
 
   sectionHead: { paddingHorizontal: spacing.md, paddingTop: spacing.md, paddingBottom: spacing.xs },
-  sectionTitle: { ...typography.micro, fontFamily: fontFamilies.sansSemiBold, letterSpacing: 0.6 },
+  sectionTitle: { ...typography.overline },
 
   row: {
     flexDirection: 'row',
@@ -665,10 +666,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   body: { flex: 1, minWidth: 0, gap: spacing.xs },
-  message: { ...typography.bodySmall, lineHeight: 20 },
+  message: { ...typography.bodySmall},
   actor: { fontFamily: fontFamilies.sansSemiBold },
   time: { ...typography.micro, paddingTop: 2 },
-  quote: { ...typography.caption, padding: spacing.sm, borderRadius: radius.sm, fontStyle: 'italic' },
+  quote: { ...typography.bodySmall, paddingVertical: 6, paddingHorizontal: spacing.sm, borderLeftWidth: 3, borderTopRightRadius: radius.sm, borderBottomRightRadius: radius.sm },
   btnRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginTop: 2 },
   btn: {
     flexDirection: 'row',

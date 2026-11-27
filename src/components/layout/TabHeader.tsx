@@ -13,6 +13,7 @@
 
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { COMPACT_FONT_SCALE } from '@/constants/typography';
 import { GraduationCap } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/ThemeContext';
@@ -64,7 +65,7 @@ export const TabHeader: React.FC<TabHeaderProps> = ({ title, subtitle, brand, ac
         ) : (
           <View style={styles.titleCol}>
             <View style={styles.titleLine}>
-              <Text style={[styles.title, { color: colors.textPrimary }]} numberOfLines={1} accessibilityRole="header">
+              <Text style={[styles.title, { color: colors.textPrimary }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.82} accessibilityRole="header">
                 {title}
               </Text>
               {accessory}
@@ -110,7 +111,7 @@ export const HeaderBadge: React.FC<{ label: string }> = ({ label }) => {
   const { colors } = useTheme();
   return (
     <View style={[styles.badge, { backgroundColor: colors.primaryMuted }]}>
-      <Text style={[styles.badgeText, { color: colors.primary }]}>{label}</Text>
+      <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.badgeText, { color: colors.primary }]}>{label}</Text>
     </View>
   );
 };
@@ -131,7 +132,7 @@ const styles = StyleSheet.create({
   },
   brand: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, minWidth: 0 },
   logo: { width: 40, height: 40, borderRadius: radius.button, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  brandTitle: { fontFamily: fontFamilies.sansBold, fontSize: 17, lineHeight: 22 },
+  brandTitle: { ...typography.title, fontFamily: fontFamilies.sansBold },
   titleCol: { flex: 1, minWidth: 0 },
   titleLine: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   title: { ...typography.display, fontSize: 26, lineHeight: 32, flexShrink: 1 },
@@ -148,5 +149,5 @@ const styles = StyleSheet.create({
   },
   iconDot: { position: 'absolute', top: 6, right: 6, width: 10, height: 10, borderRadius: 5, borderWidth: 2 },
   badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: radius.full },
-  badgeText: { ...typography.micro, fontFamily: fontFamilies.sansSemiBold },
+  badgeText: { ...typography.micro, fontFamily: fontFamilies.sansSemiBold, fontVariant: ['tabular-nums'] },
 });

@@ -10,6 +10,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { COMPACT_FONT_SCALE } from '@/constants/typography';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, ChevronRight, Clock, SearchX, Sparkles, Users, X } from 'lucide-react-native';
@@ -212,7 +213,7 @@ export default function GlobalSearchScreen() {
       </Text>
       {onSeeAll ? (
         <TouchableOpacity onPress={onSeeAll} hitSlop={8} style={styles.seeAll} accessibilityRole="button">
-          <Text style={[styles.seeAllText, { color: colors.primary }]}>See all</Text>
+          <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.seeAllText, { color: colors.primary }]}>See all</Text>
           <ChevronRight size={15} color={colors.primary} />
         </TouchableOpacity>
       ) : null}
@@ -265,7 +266,7 @@ export default function GlobalSearchScreen() {
       </Text>
       {filter !== 'all' && results.counts.all > 0 ? (
         <TouchableOpacity onPress={() => setFilter('all')} style={[styles.emptyBtn, { borderColor: colors.border }]}>
-          <Text style={[styles.seeAllText, { color: colors.primary }]}>Show all results</Text>
+          <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.seeAllText, { color: colors.primary }]}>Show all results</Text>
         </TouchableOpacity>
       ) : (
         <>
@@ -360,7 +361,7 @@ export default function GlobalSearchScreen() {
               hitSlop={8}
               accessibilityRole="button"
             >
-              <Text style={[styles.seeAllText, { color: colors.textSecondary }]}>Clear all</Text>
+              <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.seeAllText, { color: colors.textSecondary }]}>Clear all</Text>
             </TouchableOpacity>
           </View>
           <View style={styles.chips}>
@@ -392,7 +393,7 @@ export default function GlobalSearchScreen() {
               <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Open collaborations</Text>
             </View>
             <TouchableOpacity onPress={() => setFilter('collaborations')} hitSlop={8} style={styles.seeAll} accessibilityRole="button">
-              <Text style={[styles.seeAllText, { color: colors.primary }]}>See all</Text>
+              <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.seeAllText, { color: colors.primary }]}>See all</Text>
               <ChevronRight size={15} color={colors.primary} />
             </TouchableOpacity>
           </View>
@@ -531,13 +532,13 @@ const styles = StyleSheet.create({
   searchContainer: { flex: 1 },
   filters: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, gap: spacing.xs },
   filterChip: { paddingHorizontal: 14, height: 34, borderRadius: radius.full, borderWidth: 1, justifyContent: 'center' },
-  filterText: { ...typography.caption, fontSize: 13 },
+  filterText: { ...typography.bodySmall },
   container: { flex: 1 },
   scrollContent: { padding: spacing.md, paddingBottom: spacing.xxl },
   list: { gap: spacing.sm },
   section: { gap: spacing.sm, marginBottom: spacing.md },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  sectionTitle: { ...typography.title, fontSize: 16 },
+  sectionTitle: { ...typography.sectionTitle },
   titleWithIcon: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   seeAll: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   seeAllText: { ...typography.label, fontFamily: fontFamilies.sansSemiBold },
@@ -554,7 +555,7 @@ const styles = StyleSheet.create({
     maxWidth: '100%',
   },
   recentTap: { flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 },
-  recentText: { ...typography.caption, fontSize: 13, flexShrink: 1 },
+  recentText: { ...typography.bodySmall, flexShrink: 1 },
   empty: { alignItems: 'center', paddingTop: spacing.xl, gap: spacing.sm },
   emptyIcon: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center' },
   emptyTitle: { ...typography.title, textAlign: 'center' },

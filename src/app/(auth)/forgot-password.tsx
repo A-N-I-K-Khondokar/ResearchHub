@@ -85,7 +85,7 @@ export default function ForgotPasswordScreen() {
                 { backgroundColor: colors.errorLight, borderColor: colors.error },
               ]}
             >
-              <Text style={{ color: colors.error, fontSize: 13 }}>{globalError}</Text>
+              <Text style={[typography.bodySmall, { color: colors.error }]}>{globalError}</Text>
             </View>
           ) : null}
 

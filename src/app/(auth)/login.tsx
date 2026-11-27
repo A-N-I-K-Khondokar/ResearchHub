@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { COMPACT_FONT_SCALE } from '@/constants/typography';
 import { useRouter } from 'expo-router';
 import { Mail, Lock } from 'lucide-react-native';
 import {
@@ -191,7 +192,7 @@ export default function LoginScreen() {
             onPress={() => router.push('/(auth)/sign-up' as any)}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
-            <Text style={[styles.createAccountText, { color: colors.primary }]}>
+            <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.createAccountText, { color: colors.primary }]}>
               Create Account
             </Text>
           </TouchableOpacity>
@@ -223,9 +224,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   errorBannerText: {
+    ...typography.bodySmall,
     fontFamily: fontFamilies.sansRegular,
-    fontSize: 13,
-    lineHeight: 18,
   },
   signInButton: {
     marginTop: spacing.sm,
@@ -239,12 +239,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 1,
   },
-  dividerText: {
-    ...typography.caption,
-    marginHorizontal: spacing.md,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
+  dividerText: { ...typography.overline, marginHorizontal: spacing.md },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -252,12 +247,13 @@ const styles = StyleSheet.create({
     marginTop: spacing.xl,
   },
   footerText: {
+    ...typography.body,
     fontFamily: fontFamilies.sansRegular,
-    fontSize: 15,
   },
   createAccountText: {
+    ...typography.body,
     fontFamily: fontFamilies.sansSemiBold,
-    fontSize: 15,
     fontWeight: '600',
+    fontVariant: ['tabular-nums'],
   },
 });

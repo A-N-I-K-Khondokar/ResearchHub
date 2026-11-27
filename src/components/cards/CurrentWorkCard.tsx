@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Share } from 'react-native';
+import { COMPACT_FONT_SCALE } from '@/constants/typography';
 import { Bookmark, BookOpen, Layers, MoreHorizontal, PenLine, Share2, Users } from 'lucide-react-native';
 import { CurrentWork } from '../../types';
 import { spacing, radius, typography, fontFamilies } from '../../constants';
@@ -177,7 +178,7 @@ export const CurrentWorkCard: React.FC<CurrentWorkCardProps> = ({
           <View style={styles.topicsRow}>
             {lookingFor.slice(0, MAX_ROLES).map((role) => (
               <View key={role} style={[styles.rolePill, { backgroundColor: colors.primaryMuted }]}>
-                <Text style={[styles.rolePillText, { color: colors.primary }]} numberOfLines={1}>
+                <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.rolePillText, { color: colors.primary }]} numberOfLines={1}>
                   {role}
                 </Text>
               </View>
@@ -201,7 +202,7 @@ export const CurrentWorkCard: React.FC<CurrentWorkCardProps> = ({
               accessibilityRole="button"
               accessibilityLabel={`Topic ${topic}`}
             >
-              <Text style={[styles.topicPillText, { color: colors.textSecondary }]} numberOfLines={1} ellipsizeMode="tail">
+              <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.topicPillText, { color: colors.textSecondary }]} numberOfLines={1} ellipsizeMode="tail">
                 {asTag(topic)}
               </Text>
             </TouchableOpacity>
@@ -228,7 +229,7 @@ export const CurrentWorkCard: React.FC<CurrentWorkCardProps> = ({
           accessibilityLabel={collaborateLabel}
         >
           <CollabIcon size={15} color={collaborateDisabled ? colors.textMuted : '#FFFFFF'} />
-          <Text style={[styles.collabButtonText, { color: collaborateDisabled ? colors.textMuted : '#FFFFFF' }]}>
+          <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.collabButtonText, { color: collaborateDisabled ? colors.textMuted : '#FFFFFF' }]}>
             {collaborateLabel}
           </Text>
         </TouchableOpacity>
@@ -357,16 +358,11 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   title: {
-    fontSize: 18,
-    fontFamily: fontFamilies.serifBold,
-    fontWeight: '700',
-    lineHeight: 24,
-    marginBottom: 8,
-    letterSpacing: -0.3,
+    ...typography.feedTitle,
+    marginBottom: 6,
   },
   description: {
     ...typography.bodyCompact,
-    lineHeight: 21,
     marginBottom: spacing.sm + 4,
   },
   teamRow: {

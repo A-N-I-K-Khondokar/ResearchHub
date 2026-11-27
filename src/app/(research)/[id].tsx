@@ -21,6 +21,7 @@ import {
   Linking,
   RefreshControl,
 } from 'react-native';
+import { COMPACT_FONT_SCALE } from '@/constants/typography';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
@@ -471,7 +472,7 @@ export default function ResearchDetailScreen() {
           </Text>
           {pendingCount ? (
             <View style={styles.countBadge}>
-              <Text style={[styles.countText, { color: colors.primary }]}>{pendingCount}</Text>
+              <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.countText, { color: colors.primary }]}>{pendingCount}</Text>
             </View>
           ) : null}
         </TouchableOpacity>
@@ -788,14 +789,14 @@ export default function ResearchDetailScreen() {
                         <View style={styles.myAppHead}>
                           <Text style={[styles.myAppTitle, { color: colors.textPrimary }]}>Your application</Text>
                           <View style={[styles.myAppChip, { backgroundColor: tone.bg }]}>
-                            <Text style={[styles.myAppChipText, { color: tone.fg }]}>{tone.text}</Text>
+                            <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.myAppChipText, { color: tone.fg }]}>{tone.text}</Text>
                           </View>
                         </View>
                         <Text style={[styles.muted, { color: colors.textSecondary }]}>
                           As {mine.role} · sent {formatRelativeDate(mine.createdAt)}
                         </Text>
                         {mine.message ? (
-                          <Text style={[styles.myAppMsg, { color: colors.textPrimary, backgroundColor: colors.surfaceSubtle }]} numberOfLines={4}>
+                          <Text style={[styles.myAppMsg, { color: colors.textPrimary, backgroundColor: colors.surfaceSubtle, borderLeftColor: colors.primaryLight }]} numberOfLines={4}>
                             “{mine.message}”
                           </Text>
                         ) : null}
@@ -805,7 +806,7 @@ export default function ResearchDetailScreen() {
                             style={[styles.myAppBtn, { borderColor: colors.border }]}
                             accessibilityRole="button"
                           >
-                            <Text style={[styles.myAppBtnText, { color: colors.textPrimary }]}>Withdraw application</Text>
+                            <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.myAppBtnText, { color: colors.textPrimary }]}>Withdraw application</Text>
                           </TouchableOpacity>
                         ) : null}
                       </View>
@@ -852,7 +853,7 @@ export default function ResearchDetailScreen() {
                             <Avatar name={work.authorName} uri={work.authorPhotoURL} size="sm" />
                             <Text style={[styles.memberName, { color: colors.textPrimary }]} numberOfLines={1}>{work.authorName}</Text>
                             <View style={[styles.rolePill, { backgroundColor: colors.surfaceSubtle }]}>
-                              <Text style={[styles.roleText, { color: colors.textSecondary }]}>Lead</Text>
+                              <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.roleText, { color: colors.textSecondary }]}>Lead</Text>
                             </View>
                             {onTeam ? (
                               <TouchableOpacity
@@ -879,7 +880,7 @@ export default function ResearchDetailScreen() {
                                 {m.uid === myUid ? `${m.displayName} (you)` : m.displayName}
                               </Text>
                               <View style={[styles.rolePill, { backgroundColor: colors.primaryMuted }]}>
-                                <Text style={[styles.roleText, { color: colors.primary }]} numberOfLines={1}>{m.role}</Text>
+                                <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.roleText, { color: colors.primary }]} numberOfLines={1}>{m.role}</Text>
                               </View>
                               {isOwner ? (
                                 <TouchableOpacity
@@ -953,7 +954,7 @@ export default function ResearchDetailScreen() {
                       </Text>
                       <View style={styles.moreMeta}>
                         <Layers size={12} color={colors.textMuted} />
-                        <Text style={[styles.moreMetaText, { color: colors.textMuted }]} numberOfLines={1}>
+                        <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.moreMetaText, { color: colors.textMuted }]} numberOfLines={1}>
                           {w.stage} · {formatWorkDate(w.createdAt)}
                         </Text>
                       </View>
@@ -988,7 +989,7 @@ export default function ResearchDetailScreen() {
                       </Text>
                       <View style={styles.moreMeta}>
                         <Avatar name={w.authorName} uri={w.authorPhotoURL} size="xs" />
-                        <Text style={[styles.moreMetaText, { color: colors.textMuted }]} numberOfLines={1}>
+                        <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.moreMetaText, { color: colors.textMuted }]} numberOfLines={1}>
                           {w.authorName} · {w.stage}
                         </Text>
                       </View>
@@ -1088,9 +1089,9 @@ const styles = StyleSheet.create({
     paddingTop: spacing.lg,
     paddingBottom: spacing.sm,
   },
-  sectionTitle: { ...typography.title, fontSize: 18, marginBottom: spacing.sm },
+  sectionTitle: { ...typography.sectionTitle, marginBottom: spacing.sm },
   subLabel: { ...typography.caption, fontFamily: fontFamilies.sansSemiBold, marginTop: spacing.md, marginBottom: spacing.xs },
-  description: { ...typography.body, lineHeight: 24 },
+  description: { ...typography.body},
   readMore: { flexDirection: 'row', alignItems: 'center', gap: 2, marginTop: spacing.xs, alignSelf: 'flex-start' },
   readMoreText: { ...typography.label, fontFamily: fontFamilies.sansSemiBold },
   muted: { ...typography.bodySmall },
@@ -1114,7 +1115,7 @@ const styles = StyleSheet.create({
   stackOverlap: { marginLeft: -10 },
   stackMore: { width: 36, height: 36, borderRadius: 18, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   stackMoreText: { ...typography.micro, fontFamily: fontFamilies.sansSemiBold },
-  teamCount: { ...typography.label, fontFamily: fontFamilies.sansSemiBold, flex: 1 },
+  teamCount: { ...typography.label, fontFamily: fontFamilies.sansSemiBold, flex: 1, fontVariant: ['tabular-nums'] },
   teamList: { marginTop: spacing.sm, gap: 2 },
   memberRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: 6 },
   memberName: { ...typography.label, flex: 1, minWidth: 0 },
@@ -1138,7 +1139,7 @@ const styles = StyleSheet.create({
   moreCard: { width: 220, borderWidth: 1, borderRadius: radius.md, padding: spacing.md, overflow: 'hidden', ...cardShadow(false) },
   moreAccent: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 3 },
   moreType: { ...typography.micro, fontFamily: fontFamilies.sansSemiBold, marginBottom: 4 },
-  moreTitle: { ...typography.label, fontFamily: fontFamilies.sansSemiBold, minHeight: 40 },
+  moreTitle: { ...typography.body, minHeight: 40 },
   moreMeta: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: spacing.sm },
   moreMetaText: { ...typography.micro, flex: 1 },
 
@@ -1148,7 +1149,7 @@ const styles = StyleSheet.create({
   myAppTitle: { ...typography.label, fontFamily: fontFamilies.sansSemiBold },
   myAppChip: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: radius.full },
   myAppChipText: { ...typography.micro, fontFamily: fontFamilies.sansSemiBold },
-  myAppMsg: { ...typography.caption, fontStyle: 'italic', padding: spacing.sm, borderRadius: radius.sm },
+  myAppMsg: { ...typography.bodySmall, paddingVertical: 6, paddingHorizontal: spacing.sm, borderLeftWidth: 3, borderTopRightRadius: radius.sm, borderBottomRightRadius: radius.sm },
   myAppBtn: { alignSelf: 'flex-start', paddingHorizontal: 12, height: spacing.compactButtonHeight, borderRadius: radius.button, borderWidth: 1, justifyContent: 'center', marginTop: 2 },
   myAppBtnText: { ...typography.buttonSmall },
 
@@ -1188,7 +1189,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  countText: { ...typography.micro, fontFamily: fontFamilies.sansSemiBold },
+  countText: { ...typography.micro, fontFamily: fontFamilies.sansSemiBold, fontVariant: ['tabular-nums'] },
   squareBtn: {
     width: spacing.buttonHeight,
     height: spacing.buttonHeight,
