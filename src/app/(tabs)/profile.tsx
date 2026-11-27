@@ -31,6 +31,13 @@ import {
   IdCard,
   Mail,
   MessageCircle,
+  Eye,
+  Send,
+  ChevronDown,
+  ChevronUp,
+  ChevronRight,
+  CheckCircle2,
+  Circle,
 } from 'lucide-react-native';
 import { spacing, radius, typography, fontFamilies, floatingButtonTokens } from '@/constants';
 import { useTheme } from '@/context/ThemeContext';
@@ -67,12 +74,26 @@ const LINK_META: { key: keyof UserSocialLinks; name: string }[] = [
   { key: 'website', name: 'Website' },
 ];
 
+type ActivityFilter = 'posts' | 'collaborations' | 'drafts' | 'teams';
+const ACTIVITY_FILTERS: { key: ActivityFilter; label: string }[] = [
+  { key: 'posts', label: 'Posts' },
+  { key: 'collaborations', label: 'Collaborations' },
+  { key: 'drafts', label: 'Drafts' },
+  { key: 'teams', label: 'Teams' },
+];
+const ACTIVITY_EMPTY: Record<ActivityFilter, string> = {
+  posts: 'No research updates yet.',
+  collaborations: "You haven't posted a collaboration yet.",
+  drafts: 'No drafts. Use "Save draft" on the Share page to finish a post later.',
+  teams: "You haven't joined a team yet.",
+};
+
 export default function ProfileTab() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { edit: editParam } = useLocalSearchParams<{ edit?: string }>();
-  const { userProfile, signOut } = useAuth();
+  const { userProfile, firebaseUser, signOut } = useAuth();
   const { connected, incomingRequests } = useConnections();
   const { items: savedItems } = useSavedItems();
 
@@ -85,7 +106,6 @@ export default function ProfileTab() {
   const profileBatch = userProfile?.batch || '';
   const profileBio = userProfile?.bio || '';
   const researchInterests = userProfile?.researchInterests ?? [];
-  const credentials = [userProfile?.designation, profileDepartment, profileBatch].filter(Boolean).join(' • ');
 
   // My shared research work (research_works where authorUid == uid)
   const [myWorks, setMyWorks] = useState<ResearchWork[]>([]);
@@ -268,16 +288,46 @@ export default function ProfileTab() {
   }, [userProfile?.socialLinks, colors.primary]);
 
   // Profile completeness (own profile only)
-  const completenessChecks = [
-    { label: 'Add a profile photo (Google account photo)', done: Boolean(userProfile?.photoURL) },
-    { label: 'Write a short bio', done: Boolean(profileBio) },
-    { label: 'Add at least 3 research interests', done: researchInterests.length >= 3 },
-    { label: 'Add an academic link', done: Object.values(userProfile?.socialLinks ?? {}).some(Boolean) },
-    { label: 'Share your current work', done: myWorks.length > 0 },
-    { label: 'Add a contact card so collaborators can reach you', done: hasMyCard !== false },
+  // Photo comes from the Google account; email-password accounts can't set one
+  // yet, so that step only counts for Google sign-ins (everyone can reach 100%).
+  const isGoogleAccount = Boolean(firebaseUser?.providerData?.some((p) => p.providerId === 'google.com'));
+  const completenessChecks: { label: string; done: boolean; fix?: () => void }[] = [
+    ...(isGoogleAccount ? [{ label: 'Profile photo (from your Google account)', done: Boolean(userProfile?.photoURL) }] : []),
+    { label: 'Write a short bio', done: Boolean(profileBio), fix: handleOpenEditModal },
+    { label: 'Add at least 3 research interests', done: researchInterests.length >= 3, fix: handleOpenEditModal },
+    { label: 'Add an academic link', done: Object.values(userProfile?.socialLinks ?? {}).some(Boolean), fix: handleOpenEditModal },
+    { label: 'Share your current work', done: myWorks.length > 0, fix: () => router.push('/(tabs)/share' as any) },
+    { label: 'Add a contact card so collaborators can reach you', done: hasMyCard !== false, fix: openContactEditor },
   ];
   const completeness = Math.round((completenessChecks.filter((c) => c.done).length / completenessChecks.length) * 100);
   const nextStep = completenessChecks.find((c) => !c.done);
+
+  // Activity / About tabs
+  const [profileTab, setProfileTab] = useState<'activity' | 'about'>('activity');
+  const [activityFilter, setActivityFilter] = useState<ActivityFilter>('posts');
+  const [showChecklist, setShowChecklist] = useState(false);
+  const showActivity = (f: ActivityFilter) => {
+    setProfileTab('activity');
+    setActivityFilter(f);
+  };
+  const activityLists: Record<ActivityFilter, ResearchWork[]> = useMemo(
+    () => ({
+      posts: myWorks.filter((w) => w.status === 'published' && w.postType !== 'collaboration'),
+      collaborations: myWorks.filter((w) => w.status === 'published' && w.postType === 'collaboration'),
+      drafts: myWorks.filter((w) => w.status === 'draft'),
+      teams: teamWorks.filter((w) => w.authorUid !== userProfile?.uid),
+    }),
+    [myWorks, teamWorks, userProfile?.uid],
+  );
+  const publishedCount = activityLists.posts.length + activityLists.collaborations.length;
+  const appCounts = useMemo(
+    () => ({
+      pending: myApplications.filter((a) => a.status === 'pending').length,
+      accepted: myApplications.filter((a) => a.status === 'accepted').length,
+      declined: myApplications.filter((a) => a.status === 'declined').length,
+    }),
+    [myApplications],
+  );
 
   const libraryItems: ProfileListItem[] = [
     {
@@ -320,142 +370,274 @@ export default function ProfileTab() {
         <ProfileHero
           name={profileName}
           photoURL={userProfile?.photoURL}
-          credentials={credentials}
+          role={userProfile?.designation}
+          details={[profileDepartment, profileBatch ? `Batch ${profileBatch}` : null].filter(Boolean).join(' · ')}
           bio={profileBio}
           emptyBioPrompt="Add a short bio about your research focus"
           onEmptyBioPress={handleOpenEditModal}
           actions={
-            <HeroActionButton
-              label="Edit Profile"
-              icon={<Edit3 size={15} color={colors.textPrimary} strokeWidth={2} />}
-              onPress={handleOpenEditModal}
-            />
+            <>
+              <HeroActionButton
+                label="Edit profile"
+                icon={<Edit3 size={15} color={colors.textPrimary} strokeWidth={2} />}
+                onPress={handleOpenEditModal}
+              />
+              <HeroActionButton
+                label="Public view"
+                icon={<Eye size={15} color={colors.textPrimary} strokeWidth={2} />}
+                onPress={() =>
+                  userProfile?.uid &&
+                  router.push({ pathname: `/(profile)/${userProfile.uid}` as any, params: { preview: '1' } })
+                }
+              />
+            </>
           }
           stats={[
-            { label: 'Connections', value: connected.length },
-            { label: 'Shared Work', value: myWorks.filter((w) => w.status === 'published').length },
-            { label: 'Interests', value: researchInterests.length },
+            { label: 'Connections', value: connected.length, onPress: () => router.push('/(profile)/network' as any) },
+            { label: 'Posts', value: publishedCount, onPress: () => showActivity('posts') },
+            { label: 'Teams', value: teamWorks.length, onPress: () => showActivity('teams') },
           ]}
         />
 
-        {/* Profile completeness */}
-        {completeness < 100 && nextStep ? (
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={() =>
-              nextStep.label.startsWith('Share')
-                ? router.push('/(tabs)/share' as any)
-                : nextStep.label.startsWith('Add a contact')
-                  ? openContactEditor()
-                  : handleOpenEditModal()
-            }
-            style={[styles.meterCard, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}
-            accessibilityRole="button"
-            accessibilityLabel={`Profile ${completeness} percent complete. Next: ${nextStep.label}`}
-          >
-            <View style={styles.meterHeader}>
-              <Text style={[styles.meterTitle, { color: colors.textPrimary }]}>Profile strength</Text>
-              <Text style={[styles.meterPercent, { color: colors.primary }]}>{completeness}%</Text>
-            </View>
-            <View style={[styles.meterTrack, { backgroundColor: colors.surfaceSubtle }]}>
-              <View style={[styles.meterFill, { width: `${completeness}%`, backgroundColor: colors.primary }]} />
-            </View>
-            <Text style={[styles.meterNext, { color: colors.textSecondary }]}>
-              Next: {nextStep.label} →
-            </Text>
-          </TouchableOpacity>
-        ) : null}
-
-        {/* Research interests */}
-        <ProfileSection title="Research Interests">
-          {researchInterests.length === 0 ? (
-            <ProfileEmptyText text="No research interests added yet." />
-          ) : (
-            <View style={styles.chipsRow}>
-              {researchInterests.map((interest) => (
-                <TopicChip key={interest} label={interest} variant="teal" onPress={() => openTopic(interest)} />
-              ))}
-            </View>
-          )}
-        </ProfileSection>
-
-        {/* Currently working on (live research_works) */}
-        <ProfileSection
-          title="Currently Working On"
-          actionLabel="Share"
-          onActionPress={() => router.push('/(tabs)/share' as any)}
-        >
-          {myWorksLoading ? (
-            <SkeletonList count={2} variant="row" />
-          ) : myWorksError ? (
-            <ProfileEmptyText text="Could not load your shared work. Please try again later." />
-          ) : workingOn.length === 0 ? (
-            <ProfileEmptyText text="Nothing shared yet — tap Share to post what you are researching." />
-          ) : (
-            <WorkList
-              works={workingOn}
-              onOpen={(w) => router.push(`/(research)/${w.id}` as any)}
-              badgeFor={(w) =>
-                w.authorUid !== userProfile?.uid ? `Team member · ${roleFor.get(w.id) ?? ''} · with ${w.authorName.split(' ')[0]}` : undefined
-              }
-            />
-          )}
-        </ProfileSection>
-
-        {/* Contact card */}
-        <ProfileSection title="Contact Card" actionLabel={hasMyCard ? 'Edit' : undefined} onActionPress={hasMyCard ? openContactEditor : undefined}>
-          {hasMyCard ? (
-            <ProfileListCard
-              items={[
-                ...(myCard?.email
-                  ? [{ id: 'email', label: myCard.email, icon: <Mail size={18} color={colors.primary} strokeWidth={2} />, onPress: openContactEditor, trailing: 'chevron' as const }]
-                  : []),
-                ...(myCard?.preferredContact
-                  ? [{
-                      id: 'preferred',
-                      label: myCard.preferredContact,
-                      icon: <MessageCircle size={18} color={colors.primary} strokeWidth={2} />,
-                      onPress: openContactEditor,
-                      trailing: 'chevron' as const,
-                    }]
-                  : []),
-              ]}
-            />
-          ) : (
+        {/* Profile strength — expandable checklist */}
+        {completeness < 100 ? (
+          <View style={[styles.meterCard, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}>
             <TouchableOpacity
               activeOpacity={0.85}
-              onPress={openContactEditor}
-              style={[styles.contactCta, { backgroundColor: colors.primaryMuted, borderColor: colors.primaryLight }]}
+              onPress={() => setShowChecklist((v) => !v)}
               accessibilityRole="button"
-              accessibilityLabel="Add your contact card"
+              accessibilityState={{ expanded: showChecklist }}
+              accessibilityLabel={`Profile ${completeness} percent complete. ${showChecklist ? 'Hide' : 'Show'} checklist`}
             >
-              <View style={[styles.contactCtaIcon, { backgroundColor: colors.surface }]}>
-                <IdCard size={20} color={colors.primary} />
+              <View style={styles.meterHeader}>
+                <Text style={[styles.meterTitle, { color: colors.textPrimary }]}>Profile strength</Text>
+                <View style={styles.meterRight}>
+                  <Text style={[styles.meterPercent, { color: colors.primary }]}>{completeness}%</Text>
+                  {showChecklist ? <ChevronUp size={18} color={colors.textMuted} /> : <ChevronDown size={18} color={colors.textMuted} />}
+                </View>
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.contactCtaTitle, { color: colors.textPrimary }]}>Add how collaborators can reach you</Text>
-                <Text style={[styles.contactCtaSub, { color: colors.textSecondary }]}>
-                  WhatsApp, Telegram, phone or email · takes 10 seconds
-                </Text>
+              <View style={[styles.meterTrack, { backgroundColor: colors.surfaceSubtle }]}>
+                <View style={[styles.meterFill, { width: `${completeness}%`, backgroundColor: colors.primary }]} />
               </View>
-              <Text style={[styles.contactCtaAction, { color: colors.primary }]}>Add</Text>
+              {!showChecklist && nextStep ? (
+                <Text style={[styles.meterNext, { color: colors.textSecondary }]}>Next: {nextStep.label} →</Text>
+              ) : null}
             </TouchableOpacity>
-          )}
-        </ProfileSection>
+            {showChecklist ? (
+              <View style={styles.checklist}>
+                {completenessChecks.map((c) => (
+                  <TouchableOpacity
+                    key={c.label}
+                    disabled={c.done || !c.fix}
+                    onPress={c.fix}
+                    style={styles.checkRow}
+                    accessibilityRole="button"
+                    accessibilityState={{ checked: c.done }}
+                  >
+                    {c.done ? <CheckCircle2 size={16} color={colors.success} /> : <Circle size={16} color={colors.textMuted} />}
+                    <Text style={[styles.checkText, { color: c.done ? colors.textSecondary : colors.textPrimary }, c.done && styles.checkDone]}>
+                      {c.label}
+                    </Text>
+                    {!c.done && c.fix ? <ChevronRight size={16} color={colors.primary} /> : null}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            ) : null}
+          </View>
+        ) : null}
 
-        {/* Library */}
-        <ProfileSection title="Library">
-          <ProfileListCard items={libraryItems} />
-        </ProfileSection>
+        {/* Activity | About */}
+        <View style={[styles.tabs, { backgroundColor: colors.surfaceSubtle, borderColor: colors.borderSubtle }]} accessibilityRole="tablist">
+          {(['activity', 'about'] as const).map((t) => {
+            const active = profileTab === t;
+            return (
+              <TouchableOpacity
+                key={t}
+                onPress={() => setProfileTab(t)}
+                style={[styles.tabBtn, active && { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: active }}
+              >
+                <Text style={[styles.tabText, { color: active ? colors.textPrimary : colors.textSecondary }, active && { fontFamily: fontFamilies.sansSemiBold }]}>
+                  {t === 'activity' ? 'Activity' : 'About'}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
 
-        {/* Academic links */}
-        <ProfileSection title="Academic Links">
-          {academicLinks.length === 0 ? (
-            <ProfileEmptyText text="No academic links added yet." />
-          ) : (
-            <ProfileListCard items={academicLinks} />
-          )}
-        </ProfileSection>
+        {profileTab === 'activity' ? (
+          <>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.activityChips}>
+              {ACTIVITY_FILTERS.map((f) => {
+                const active = activityFilter === f.key;
+                return (
+                  <TouchableOpacity
+                    key={f.key}
+                    onPress={() => setActivityFilter(f.key)}
+                    style={[
+                      styles.activityChip,
+                      active
+                        ? { backgroundColor: colors.primary, borderColor: colors.primary }
+                        : { backgroundColor: colors.surface, borderColor: colors.borderSubtle },
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: active }}
+                  >
+                    <Text style={[styles.activityChipText, { color: active ? '#FFFFFF' : colors.textSecondary }, active && { fontFamily: fontFamilies.sansSemiBold }]}>
+                      {f.label} {activityLists[f.key].length}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+
+            {myWorksLoading ? (
+              <SkeletonList count={2} variant="row" />
+            ) : myWorksError ? (
+              <ProfileEmptyText text="Could not load your work. Please try again later." />
+            ) : activityLists[activityFilter].length === 0 ? (
+              <View style={[styles.activityEmpty, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}>
+                <Text style={[styles.activityEmptyText, { color: colors.textSecondary }]}>{ACTIVITY_EMPTY[activityFilter]}</Text>
+                {activityFilter !== 'teams' ? (
+                  <TouchableOpacity
+                    onPress={() =>
+                      router.push({
+                        pathname: '/(tabs)/share' as any,
+                        params: { mode: activityFilter === 'collaborations' ? 'collaboration' : 'work' },
+                      })
+                    }
+                    style={[styles.activityEmptyBtn, { backgroundColor: colors.primaryMuted }]}
+                  >
+                    <Text style={[styles.activityEmptyBtnText, { color: colors.primary }]}>
+                      {activityFilter === 'collaborations' ? 'Post collaboration' : 'Share update'}
+                    </Text>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity
+                    onPress={() => router.push({ pathname: '/(explore)/search' as any, params: { category: 'collaborations' } })}
+                    style={[styles.activityEmptyBtn, { backgroundColor: colors.primaryMuted }]}
+                  >
+                    <Text style={[styles.activityEmptyBtnText, { color: colors.primary }]}>Browse open collaborations</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            ) : (
+              <>
+                {activityFilter === 'drafts' ? (
+                  <Text style={[styles.activityHint, { color: colors.textMuted }]}>Only you can see drafts — open one to publish it.</Text>
+                ) : null}
+                <WorkList
+                  works={activityLists[activityFilter]}
+                  initialCount={5}
+                  onOpen={(w) => router.push(`/(research)/${w.id}` as any)}
+                  badgeFor={(w) =>
+                    w.authorUid !== userProfile?.uid
+                      ? `Team member · ${roleFor.get(w.id) ?? ''} · with ${w.authorName.split(' ')[0]}`
+                      : undefined
+                  }
+                />
+              </>
+            )}
+
+            {/* My applications summary */}
+            {myApplications.length > 0 ? (
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={() => router.push({ pathname: '/(profile)/network' as any, params: { tab: 'collaborations' } })}
+                style={[styles.appsRow, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}
+                accessibilityRole="button"
+              >
+                <View style={[styles.appsIcon, { backgroundColor: colors.primaryMuted }]}>
+                  <Send size={16} color={colors.primary} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.appsTitle, { color: colors.textPrimary }]}>My applications</Text>
+                  <Text style={[styles.appsSub, { color: colors.textSecondary }]}>
+                    {[
+                      appCounts.pending ? `${appCounts.pending} pending` : null,
+                      appCounts.accepted ? `${appCounts.accepted} accepted` : null,
+                      appCounts.declined ? `${appCounts.declined} declined` : null,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </Text>
+                </View>
+                <ChevronRight size={18} color={colors.textMuted} />
+              </TouchableOpacity>
+            ) : null}
+          </>
+        ) : (
+          <View style={styles.aboutContent}>
+            {/* Research interests */}
+            <ProfileSection title="Research Interests" actionLabel="+ Add" onActionPress={handleOpenEditModal}>
+              {researchInterests.length === 0 ? (
+                <ProfileEmptyText text="Add interests to get better suggestions in Explore and Home." />
+              ) : (
+                <View style={styles.chipsRow}>
+                  {researchInterests.map((interest) => (
+                    <TopicChip key={interest} label={interest} variant="teal" onPress={() => openTopic(interest)} />
+                  ))}
+                </View>
+              )}
+            </ProfileSection>
+
+            {/* Contact card */}
+            <ProfileSection title="Contact Card" actionLabel={hasMyCard ? 'Edit' : undefined} onActionPress={hasMyCard ? openContactEditor : undefined}>
+              {hasMyCard ? (
+                <ProfileListCard
+                  items={[
+                    ...(myCard?.email
+                      ? [{ id: 'email', label: myCard.email, icon: <Mail size={18} color={colors.primary} strokeWidth={2} />, onPress: openContactEditor, trailing: 'chevron' as const }]
+                      : []),
+                    ...(myCard?.preferredContact
+                      ? [{
+                          id: 'preferred',
+                          label: myCard.preferredContact,
+                          icon: <MessageCircle size={18} color={colors.primary} strokeWidth={2} />,
+                          onPress: openContactEditor,
+                          trailing: 'chevron' as const,
+                        }]
+                      : []),
+                  ]}
+                />
+              ) : (
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={openContactEditor}
+                  style={[styles.contactCta, { backgroundColor: colors.primaryMuted, borderColor: colors.primaryLight }]}
+                  accessibilityRole="button"
+                  accessibilityLabel="Add your contact card"
+                >
+                  <View style={[styles.contactCtaIcon, { backgroundColor: colors.surface }]}>
+                    <IdCard size={20} color={colors.primary} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.contactCtaTitle, { color: colors.textPrimary }]}>Add how collaborators can reach you</Text>
+                    <Text style={[styles.contactCtaSub, { color: colors.textSecondary }]}>
+                      WhatsApp, Telegram, phone or email · takes 10 seconds
+                    </Text>
+                  </View>
+                  <Text style={[styles.contactCtaAction, { color: colors.primary }]}>Add</Text>
+                </TouchableOpacity>
+              )}
+            </ProfileSection>
+
+            {/* Academic links */}
+            <ProfileSection title="Academic Links" actionLabel="+ Add" onActionPress={handleOpenEditModal}>
+              {academicLinks.length === 0 ? (
+                <ProfileEmptyText text="Add Google Scholar, GitHub, LinkedIn or your website." />
+              ) : (
+                <ProfileListCard items={academicLinks} />
+              )}
+            </ProfileSection>
+
+            {/* Library */}
+            <ProfileSection title="Library">
+              <ProfileListCard items={libraryItems} />
+            </ProfileSection>
+          </View>
+        )}
       </ScrollView>
 
       {/* Settings (bottom sheet) */}
@@ -632,6 +814,27 @@ export default function ProfileTab() {
 }
 
 const styles = StyleSheet.create({
+  meterRight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  aboutContent: { marginTop: spacing.lg },
+  checklist: { marginTop: spacing.sm, gap: 2 },
+  checkRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, minHeight: 36 },
+  checkText: { fontSize: 13, lineHeight: 18, fontFamily: fontFamilies.sansMedium, flex: 1 },
+  checkDone: { textDecorationLine: 'line-through' },
+  tabs: { flexDirection: 'row', borderWidth: 1, borderRadius: radius.button, padding: 3, gap: 3, marginTop: spacing.md },
+  tabBtn: { flex: 1, height: 38, borderRadius: radius.button - 3, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'transparent' },
+  tabText: { fontSize: 14, fontFamily: fontFamilies.sansMedium },
+  activityChips: { gap: spacing.xs, paddingVertical: spacing.md },
+  activityChip: { paddingHorizontal: 14, height: 34, borderRadius: radius.full, borderWidth: 1, justifyContent: 'center' },
+  activityChipText: { fontSize: 13, fontFamily: fontFamilies.sansMedium },
+  activityHint: { fontSize: 12, marginBottom: spacing.xs },
+  activityEmpty: { borderWidth: 1, borderRadius: radius.md, padding: spacing.lg, alignItems: 'center', gap: spacing.sm },
+  activityEmptyText: { fontSize: 13, textAlign: 'center' },
+  activityEmptyBtn: { paddingHorizontal: spacing.md, height: 36, borderRadius: radius.button, justifyContent: 'center' },
+  activityEmptyBtnText: { fontSize: 13, fontFamily: fontFamilies.sansSemiBold },
+  appsRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderWidth: 1, borderRadius: radius.md, padding: spacing.md, marginTop: spacing.md },
+  appsIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  appsTitle: { fontSize: 14, fontFamily: fontFamilies.sansSemiBold },
+  appsSub: { fontSize: 12, marginTop: 2 },
   contactCta: {
     flexDirection: 'row',
     alignItems: 'center',

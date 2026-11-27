@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { User, UserPlus, Check, Clock, GraduationCap, Globe, Code2, Linkedin, ExternalLink } from 'lucide-react-native';
+import { User, UserPlus, Check, Clock, GraduationCap, Globe, Code2, Linkedin, ExternalLink, Eye, Sparkles } from 'lucide-react-native';
+import { WorkRow } from '@/components/search/SearchRows';
+import { useCollaborate } from '@/hooks/useCollaborate';
+import { toCurrentWork } from '@/services/research.service';
+import { tagMatchKey } from '@/utils/researchWork';
 import { spacing, radius, typography, fontFamilies } from '../../constants';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/context/AuthContext';
@@ -49,10 +53,20 @@ const LINK_LABELS: Record<string, string> = {
 };
 
 export default function ResearcherProfileScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, preview } = useLocalSearchParams<{ id: string; preview?: string }>();
   const router = useRouter();
   const { colors } = useTheme();
-  const { firebaseUser } = useAuth();
+  const { firebaseUser, userProfile } = useAuth();
+  const collaborate = useCollaborate();
+  const isSelf = Boolean(id && firebaseUser?.uid === id);
+  // "View as others" from your own Profile tab
+  const previewMode = isSelf && preview === '1';
+  const scrollRef = useRef<ScrollView>(null);
+  const sectionY = useRef<Record<string, number>>({});
+  const trackY = (key: string) => (e: { nativeEvent: { layout: { y: number } } }) => {
+    sectionY.current[key] = e.nativeEvent.layout.y;
+  };
+  const scrollTo = (key: string) => scrollRef.current?.scrollTo({ y: Math.max(0, (sectionY.current[key] ?? 0) - spacing.sm), animated: true });
   const { relationship, handleConnectPress, busyUid } = useConnections();
   const toast = useToast();
 
@@ -71,12 +85,12 @@ export default function ResearcherProfileScreen() {
     getContactCard(id).then(setContact).catch(() => setContact(null));
   }, [id, isConnected]);
 
-  // Your own profile lives in the Profile tab
+  // Your own profile lives in the Profile tab (unless previewing "as others see it")
   useEffect(() => {
-    if (id && firebaseUser?.uid === id) {
+    if (isSelf && !previewMode) {
       router.replace('/(tabs)/profile' as any);
     }
-  }, [id, firebaseUser?.uid, router]);
+  }, [isSelf, previewMode, router]);
 
   const load = useCallback(async () => {
     if (!id) {
@@ -129,8 +143,27 @@ export default function ResearcherProfileScreen() {
       });
   }, [profile?.socialLinks, colors.primary, toast]);
 
+  // Interests we share (shown under the name)
+  const sharedInterests = useMemo(() => {
+    if (!profile || isSelf) return [];
+    const mine = new Set((userProfile?.researchInterests ?? []).map(tagMatchKey));
+    return profile.researchInterests.filter((i) => mine.has(tagMatchKey(i)));
+  }, [profile, isSelf, userProfile?.researchInterests]);
+
+  const workPosts = useMemo(() => works.filter((w) => w.postType !== 'collaboration'), [works]);
+  const collabPosts = useMemo(
+    () =>
+      works
+        .filter((w) => w.postType === 'collaboration')
+        .sort((a, b) => Number(a.collabStatus === 'closed') - Number(b.collabStatus === 'closed')),
+    [works],
+  );
+
   const renderConnectAction = () => {
     if (!profile) return null;
+    if (previewMode) {
+      return <HeroActionButton label="This is how others see you" icon={<Eye size={16} color={colors.primary} />} variant="secondary" onPress={() => router.back()} />;
+    }
     const { state: rel } = relationship(profile.uid);
     const busy = busyUid === profile.uid;
     const config = {
@@ -153,7 +186,7 @@ export default function ResearcherProfileScreen() {
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
-      <ScreenHeader title="Researcher Profile" />
+      <ScreenHeader title={previewMode ? 'Your public profile' : 'Researcher Profile'} />
 
       {state === 'loading' ? (
         <ProfileSkeleton />
@@ -177,21 +210,107 @@ export default function ResearcherProfileScreen() {
           ) : null}
         </View>
       ) : (
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <ScrollView ref={scrollRef} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          {previewMode ? (
+            <View style={[styles.previewBanner, { backgroundColor: colors.primaryMuted, borderColor: colors.primaryLight }]}>
+              <Eye size={16} color={colors.primary} />
+              <Text style={[styles.previewText, { color: colors.textPrimary }]}>
+                Preview — this is your profile as other researchers see it.
+              </Text>
+            </View>
+          ) : null}
+
           <ProfileHero
             name={profile.displayName}
             photoURL={profile.photoURL}
-            credentials={[profile.designation, profile.department, profile.batch].filter(Boolean).join(' • ')}
+            role={profile.designation}
+            details={[profile.department, profile.batch ? `Batch ${profile.batch}` : null].filter(Boolean).join(' · ')}
             bio={profile.bio}
             actions={renderConnectAction()}
             stats={[
-              { label: 'Shared Work', value: works.length },
-              { label: 'Interests', value: profile.researchInterests.length },
+              { label: 'Posts', value: workPosts.length, onPress: workPosts.length ? () => scrollTo('work') : undefined },
+              { label: 'Collaborations', value: collabPosts.length, onPress: collabPosts.length ? () => scrollTo('collabs') : undefined },
+              { label: 'Interests', value: profile.researchInterests.length, onPress: () => scrollTo('interests') },
             ]}
           />
 
+          {sharedInterests.length > 0 ? (
+            <View style={[styles.sharedLine, { backgroundColor: colors.successLight }]}>
+              <Sparkles size={14} color={colors.success} />
+              <Text style={[styles.sharedText, { color: colors.success }]} numberOfLines={2}>
+                You share {sharedInterests.length} interest{sharedInterests.length === 1 ? '' : 's'}: {sharedInterests.slice(0, 3).join(', ')}
+                {sharedInterests.length > 3 ? '…' : ''}
+              </Text>
+            </View>
+          ) : null}
+
+          <View onLayout={trackY('interests')}>
+            <ProfileSection title="Research Interests">
+              {profile.researchInterests.length === 0 ? (
+                <ProfileEmptyText text="No research interests listed." />
+              ) : (
+                <View style={styles.chipsRow}>
+                  {profile.researchInterests.map((interest) => (
+                    <TopicChip
+                      key={interest}
+                      label={sharedInterests.includes(interest) ? `★ ${interest}` : interest}
+                      variant={sharedInterests.includes(interest) ? 'primary' : 'teal'}
+                      onPress={() => openTopic(interest)}
+                    />
+                  ))}
+                </View>
+              )}
+            </ProfileSection>
+          </View>
+
+          <View onLayout={trackY('work')}>
+            <ProfileSection title="Currently Working On">
+              {workPosts.length === 0 ? (
+                <ProfileEmptyText text="No research shared yet." />
+              ) : (
+                <WorkList works={workPosts} onOpen={(w) => router.push(`/(research)/${w.id}` as any)} />
+              )}
+            </ProfileSection>
+          </View>
+
+          {collabPosts.length > 0 ? (
+            <View onLayout={trackY('collabs')}>
+              <ProfileSection title="Collaborations">
+                <View style={styles.rows}>
+                  {collabPosts.map((w) => {
+                    const cw = toCurrentWork(w);
+                    return (
+                      <WorkRow
+                        key={w.id}
+                        work={cw}
+                        terms={[]}
+                        reason={null}
+                        onPress={() => router.push(`/(research)/${w.id}` as any)}
+                        action={previewMode ? undefined : collaborate(cw)}
+                      />
+                    );
+                  })}
+                </View>
+              </ProfileSection>
+            </View>
+          ) : null}
+
+          {links.length > 0 ? (
+            <ProfileSection title="Academic Links">
+              <ProfileListCard items={links} />
+            </ProfileSection>
+          ) : null}
+
+          <View onLayout={trackY('contact')}>
           <ProfileSection title="Contact">
-            {isConnected ? (
+            {previewMode ? (
+              <View style={[styles.lockedContact, { backgroundColor: colors.surfaceSubtle }]}>
+                <Lock size={14} color={colors.textMuted} />
+                <Text style={[styles.lockedContactText, { color: colors.textSecondary }]}>
+                  Your contact card is shown here only to your connections and teammates.
+                </Text>
+              </View>
+            ) : isConnected ? (
               contact && (contact.email || contact.preferredContact) ? (
                 <ProfileListCard
                   items={[
@@ -235,32 +354,8 @@ export default function ResearcherProfileScreen() {
               </View>
             )}
           </ProfileSection>
+          </View>
 
-          <ProfileSection title="Research Interests">
-            {profile.researchInterests.length === 0 ? (
-              <ProfileEmptyText text="No research interests listed." />
-            ) : (
-              <View style={styles.chipsRow}>
-                {profile.researchInterests.map((interest) => (
-                  <TopicChip key={interest} label={interest} variant="teal" onPress={() => openTopic(interest)} />
-                ))}
-              </View>
-            )}
-          </ProfileSection>
-
-          <ProfileSection title="Currently Working On">
-            {works.length === 0 ? (
-              <ProfileEmptyText text="No research shared yet." />
-            ) : (
-              <WorkList works={works} onOpen={(w) => router.push(`/(research)/${w.id}` as any)} />
-            )}
-          </ProfileSection>
-
-          {links.length > 0 ? (
-            <ProfileSection title="Academic Links">
-              <ProfileListCard items={links} />
-            </ProfileSection>
-          ) : null}
         </ScrollView>
       )}
     </SafeAreaView>
@@ -303,4 +398,25 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
   },
   lockedContactText: { ...typography.bodySmall, flex: 1 },
+  previewBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    borderWidth: 1,
+    borderRadius: radius.md,
+    padding: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  previewText: { ...typography.bodySmall, flex: 1 },
+  sharedLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    marginTop: spacing.md,
+  },
+  sharedText: { ...typography.caption, fontFamily: fontFamilies.sansSemiBold, flex: 1 },
+  rows: { gap: spacing.sm },
 });

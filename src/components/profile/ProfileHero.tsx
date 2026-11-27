@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { Check, GraduationCap } from 'lucide-react-native';
+import { Check } from 'lucide-react-native';
 import { spacing, radius, typography, fontFamilies } from '@/constants';
 import { useTheme } from '@/context/ThemeContext';
 import { Avatar } from '../common/Avatar';
@@ -8,12 +8,18 @@ import { Avatar } from '../common/Avatar';
 export interface ProfileStat {
   label: string;
   value: string | number;
+  /** Makes the stat tappable (e.g. Connections → My Network). */
+  onPress?: () => void;
 }
 
 export interface ProfileHeroProps {
   name: string;
   photoURL?: string | null;
-  /** e.g. "Graduate Researcher • CSE • Batch 12" */
+  /** Role shown as a pill under the name, e.g. "Undergraduate Student". */
+  role?: string | null;
+  /** Second line, e.g. "Computer Science and Engineering · Batch 14". */
+  details?: string;
+  /** Legacy single-line credentials (used only when role/details are absent). */
   credentials?: string;
   bio?: string | null;
   /** Shown (tappable) when there is no bio — own profile only. */
@@ -29,6 +35,8 @@ export interface ProfileHeroProps {
 export const ProfileHero: React.FC<ProfileHeroProps> = ({
   name,
   photoURL,
+  role,
+  details,
   credentials,
   bio,
   emptyBioPrompt,
@@ -54,19 +62,33 @@ export const ProfileHero: React.FC<ProfileHeroProps> = ({
         {name}
       </Text>
 
-      {credentials ? (
-        <View style={styles.credentialsRow}>
-          <GraduationCap size={14} color={colors.textSecondary} strokeWidth={2} />
-          <Text style={[styles.credentials, { color: colors.textSecondary }]} numberOfLines={2}>
-            {credentials}
+      {role ? (
+        <View style={[styles.rolePill, { backgroundColor: colors.primaryMuted }]}>
+          <Text style={[styles.roleText, { color: colors.primary }]} numberOfLines={1}>
+            {role}
           </Text>
         </View>
       ) : null}
 
+      {details || (!role && credentials) ? (
+        <Text style={[styles.details, { color: colors.textSecondary }]} numberOfLines={2}>
+          {details || credentials}
+        </Text>
+      ) : null}
+
       {bio ? (
-        <Text style={[styles.bio, { color: colors.textSecondary }]}>{bio}</Text>
+        <View style={[styles.bioBox, { borderTopColor: colors.borderSubtle }]}>
+          <Text style={[styles.bio, { color: colors.textPrimary }]} numberOfLines={4}>
+            {bio}
+          </Text>
+        </View>
       ) : emptyBioPrompt ? (
-        <TouchableOpacity onPress={onEmptyBioPress} disabled={!onEmptyBioPress} hitSlop={8}>
+        <TouchableOpacity
+          onPress={onEmptyBioPress}
+          disabled={!onEmptyBioPress}
+          hitSlop={8}
+          style={[styles.bioBox, { borderTopColor: colors.borderSubtle }]}
+        >
           <Text style={[styles.bio, { color: colors.textMuted, fontStyle: 'italic' }]}>{emptyBioPrompt}</Text>
         </TouchableOpacity>
       ) : null}
@@ -78,12 +100,27 @@ export const ProfileHero: React.FC<ProfileHeroProps> = ({
           {stats.map((stat, index) => (
             <React.Fragment key={stat.label}>
               {index > 0 ? <View style={[styles.statDivider, { backgroundColor: colors.borderSubtle }]} /> : null}
-              <View style={styles.statColumn}>
-                <Text style={[styles.statValue, { color: colors.textPrimary }]}>{stat.value}</Text>
-                <Text style={[styles.statLabel, { color: colors.textSecondary }]} numberOfLines={1}>
-                  {stat.label}
-                </Text>
-              </View>
+              {stat.onPress ? (
+                <TouchableOpacity
+                  style={styles.statColumn}
+                  onPress={stat.onPress}
+                  hitSlop={4}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${stat.value} ${stat.label}`}
+                >
+                  <Text style={[styles.statValue, { color: colors.textPrimary }]}>{stat.value}</Text>
+                  <Text style={[styles.statLabel, { color: colors.primary }]} numberOfLines={1}>
+                    {stat.label} ›
+                  </Text>
+                </TouchableOpacity>
+              ) : (
+                <View style={styles.statColumn}>
+                  <Text style={[styles.statValue, { color: colors.textPrimary }]}>{stat.value}</Text>
+                  <Text style={[styles.statLabel, { color: colors.textSecondary }]} numberOfLines={1}>
+                    {stat.label}
+                  </Text>
+                </View>
+              )}
             </React.Fragment>
           ))}
         </View>
@@ -187,25 +224,35 @@ const styles = StyleSheet.create({
     ...typography.headline,
     textAlign: 'center',
   },
-  credentialsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    marginTop: spacing.xs,
-    paddingHorizontal: spacing.md,
+  rolePill: {
+    marginTop: spacing.sm,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: radius.full,
+    maxWidth: '90%',
   },
-  credentials: {
-    ...typography.bodyCompact,
-    fontFamily: fontFamilies.sansMedium,
+  roleText: {
+    ...typography.caption,
+    fontFamily: fontFamilies.sansSemiBold,
+  },
+  details: {
+    ...typography.bodySmall,
     textAlign: 'center',
-    flexShrink: 1,
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.md,
+    lineHeight: 20,
+  },
+  bioBox: {
+    alignSelf: 'stretch',
+    borderTopWidth: 1,
+    marginTop: spacing.md,
+    paddingTop: spacing.md,
+    paddingHorizontal: spacing.sm,
   },
   bio: {
     ...typography.bodyCompact,
     textAlign: 'center',
-    marginTop: spacing.sm,
-    paddingHorizontal: spacing.sm,
+    lineHeight: 22,
   },
   actionsRow: {
     flexDirection: 'row',
