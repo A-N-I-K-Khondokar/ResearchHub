@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ChevronRight, Users, UserPlus, Send, Briefcase } from 'lucide-react-native';
 import { spacing, radius, typography, fontFamilies } from '../../constants';
 import { useTheme } from '@/context/ThemeContext';
@@ -26,7 +26,10 @@ export default function MyNetworkScreen() {
   const { connections, connected, incomingRequests, accept, decline, handleConnectPress, busyUid } = useConnections();
   const { myApplications } = useCollab();
   const [received, setReceived] = useState<CollabRequest[]>([]);
-  const [tab, setTab] = useState<Tab>('connections');
+  const params = useLocalSearchParams<{ tab?: string }>();
+  const [tab, setTab] = useState<Tab>(
+    params.tab === 'requests' || params.tab === 'collaborations' ? params.tab : 'connections',
+  );
 
   useEffect(() => {
     if (!myUid) return;

@@ -8,12 +8,15 @@ interface TopicShortcutRowProps {
   topics: Topic[];
   selectedTopicId?: string | null;
   onSelectTopic?: (topic: Topic) => void;
+  /** Topic ids to mark with ★ (e.g. the user's own interests). */
+  markedIds?: Set<string>;
 }
 
 export const TopicShortcutRow: React.FC<TopicShortcutRowProps> = ({
   topics,
   selectedTopicId,
   onSelectTopic,
+  markedIds,
 }) => {
   const { colors } = useTheme();
 
@@ -57,6 +60,7 @@ export const TopicShortcutRow: React.FC<TopicShortcutRowProps> = ({
                 isSelected && styles.labelSelected,
               ]}
             >
+              {markedIds?.has(topic.id) ? '★ ' : ''}
               {topic.name}
             </Text>
             {count !== undefined && count > 0 ? (

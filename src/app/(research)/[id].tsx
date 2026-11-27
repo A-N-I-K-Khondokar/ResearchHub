@@ -78,7 +78,7 @@ const DESCRIPTION_LONG = 280;
 const BOTTOM_BAR_HEIGHT = 76;
 
 export default function ResearchDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, manage } = useLocalSearchParams<{ id: string; manage?: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
@@ -150,6 +150,15 @@ export default function ResearchDetailScreen() {
   const needsMyCard = Boolean(isCollabPost && (onTeam || (isOwner && (work?.team.length ?? 0) > 0)));
   const pendingCount = applicants.filter((a) => a.status === 'pending').length;
   const authorFirst = work?.authorName.split(' ')[0] ?? '';
+
+  // Deep link from Home's "applicants waiting": open the Manage sheet once
+  const openedManage = React.useRef(false);
+  useEffect(() => {
+    if (manage === '1' && isOwner && !openedManage.current) {
+      openedManage.current = true;
+      setManageOpen(true);
+    }
+  }, [manage, isOwner]);
 
   // Live applicants for the author of a collaboration post
   useEffect(() => {
