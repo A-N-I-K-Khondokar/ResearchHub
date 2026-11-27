@@ -1148,8 +1148,8 @@ const styles = StyleSheet.create({
   myAppChip: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: radius.full },
   myAppChipText: { ...typography.micro, fontFamily: fontFamilies.sansSemiBold },
   myAppMsg: { ...typography.caption, fontStyle: 'italic', padding: spacing.sm, borderRadius: radius.sm },
-  myAppBtn: { alignSelf: 'flex-start', paddingHorizontal: 12, height: 34, borderRadius: radius.button, borderWidth: 1, justifyContent: 'center', marginTop: 2 },
-  myAppBtnText: { ...typography.caption, fontFamily: fontFamilies.sansSemiBold },
+  myAppBtn: { alignSelf: 'flex-start', paddingHorizontal: 12, height: spacing.compactButtonHeight, borderRadius: radius.button, borderWidth: 1, justifyContent: 'center', marginTop: 2 },
+  myAppBtnText: { ...typography.buttonSmall },
 
   // header dot
   dot: { position: 'absolute', top: -2, right: -4, width: 10, height: 10, borderRadius: 5, borderWidth: 2 },

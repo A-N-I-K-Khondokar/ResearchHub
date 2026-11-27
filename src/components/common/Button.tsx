@@ -83,7 +83,7 @@ export const Button: React.FC<ButtonProps> = ({
               ? colors.surfaceHover
               : colors.surfaceSubtle
             : 'transparent',
-          borderWidth: 1.5,
+          borderWidth: 1,
           borderColor: isDark ? colors.borderSubtle : colors.border,
         });
         break;
@@ -99,7 +99,8 @@ export const Button: React.FC<ButtonProps> = ({
         break;
       case 'destructive':
         list.push({
-          backgroundColor: pressed ? colors.error : colors.error,
+          backgroundColor: colors.error,
+          opacity: pressed ? 0.88 : 1,
           shadowColor: colors.error,
           shadowOffset: { width: 0, height: 3 },
           shadowOpacity: 0.25,
@@ -114,7 +115,6 @@ export const Button: React.FC<ButtonProps> = ({
         backgroundColor: isDark ? colors.surfaceContainerLow : colors.surfaceSubtle,
         borderColor: colors.borderSubtle,
         borderWidth: 1,
-        opacity: 0.55,
         shadowOpacity: 0,
         elevation: 0,
         ...(Platform.OS === 'web'
@@ -141,7 +141,7 @@ export const Button: React.FC<ButtonProps> = ({
         list.push({ color: colors.textPrimary });
         break;
       case 'outline':
-        list.push({ color: colors.textPrimary });
+        list.push({ color: colors.primary });
         break;
       case 'ghost':
       case 'tertiary':
@@ -187,20 +187,24 @@ export const Button: React.FC<ButtonProps> = ({
       onPress={onPress}
       disabled={!isInteractive}
       hitSlop={hitSlop ?? defaultHitSlop}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled: !isInteractive, busy: loading }}
       style={({ pressed }) => [
         ...getContainerStyles(pressed),
         pressed && { opacity: 0.94, transform: [{ scale: 0.985 }] },
       ]}
     >
+      <View style={[styles.contentRow, loading && styles.hidden]}>
+        {icon && iconPosition === 'left' && <View style={size === 'sm' ? styles.iconLeftSm : styles.iconLeft}>{icon}</View>}
+        <Text style={getLabelStyles()} numberOfLines={1}>{label}</Text>
+        {icon && iconPosition === 'right' && <View style={size === 'sm' ? styles.iconRightSm : styles.iconRight}>{icon}</View>}
+      </View>
       {loading ? (
-        <ActivityIndicator size="small" color={getIndicatorColor()} />
-      ) : (
-        <View style={styles.contentRow}>
-          {icon && iconPosition === 'left' && <View style={styles.iconLeft}>{icon}</View>}
-          <Text style={getLabelStyles()}>{label}</Text>
-          {icon && iconPosition === 'right' && <View style={styles.iconRight}>{icon}</View>}
+        <View style={styles.spinner} pointerEvents="none">
+          <ActivityIndicator size="small" color={getIndicatorColor()} />
         </View>
-      )}
+      ) : null}
     </Pressable>
   );
 };
@@ -226,8 +230,12 @@ const styles = StyleSheet.create({
   iconRight: {
     marginLeft: spacing.sm,
   },
+  iconLeftSm: { marginRight: 6 },
+  iconRightSm: { marginLeft: 6 },
+  hidden: { opacity: 0 },
+  spinner: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
 
-  // Sizes — shared control scale: 36 compact / 44 secondary / 48 primary (radius 12)
+  // Sizes — shared control scale: sm 36 (in cards/rows) · md/lg 48 (primary CTA), radius 12; 44 is used for secondary controls
   size_sm: {
     height: spacing.compactButtonHeight,
     borderRadius: radius.button,

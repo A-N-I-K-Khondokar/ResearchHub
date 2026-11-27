@@ -280,11 +280,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    height: 40,
+    height: spacing.compactButtonHeight,
     borderRadius: radius.button,
     borderWidth: 1,
   },
-  actionText: { ...typography.label, fontFamily: fontFamilies.sansSemiBold },
+  actionText: { ...typography.buttonSmall },
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: spacing.xs },
   danger: { borderTopWidth: 1, paddingTop: spacing.md, marginTop: spacing.sm },
 });

@@ -672,9 +672,9 @@ const styles = StyleSheet.create({
   content: { padding: spacing.md, paddingBottom: spacing.xxl, gap: spacing.sm },
 
   toolbar: { flexDirection: 'row', gap: spacing.xs },
-  search: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: radius.button, paddingHorizontal: 12, height: 40 },
+  search: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: radius.button, paddingHorizontal: 12, height: spacing.secondaryButtonHeight },
   searchInput: { flex: 1, ...typography.bodyCompact, paddingVertical: 0 },
-  sortBtn: { flexDirection: 'row', alignItems: 'center', gap: 2, borderWidth: 1, borderRadius: radius.button, paddingHorizontal: 12, height: 40 },
+  sortBtn: { flexDirection: 'row', alignItems: 'center', gap: 2, borderWidth: 1, borderRadius: radius.button, paddingHorizontal: 12, height: spacing.secondaryButtonHeight },
   sortText: { ...typography.caption, fontFamily: fontFamilies.sansSemiBold },
 
   block: { marginTop: spacing.md, gap: spacing.sm },
@@ -697,9 +697,9 @@ const styles = StyleSheet.create({
   shared: { ...typography.micro, fontFamily: fontFamilies.sansSemiBold },
   sharedRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   actions: { flexDirection: 'row', gap: spacing.xs },
-  btn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, height: 32, borderRadius: radius.button, borderWidth: 1 },
-  btnText: { ...typography.caption, fontSize: 13, fontFamily: fontFamilies.sansSemiBold },
-  iconBtn: { width: 34, height: 34, borderRadius: 17, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  btn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, height: spacing.compactButtonHeight, borderRadius: radius.button, borderWidth: 1 },
+  btnText: { ...typography.buttonSmall },
+  iconBtn: { width: spacing.compactButtonHeight, height: spacing.compactButtonHeight, borderRadius: radius.full, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   tile: { width: 40, height: 40, borderRadius: radius.button, alignItems: 'center', justifyContent: 'center' },
   chip: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: radius.full },
   chipText: { ...typography.micro, fontFamily: fontFamilies.sansSemiBold },
@@ -712,5 +712,5 @@ const styles = StyleSheet.create({
 
   emptyBox: { borderWidth: 1, borderRadius: radius.md, padding: spacing.md, alignItems: 'center', gap: spacing.sm },
   emptyText: { ...typography.bodySmall, textAlign: 'center' },
-  emptyBtn: { paddingHorizontal: spacing.md, height: 36, borderRadius: radius.button, justifyContent: 'center' },
+  emptyBtn: { paddingHorizontal: spacing.md, height: spacing.compactButtonHeight, borderRadius: radius.button, justifyContent: 'center' },
 });

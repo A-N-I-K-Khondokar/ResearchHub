@@ -201,8 +201,8 @@ const styles = StyleSheet.create({
   title: { ...typography.title, fontSize: 19, textAlign: 'center' },
   message: { ...typography.bodySmall, textAlign: 'center', marginTop: spacing.xs, lineHeight: 20 },
   buttons: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.lg, alignSelf: 'stretch' },
-  button: { flex: 1, height: 46, borderRadius: radius.button, alignItems: 'center', justifyContent: 'center' },
-  buttonText: { ...typography.label, fontFamily: fontFamilies.sansSemiBold },
+  button: { flex: 1, height: spacing.secondaryButtonHeight, borderRadius: radius.button, alignItems: 'center', justifyContent: 'center' },
+  buttonText: { ...typography.button },
   sheetBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.45)' },
   sheet: {
     borderTopLeftRadius: radius.lg,

@@ -248,10 +248,5 @@ const styles = StyleSheet.create({
     width: '100%',
     paddingHorizontal: spacing.sm,
   },
-  connectText: {
-    fontSize: 13,
-    fontFamily: fontFamilies.sansSemiBold,
-    fontWeight: '600',
-    flexShrink: 1,
-  },
+  connectText: { ...typography.buttonSmall, flexShrink: 1 },
 });

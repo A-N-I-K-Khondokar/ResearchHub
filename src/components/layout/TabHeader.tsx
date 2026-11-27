@@ -139,9 +139,9 @@ const styles = StyleSheet.create({
   actions: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   extra: { marginTop: spacing.sm },
   iconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: spacing.iconButtonSize,
+    height: spacing.iconButtonSize,
+    borderRadius: radius.full,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',

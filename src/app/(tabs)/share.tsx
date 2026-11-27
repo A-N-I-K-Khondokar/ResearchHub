@@ -24,7 +24,7 @@ import {
   FlaskConical,
   PenTool,
 } from 'lucide-react-native';
-import { spacing, radius, fontFamilies } from '@/constants';
+import { spacing, radius, fontFamilies, typography } from '@/constants';
 import { useTheme } from '@/context/ThemeContext';
 import { Button } from '@/components/common/Button';
 import { Avatar } from '@/components/common/Avatar';
@@ -1033,8 +1033,8 @@ const styles = StyleSheet.create({
   },
   submitActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   submitButton: { paddingHorizontal: spacing.md },
-  clearBtn: { paddingVertical: 8, paddingRight: spacing.sm },
-  clearText: { fontSize: 14, fontFamily: fontFamilies.sansSemiBold },
+  clearBtn: { height: spacing.compactButtonHeight, justifyContent: 'center', paddingHorizontal: spacing.sm },
+  clearText: { ...typography.buttonSmall },
   previewToggle: {
     flexDirection: 'row',
     alignItems: 'center',

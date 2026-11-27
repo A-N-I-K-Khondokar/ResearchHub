@@ -419,15 +419,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.sm,
+    gap: spacing.xs,
     height: spacing.compactButtonHeight,
     borderRadius: radius.button,
     borderWidth: 1,
     marginBottom: spacing.sm + 4,
   },
-  collabButtonText: {
-    ...typography.label,
-  },
+  collabButtonText: { ...typography.buttonSmall },
   divider: {
     height: 1,
     width: '100%',

@@ -84,8 +84,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   back: {
-    width: 40,
-    height: 40,
+    width: spacing.iconButtonSize,
+    height: spacing.iconButtonSize,
     borderRadius: radius.full,
     alignItems: 'center',
     justifyContent: 'center',
@@ -100,8 +100,8 @@ const styles = StyleSheet.create({
   subtitle: { ...typography.caption },
   actions: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   action: {
-    width: 44,
-    height: 44,
+    width: spacing.iconButtonSize,
+    height: spacing.iconButtonSize,
     borderRadius: radius.full,
     alignItems: 'center',
     justifyContent: 'center',

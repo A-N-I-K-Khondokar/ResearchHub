@@ -207,16 +207,16 @@ const styles = StyleSheet.create({
   },
   rowIcon: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   rowValue: { ...typography.bodyCompact, flex: 1, minWidth: 0 },
-  iconBtn: { width: 34, height: 34, borderRadius: 17, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  iconBtn: { width: spacing.compactButtonHeight, height: spacing.compactButtonHeight, borderRadius: radius.full, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   actionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
     paddingHorizontal: 12,
-    height: 34,
+    height: spacing.compactButtonHeight,
     borderRadius: radius.button,
   },
-  actionText: { ...typography.caption, color: '#FFFFFF', fontFamily: fontFamilies.sansSemiBold },
+  actionText: { ...typography.buttonSmall, color: '#FFFFFF' },
   note: { ...typography.micro, textAlign: 'center', marginTop: spacing.xs },
   empty: { ...typography.bodyCompact, textAlign: 'center', marginVertical: spacing.md },
   profileBtn: {
@@ -229,5 +229,5 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginTop: spacing.xs,
   },
-  profileText: { ...typography.label, fontFamily: fontFamilies.sansSemiBold },
+  profileText: { ...typography.button },
 });

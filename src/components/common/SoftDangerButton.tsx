@@ -61,7 +61,7 @@ export const SoftDangerButton: React.FC<SoftDangerButtonProps> = ({ label, onPre
 
 const styles = StyleSheet.create({
   button: {
-    minHeight: 44,
+    minHeight: spacing.secondaryButtonHeight,
     borderRadius: radius.button,
     borderWidth: 1,
     overflow: 'hidden',
@@ -71,5 +71,5 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
     paddingHorizontal: spacing.md,
   },
-  label: { ...typography.label, fontFamily: fontFamilies.sansSemiBold },
+  label: { ...typography.button },
 });

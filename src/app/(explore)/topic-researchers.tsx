@@ -375,14 +375,10 @@ const styles = StyleSheet.create({
     gap: 4,
     borderWidth: 1,
     paddingHorizontal: spacing.sm + 2,
-    paddingVertical: 6,
     borderRadius: radius.button,
-    minHeight: 32,
+    height: spacing.compactButtonHeight,
   },
-  sortButtonText: {
-    ...typography.caption,
-    fontFamily: fontFamilies.sansMedium,
-  },
+  sortButtonText: { ...typography.buttonSmall },
   section: {
     marginBottom: spacing.lg,
   },

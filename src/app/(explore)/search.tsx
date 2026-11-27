@@ -527,7 +527,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingBottom: spacing.xs,
   },
-  backButton: { width: 40, height: 40, borderRadius: radius.full, alignItems: 'center', justifyContent: 'center' },
+  backButton: { width: spacing.iconButtonSize, height: spacing.iconButtonSize, borderRadius: radius.full, alignItems: 'center', justifyContent: 'center' },
   searchContainer: { flex: 1 },
   filters: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, gap: spacing.xs },
   filterChip: { paddingHorizontal: 14, height: 34, borderRadius: radius.full, borderWidth: 1, justifyContent: 'center' },
@@ -559,6 +559,6 @@ const styles = StyleSheet.create({
   emptyIcon: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center' },
   emptyTitle: { ...typography.title, textAlign: 'center' },
   emptyText: { ...typography.bodySmall, textAlign: 'center', paddingHorizontal: spacing.lg },
-  emptyBtn: { paddingHorizontal: spacing.md, height: 40, borderRadius: radius.button, borderWidth: 1, justifyContent: 'center', marginTop: spacing.xs },
+  emptyBtn: { paddingHorizontal: spacing.md, height: spacing.secondaryButtonHeight, borderRadius: radius.button, borderWidth: 1, justifyContent: 'center', marginTop: spacing.xs },
   subhead: { ...typography.caption, fontFamily: fontFamilies.sansSemiBold, marginTop: spacing.md },
 });

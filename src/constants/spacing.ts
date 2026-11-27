@@ -20,6 +20,7 @@ export const spacing = {
   buttonHeight: 48,         // Primary actions (form submit, main CTA)
   secondaryButtonHeight: 44, // Secondary actions, toolbar buttons, minimum tap target
   compactButtonHeight: 36,  // Compact actions inside cards and list rows
+  iconButtonSize: 40,       // Round icon buttons in headers (back, search, share, more)
   minTouchTarget: 44,
 } as const;
 

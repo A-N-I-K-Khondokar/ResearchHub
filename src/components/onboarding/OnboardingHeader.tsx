@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ViewStyle } from 'react-native';
 import { ArrowLeft } from 'lucide-react-native';
-import { spacing, typography } from '@/constants';
+import { radius, spacing, typography } from '@/constants';
 import { useTheme } from '@/hooks/useTheme';
 
 export interface OnboardingHeaderProps {
@@ -54,9 +54,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.screenHorizontal,
   },
   backButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: spacing.iconButtonSize,
+    height: spacing.iconButtonSize,
+    borderRadius: radius.full,
     alignItems: 'center',
     justifyContent: 'center',
   },

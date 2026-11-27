@@ -272,9 +272,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingHorizontal: spacing.md,
   },
-  actionText: {
-    ...typography.label,
-  },
+  actionText: { ...typography.button },
   iconButton: {
     width: spacing.secondaryButtonHeight,
     height: spacing.secondaryButtonHeight,

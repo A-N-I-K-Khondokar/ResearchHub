@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { UserPlus, Check, Clock, FlaskConical } from 'lucide-react-native';
 import { UserProfile, CurrentWork } from '@/types';
-import { typography, fontFamilies, floatingButtonTokens, radius } from '@/constants';
+import { typography, fontFamilies, floatingButtonTokens, radius, spacing } from '@/constants';
 import { useTheme } from '@/context/ThemeContext';
 import { Avatar } from '../common/Avatar';
 
@@ -438,14 +438,13 @@ const styles = StyleSheet.create({
   connectButton: {
     flex: 1,
     flexShrink: 1,
-    minHeight: 36,
-    paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: radius.button,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
+    height: spacing.compactButtonHeight,
   },
   connectText: {
     ...typography.caption,
@@ -472,13 +471,12 @@ const styles = StyleSheet.create({
   viewProfileButton: {
     flex: 1,
     flexShrink: 1,
-    minHeight: 36,
-    paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: radius.button,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    height: spacing.compactButtonHeight,
   },
   viewProfileText: {
     ...typography.caption,

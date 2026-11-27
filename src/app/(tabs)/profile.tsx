@@ -33,6 +33,7 @@ import {
   CheckCircle2,
   Circle,
   Pencil,
+  Plus,
 } from 'lucide-react-native';
 import { spacing, radius, typography, fontFamilies, floatingButtonTokens } from '@/constants';
 import { linkIconFor } from '@/components/common/linkIcon';
@@ -778,7 +779,7 @@ export default function ProfileTab() {
                     {TOPIC_TAXONOMY.filter((t) => !editInterests.some((i) => i.toLowerCase() === t.name.toLowerCase()))
                       .slice(0, 8)
                       .map((t) => (
-                        <TopicChip key={t.id} label={`+ ${t.name}`} variant="outline" onPress={() => addInterest(t.name)} />
+                        <TopicChip key={t.id} label={t.name} icon={<Plus size={13} color={colors.textSecondary} />} variant="outline" onPress={() => addInterest(t.name)} />
                       ))}
                   </View>
                 </View>
@@ -825,8 +826,8 @@ const styles = StyleSheet.create({
   activityHint: { fontSize: 12, marginBottom: spacing.xs },
   activityEmpty: { borderWidth: 1, borderRadius: radius.md, padding: spacing.lg, alignItems: 'center', gap: spacing.sm },
   activityEmptyText: { fontSize: 13, textAlign: 'center' },
-  activityEmptyBtn: { paddingHorizontal: spacing.md, height: 36, borderRadius: radius.button, justifyContent: 'center' },
-  activityEmptyBtnText: { fontSize: 13, fontFamily: fontFamilies.sansSemiBold },
+  activityEmptyBtn: { paddingHorizontal: spacing.md, height: spacing.compactButtonHeight, borderRadius: radius.button, justifyContent: 'center' },
+  activityEmptyBtnText: { ...typography.buttonSmall },
   appsRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderWidth: 1, borderRadius: radius.md, padding: spacing.md, marginTop: spacing.md },
   appsIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   appsTitle: { fontSize: 14, fontFamily: fontFamilies.sansSemiBold },
