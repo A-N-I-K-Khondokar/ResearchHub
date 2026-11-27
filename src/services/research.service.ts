@@ -264,6 +264,39 @@ export function subscribeWorksByIds(ids: string[], onUpdate: (works: ResearchWor
   return () => unsubs.forEach((u) => u());
 }
 
+/**
+ * Like subscribeWorksByIds, but reports every id: the live post, or `null`
+ * when it was deleted / is no longer visible to me. Emits once all ids have
+ * answered, then on every change.
+ */
+export function subscribeWorksStatus(
+  ids: string[],
+  onUpdate: (byId: Map<string, ResearchWork | null>) => void,
+): () => void {
+  if (!db || ids.length === 0) {
+    onUpdate(new Map());
+    return () => {};
+  }
+  const latest = new Map<string, ResearchWork | null>();
+  const emit = () => {
+    if (latest.size === ids.length) onUpdate(new Map(latest));
+  };
+  const unsubs = ids.map((id) =>
+    onSnapshot(
+      doc(db!, COLLECTION, id),
+      (snap) => {
+        latest.set(id, snap.exists() ? toResearchWork(snap) : null);
+        emit();
+      },
+      () => {
+        latest.set(id, null);
+        emit();
+      },
+    ),
+  );
+  return () => unsubs.forEach((u) => u());
+}
+
 // ---------------------------------------------------------------------------
 // Delete
 // ---------------------------------------------------------------------------

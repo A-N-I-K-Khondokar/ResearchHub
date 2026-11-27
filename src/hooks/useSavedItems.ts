@@ -18,6 +18,7 @@ export function useSavedItems() {
   const [items, setItems] = useState<SavedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [retryKey, setRetryKey] = useState(0);
   const toast = useToast();
 
   useEffect(() => {
@@ -39,20 +40,40 @@ export function useSavedItems() {
         setError(true);
       },
     );
-  }, [uid]);
+  }, [uid, retryKey]);
+
+  /** Re-open the listener (error state "Retry"). */
+  const retry = useCallback(() => setRetryKey((k) => k + 1), []);
 
   const savedIds = useMemo(() => new Set(items.map((i) => i.workId)), [items]);
 
   const isSaved = useCallback((workId: string) => savedIds.has(workId), [savedIds]);
 
+  /** Unsave. `silent` skips the toast (the Saved screen shows its own Undo bar). */
   const remove = useCallback(
-    async (workId: string) => {
-      if (!uid) return;
+    async (workId: string, options?: { silent?: boolean }): Promise<boolean> => {
+      if (!uid) return false;
       try {
         await unsaveWork(uid, workId);
-        toast.show('Removed from Saved Items', 'info');
+        if (!options?.silent) toast.show('Removed from Saved Items', 'info');
+        return true;
       } catch {
         toast.show('Could not remove this saved item', 'error');
+        return false;
+      }
+    },
+    [uid, toast],
+  );
+
+  /** Save again (Undo). Needs the live post — the rules validate the snapshot. */
+  const restore = useCallback(
+    async (work: ResearchWork) => {
+      if (!uid) return;
+      try {
+        await saveWork(uid, work);
+        toast.show('Restored to Saved Items');
+      } catch {
+        toast.show('Could not restore this item', 'error');
       }
     },
     [uid, toast],
@@ -76,5 +97,5 @@ export function useSavedItems() {
     [savedIds, uid, toast],
   );
 
-  return { items, loading, error, isSaved, toggleSave, remove };
+  return { items, loading, error, retry, isSaved, toggleSave, remove, restore };
 }
