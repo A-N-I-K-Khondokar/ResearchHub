@@ -13,11 +13,11 @@ export default function OnboardingLayout() {
         animation: 'slide_from_right',
       }}
     >
-      <Stack.Screen name="welcome" />
-      <Stack.Screen name="interests" />
-      <Stack.Screen name="current-work" />
-      <Stack.Screen name="external-profiles" />
-      <Stack.Screen name="ready" />
+      {/* One-time welcome after approval (see OnboardingContext) */}
+      <Stack.Screen name="welcome" options={{ gestureEnabled: false }} />
+      <Stack.Screen name="topics" />
+      <Stack.Screen name="contact" />
+      <Stack.Screen name="start" />
     </Stack>
   );
 }

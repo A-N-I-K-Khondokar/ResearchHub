@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { AuthBackground } from '@/components/auth/AuthBackground';
 import { useToast } from '@/context/ToastContext';
 import { useRouter } from 'expo-router';
 import { MailCheck, ArrowLeft, RefreshCw, CheckCircle2 } from 'lucide-react-native';
@@ -90,7 +91,7 @@ export default function VerifyEmailScreen() {
   };
 
   return (
-    <ScreenContainer scrollable>
+    <ScreenContainer scrollable background={<AuthBackground />}>
       <View style={styles.container}>
         {/* Verification Card */}
         <View

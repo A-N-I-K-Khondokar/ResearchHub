@@ -20,6 +20,7 @@ import { ToastProvider } from '@/context/ToastContext';
 import { DialogProvider } from '@/context/DialogContext';
 import { CollabProvider } from '@/context/CollabContext';
 import { ContactCardProvider } from '@/context/ContactCardContext';
+import { OnboardingProvider, useOnboarding } from '@/context/OnboardingContext';
 
 // Keep the native splash screen visible while fonts load
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -40,12 +41,14 @@ SplashScreen.preventAutoHideAsync().catch(() => {
  *  4. Profile loading → hold in loading state; no premature redirect.
  *  5. Profile required / Pending / Rejected / Suspended / Error → restrict to account-setup checkpoint.
  *  6. Approved → grant access to protected research tabs; redirect auth screens to (tabs).
+ *     A newly approved account first sees the one-time welcome in (onboarding).
  *
  * Public segments: (auth), index (redirects to auth/splash).
  * Protected segments: (tabs), (onboarding), (research), (profile), (explore).
  */
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const { isLoading, isProfileLoading, accessState } = useAuth();
+  const { status: onboarding } = useOnboarding();
   const segments = useSegments();
   const router = useRouter();
 
@@ -100,6 +103,12 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
       }
 
       case 'approved': {
+        if (onboarding === 'loading') break;
+        // First time after approval: one-time welcome
+        if (onboarding === 'needed') {
+          if (!inOnboarding) router.replace('/(onboarding)/welcome' as any);
+          break;
+        }
         // Approved: grant protected access; redirect away from auth flow screens
         if (inAuthGroup) {
           router.replace('/(tabs)' as any);
@@ -110,10 +119,11 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
       default:
         break;
     }
-  }, [isLoading, isProfileLoading, accessState, segments, router]);
+  }, [isLoading, isProfileLoading, accessState, onboarding, segments, router]);
 
   // Prevent flash: show nothing while loading auth session or Firestore profile
   if (isLoading || isProfileLoading || accessState === 'profile-loading') return null;
+  if (accessState === 'approved' && onboarding === 'loading') return null;
 
   return <>{children}</>;
 }
@@ -186,9 +196,11 @@ export default function RootLayout() {
           <AuthProvider>
             <ContactCardProvider>
               <CollabProvider>
-                <AuthGuard>
-                  <RootNavigation />
-                </AuthGuard>
+                <OnboardingProvider>
+                  <AuthGuard>
+                    <RootNavigation />
+                  </AuthGuard>
+                </OnboardingProvider>
               </CollabProvider>
             </ContactCardProvider>
           </AuthProvider>

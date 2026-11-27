@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
+import { AuthBackground } from '@/components/auth/AuthBackground';
 import { useRouter } from 'expo-router';
 import { GraduationCap, Loader2 } from 'lucide-react-native';
 import { ScreenContainer, Button } from '@/components';
@@ -34,7 +35,7 @@ export default function SplashScreen() {
   });
 
   return (
-    <ScreenContainer style={styles.container}>
+    <ScreenContainer style={styles.container} background={<AuthBackground fade={false} />}>
       <View style={styles.centerContent}>
         {/* Scholarly Logo Box */}
         <View

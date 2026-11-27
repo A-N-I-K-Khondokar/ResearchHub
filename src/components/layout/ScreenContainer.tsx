@@ -23,6 +23,8 @@ export interface ScreenContainerProps {
   edges?: Edge[];
   statusBarStyle?: 'light' | 'dark' | 'auto';
   withKeyboardAvoidance?: boolean;
+  /** Decorative layer drawn behind the content (e.g. <AuthBackground />). */
+  background?: React.ReactNode;
 }
 
 export const ScreenContainer: React.FC<ScreenContainerProps> = ({
@@ -35,6 +37,7 @@ export const ScreenContainer: React.FC<ScreenContainerProps> = ({
   edges = ['top', 'left', 'right'],
   statusBarStyle,
   withKeyboardAvoidance = false,
+  background,
 }) => {
   const { colors, isDark } = useTheme();
 
@@ -77,6 +80,7 @@ export const ScreenContainer: React.FC<ScreenContainerProps> = ({
   return (
     <SafeAreaView edges={edges} style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <StatusBar style={effectiveStatusBarStyle} backgroundColor={colors.background} />
+      {background}
       {wrappedContent}
     </SafeAreaView>
   );

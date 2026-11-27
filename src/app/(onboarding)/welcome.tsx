@@ -1,201 +1,67 @@
+/**
+ * First-run welcome · step 1 of 4 — shown once after the account is approved.
+ */
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ArrowRight, FlaskConical, Network, BookOpen, GraduationCap } from 'lucide-react-native';
-import { ICON_STROKE } from '@/constants/icons';
-import { ScreenContainer, Button, OnboardingProgress } from '@/components';
-import { radius, spacing, typography } from '@/constants';
+import { ArrowRight, BookOpen, Users, UserPlus, type LucideIcon } from 'lucide-react-native';
+import { Button } from '@/components/common/Button';
+import { OnboardingScaffold } from '@/components/onboarding/OnboardingScaffold';
+import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
+import { useFinishOnboarding } from '@/hooks/useFinishOnboarding';
+import { fontFamilies, spacing, typography } from '@/constants';
 
-export default function OnboardingWelcomeScreen() {
+const FEATURES: { icon: LucideIcon; title: string; text: string }[] = [
+  { icon: BookOpen, title: 'Share your research', text: 'Post what you’re working on so others can follow it and help.' },
+  { icon: Users, title: 'Find collaborators', text: 'Join open projects, or post the roles your project needs.' },
+  { icon: UserPlus, title: 'Grow your network', text: 'Connect with CSE researchers and reach teammates through contact cards.' },
+];
+
+export default function OnboardingWelcome() {
   const router = useRouter();
   const { colors } = useTheme();
+  const { userProfile } = useAuth();
+  const finish = useFinishOnboarding();
+  const firstName = (userProfile?.displayName || '').split(' ')[0] || 'there';
 
   return (
-    <ScreenContainer scrollable>
-      <View style={styles.container}>
-        {/* Step Header */}
-        <View style={styles.header}>
-          <Text style={[styles.stepText, { color: colors.textSecondary }]}>Step 1 of 5</Text>
-        </View>
-
-        {/* Hero Graphic */}
-        <View style={styles.heroContainer}>
-          <View
-            style={[
-              styles.mainCircle,
-              {
-                backgroundColor: colors.surface,
-                borderColor: colors.border,
-              },
-            ]}
-          >
-            <View
-              style={[
-                styles.innerCircle,
-                {
-                  backgroundColor: colors.primaryMuted,
-                  borderColor: colors.primaryLight,
-                },
-              ]}
-            >
-              <GraduationCap size={48} color={colors.primary} strokeWidth={ICON_STROKE.light} />
-            </View>
-          </View>
-
-          {/* Floating Academic Badges */}
-          <View
-            style={[
-              styles.floatingBadge,
-              styles.badgeTopRight,
-              {
-                backgroundColor: colors.surface,
-                borderColor: colors.border,
-              },
-            ]}
-          >
-            <FlaskConical size={20} color={colors.primary} />
-          </View>
-
-          <View
-            style={[
-              styles.floatingBadge,
-              styles.badgeBottomLeft,
-              {
-                backgroundColor: colors.surface,
-                borderColor: colors.border,
-              },
-            ]}
-          >
-            <Network size={20} color={colors.secondaryDark} />
-          </View>
-
-          <View
-            style={[
-              styles.floatingBadge,
-              styles.badgeRight,
-              {
-                backgroundColor: colors.surface,
-                borderColor: colors.border,
-              },
-            ]}
-          >
-            <BookOpen size={18} color={colors.textSecondary} />
+    <OnboardingScaffold
+      step={1}
+      animatedBackground
+      title={`You’re in, ${firstName}!`}
+      subtitle="Your account is approved. Here’s what you can do on CSE Research Hub."
+      onSkip={() => finish()}
+      footer={
+        <Button
+          label="Set up in 1 minute"
+          size="lg"
+          fullWidth
+          icon={<ArrowRight size={18} color="#FFFFFF" />}
+          iconPosition="right"
+          onPress={() => router.push('/(onboarding)/topics' as any)}
+        />
+      }
+    >
+      {FEATURES.map(({ icon: Icon, title, text }, i) => (
+        <View
+          key={title}
+          style={[styles.row, i < FEATURES.length - 1 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }]}
+        >
+          <Icon size={22} color={colors.primary} style={styles.icon} />
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>{title}</Text>
+            <Text style={[styles.cardText, { color: colors.textSecondary }]}>{text}</Text>
           </View>
         </View>
-
-        {/* Text Content */}
-        <View style={styles.textBlock}>
-          <Text style={[styles.tagline, { color: colors.primary }]}>Welcome to CSE Research Hub</Text>
-          <Text style={[styles.title, { color: colors.textPrimary }]}>
-            Discover what your CSE research community is working on.
-          </Text>
-          <Text style={[styles.body, { color: colors.textSecondary }]}>
-            Connect with peers, access latest publications, and collaborate with people who share your intellectual interests.
-          </Text>
-        </View>
-
-        {/* Action Button */}
-        <View style={styles.actionContainer}>
-          <Button
-            label="Get Started"
-            onPress={() => router.push('/(onboarding)/interests' as any)}
-            variant="primary"
-            size="lg"
-            icon={<ArrowRight size={18} color={colors.textInverse} />}
-            iconPosition="right"
-            fullWidth
-          />
-        </View>
-
-        {/* Progress */}
-        <OnboardingProgress currentStep={1} totalSteps={5} />
-      </View>
-    </ScreenContainer>
+      ))}
+    </OnboardingScaffold>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'space-between',
-    paddingVertical: spacing.lg,
-    minHeight: 620,
-  },
-  header: {
-    alignItems: 'center',
-    paddingVertical: spacing.xs,
-  },
-  stepText: { ...typography.overline },
-  heroContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginVertical: spacing.xl,
-    position: 'relative',
-  },
-  mainCircle: {
-    width: 170,
-    height: 170,
-    borderRadius: 85,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  innerCircle: {
-    width: 130,
-    height: 130,
-    borderRadius: 65,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  floatingBadge: {
-    position: 'absolute',
-    borderWidth: 1,
-    borderRadius: radius.full,
-    padding: spacing.sm,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  badgeTopRight: {
-    top: 0,
-    right: '22%',
-  },
-  badgeBottomLeft: {
-    bottom: 10,
-    left: '20%',
-  },
-  badgeRight: {
-    top: '40%',
-    right: '12%',
-  },
-  textBlock: {
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    marginBottom: spacing.lg,
-  },
-  tagline: { ...typography.caption, letterSpacing: 1, marginBottom: spacing.xs },
-  title: {
-    ...typography.display,
-    textAlign: 'center',
-    marginBottom: spacing.sm,
-  },
-  body: {
-    ...typography.body,
-    textAlign: 'center',
-    paddingHorizontal: spacing.sm,
-  },
-  actionContainer: {
-    width: '100%',
-    paddingHorizontal: spacing.md,
-    marginTop: spacing.sm,
-  },
+  row: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md, paddingVertical: spacing.lg },
+  icon: { marginTop: 1 },
+  cardTitle: { ...typography.title, fontFamily: fontFamilies.sansSemiBold, fontSize: 16, lineHeight: 22 },
+  cardText: { ...typography.body, marginTop: 2 },
 });

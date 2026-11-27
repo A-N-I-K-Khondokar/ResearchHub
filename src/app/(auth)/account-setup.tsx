@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Platform,
 } from 'react-native';
+import { AuthBackground } from '@/components/auth/AuthBackground';
 import { COMPACT_FONT_SCALE } from '@/constants/typography';
 import { useRouter } from 'expo-router';
 import {
@@ -30,6 +31,8 @@ import {
   Building2,
   Check,
   User as UserIcon,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react-native';
 import { ICON_STROKE } from '@/constants/icons';
 import { ScreenContainer, Button, Avatar, OnboardingProgress } from '@/components';
@@ -160,17 +163,22 @@ export default function AccountSetupScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isSubmittingRef = useRef(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  // Three-step form: 1 Personal · 2 Academic · 3 Research profile
+  // Four short steps: 1 About you · 2 Academic · 3 Research · 4 Links (optional)
   const [step, setStep] = useState(1);
-  const STEP_TITLES = ['Personal', 'Academic', 'Research profile'];
+  const STEP_TITLES = ['About you', 'Academic', 'Research', 'Links'];
+  const STEP_COUNT = STEP_TITLES.length;
   const STEP_FIELDS: Record<number, string[]> = {
     1: ['displayName', 'photoURL'],
     2: ['department', 'designation', 'program', 'batch', 'studentId'],
     3: ['bio', 'researchInterests'],
+    4: [],
   };
 
   // Rejected applicants can correct and resubmit their application (Stage 4)
   const [isResubmitting, setIsResubmitting] = useState(false);
+  // Show a short list of suggested topics first (43 is a wall of chips).
+  const [showAllSuggestions, setShowAllSuggestions] = useState(false);
+  const [showSubmitted, setShowSubmitted] = useState(false);
 
   const startResubmission = () => {
     if (!userProfile) return;
@@ -342,7 +350,7 @@ export default function AccountSetupScreen() {
     const newErrors = computeErrors();
     setErrors(newErrors);
     // Jump back to the first step that still has a problem
-    const firstBadStep = [1, 2, 3].find((n) => STEP_FIELDS[n].some((f) => f in newErrors));
+    const firstBadStep = [1, 2, 3, 4].find((n) => STEP_FIELDS[n].some((f) => f in newErrors));
     if (firstBadStep && firstBadStep !== step) setStep(firstBadStep);
     return Object.keys(newErrors).length === 0;
   };
@@ -352,7 +360,7 @@ export default function AccountSetupScreen() {
     const all = computeErrors();
     const stepErrors = Object.fromEntries(Object.entries(all).filter(([k]) => STEP_FIELDS[step].includes(k)));
     setErrors(stepErrors);
-    if (Object.keys(stepErrors).length === 0) setStep((n) => Math.min(3, n + 1));
+    if (Object.keys(stepErrors).length === 0) setStep((n) => Math.min(STEP_COUNT, n + 1));
   };
 
   const goBack = () => {
@@ -423,8 +431,10 @@ export default function AccountSetupScreen() {
         errorMsg.includes('PERMISSION_DENIED') ||
         errorMsg.includes('insufficient permissions')
       ) {
+        // The applicant can't read the admin outbox, so the most common causes are
+        // listed: an old application record still on file, or a stale sign-in token.
         errorMsg =
-          'Permission denied. Please ensure your email is verified and required fields match institutional guidelines.';
+          "We couldn't submit your profile. If you applied before with this account, ask a CSE admin to clear the old application, then try again. Otherwise sign out and back in, and retry.";
       } else if (errorMsg.includes('already exists')) {
         errorMsg = 'A profile already exists for this account.';
       }
@@ -440,7 +450,7 @@ export default function AccountSetupScreen() {
 
   if (isProfileLoading || accessState === 'profile-loading') {
     return (
-      <ScreenContainer scrollable={false}>
+      <ScreenContainer scrollable={false} background={<AuthBackground animated={false} />}>
         <View style={styles.centerContainer}>
           <View
             style={[
@@ -477,7 +487,7 @@ export default function AccountSetupScreen() {
 
   if (accessState === 'profile-error') {
     return (
-      <ScreenContainer scrollable>
+      <ScreenContainer scrollable background={<AuthBackground animated={false} />}>
         <View style={styles.centerContainer}>
           <View
             style={[
@@ -541,198 +551,122 @@ export default function AccountSetupScreen() {
   // =========================================================================
 
   if (accessState === 'pending') {
+    const submitted = userProfile ? formatTimestamp(userProfile.requestedAt) : '';
+    const detailRows: [string, string | null | undefined][] = userProfile
+      ? [
+          ['Name', userProfile.displayName],
+          ['Email', userProfile.email],
+          ['Department', userProfile.department],
+          ['Role', userProfile.designation],
+          ['Program', userProfile.program],
+          ['Batch', userProfile.batch],
+          ['ID', userProfile.studentId],
+        ]
+      : [];
+    const steps: { label: string; sub: string; state: 'done' | 'current' | 'next' }[] = [
+      { label: 'Profile submitted', sub: submitted || 'Done', state: 'done' },
+      { label: 'Under review', sub: 'A CSE admin checks your details', state: 'current' },
+      { label: 'Access granted', sub: 'The app opens automatically', state: 'next' },
+    ];
+
     return (
-      <ScreenContainer scrollable>
-        <View style={styles.centerContainer}>
-          <View
-            style={[
-              styles.card,
-              {
-                backgroundColor: colors.surface,
-                borderColor: colors.border,
-                width: '100%',
-                maxWidth: 520,
-              },
-            ]}
-          >
-            <View style={[styles.accentBar, { backgroundColor: colors.accent }]} />
-
-            <View
-              style={[
-                styles.iconCircle,
-                {
-                  backgroundColor: colors.accentLight,
-                  borderColor: colors.accent,
-                },
-              ]}
-            >
-              <Clock size={40} color={colors.accent} strokeWidth={ICON_STROKE.light} />
-            </View>
-
-            <Text style={[styles.title, { color: colors.textPrimary }]}>
-              Approval Request Pending
-            </Text>
-
-            <View
-              style={[
-                styles.statusBadge,
-                {
-                  backgroundColor: colors.accentLight,
-                  borderColor: colors.accent,
-                },
-              ]}
-            >
-              <Clock size={13} color={colors.accent} />
-              <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.statusBadgeText, { color: colors.accent }]}>
-                Awaiting Administrative Review
-              </Text>
-            </View>
-
-            <Text style={[styles.body, { color: colors.textSecondary, marginBottom: spacing.lg }]}>
-              Your profile application has been successfully submitted to the CSE
-              Department administration. Once your institutional credentials are
-              verified, full access to research discovery and publications will be
-              activated.
-            </Text>
-
-            {/* Profile Summary Card */}
-            {userProfile ? (
-              <View
-                style={[
-                  styles.detailsContainer,
-                  {
-                    backgroundColor: colors.surfaceSubtle,
-                    borderColor: colors.borderSubtle,
-                  },
-                ]}
-              >
-                <Text style={[styles.detailsHeader, { color: colors.textPrimary }]}>
-                  Submitted Profile Details
-                </Text>
-
-                <View style={styles.detailRow}>
-                  <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Full Name</Text>
-                  <Text style={[styles.detailValue, { color: colors.textPrimary }]}>
-                    {userProfile.displayName}
-                  </Text>
-                </View>
-
-                <View style={styles.detailRow}>
-                  <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Email</Text>
-                  <Text style={[styles.detailValue, { color: colors.textPrimary }]}>
-                    {userProfile.email}
-                  </Text>
-                </View>
-
-                <View style={styles.detailRow}>
-                  <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Department</Text>
-                  <Text style={[styles.detailValue, { color: colors.textPrimary }]}>
-                    {userProfile.department}
-                  </Text>
-                </View>
-
-                <View style={styles.detailRow}>
-                  <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Designation</Text>
-                  <Text style={[styles.detailValue, { color: colors.textPrimary }]}>
-                    {userProfile.designation}
-                  </Text>
-                </View>
-
-                {userProfile.program ? (
-                  <View style={styles.detailRow}>
-                    <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Program</Text>
-                    <Text style={[styles.detailValue, { color: colors.textPrimary }]}>
-                      {userProfile.program}
-                    </Text>
-                  </View>
-                ) : null}
-
-                {userProfile.batch ? (
-                  <View style={styles.detailRow}>
-                    <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Batch</Text>
-                    <Text style={[styles.detailValue, { color: colors.textPrimary }]}>
-                      {userProfile.batch}
-                    </Text>
-                  </View>
-                ) : null}
-
-                {userProfile.studentId ? (
-                  <View style={styles.detailRow}>
-                    <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>ID</Text>
-                    <Text style={[styles.detailValue, { color: colors.textPrimary }]}>
-                      {userProfile.studentId}
-                    </Text>
-                  </View>
-                ) : null}
-
-                {userProfile.researchInterests && userProfile.researchInterests.length > 0 ? (
-                  <View style={{ marginTop: spacing.sm }}>
-                    <Text style={[styles.detailLabel, { color: colors.textSecondary, marginBottom: 4 }]}>
-                      Research Interests
-                    </Text>
-                    <View style={styles.chipRow}>
-                      {userProfile.researchInterests.map((interest, idx) => (
-                        <View
-                          key={idx}
-                          style={[
-                            styles.chip,
-                            {
-                              backgroundColor: colors.primaryMuted,
-                              borderColor: colors.primaryLight,
-                            },
-                          ]}
-                        >
-                          <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.chipText, { color: colors.primaryDark }]}>
-                            {interest}
-                          </Text>
-                        </View>
-                      ))}
-                    </View>
-                  </View>
-                ) : null}
-
-                <View style={[styles.detailRow, { marginTop: spacing.sm, borderTopWidth: 1, borderTopColor: colors.borderSubtle, paddingTop: spacing.xs }]}>
-                  <Text style={[styles.detailLabel, { color: colors.textSecondary }]}>Submitted</Text>
-                  <Text style={[styles.detailValue, { color: colors.textMuted }]}>
-                    {formatTimestamp(userProfile.requestedAt)}
-                  </Text>
-                </View>
-              </View>
-            ) : null}
-
-            <View
-              style={[
-                styles.noticeBox,
-                {
-                  backgroundColor: colors.surfaceSubtle,
-                  borderColor: colors.borderSubtle,
-                },
-              ]}
-            >
-              <Text style={[styles.noticeText, { color: colors.textSecondary }]}>
-                Real-time updates are active. Once approved, the application will
-                automatically grant access without requiring resubmission.
-              </Text>
-            </View>
-
-            <Button
-              label="Refresh Status"
-              onPress={handleRefresh}
-              variant="outline"
-              icon={<RefreshCw size={16} color={colors.textPrimary} />}
-              loading={isRefreshing}
-              fullWidth
-              style={{ marginBottom: spacing.sm }}
-            />
-
-            <Button
-              label="Sign Out"
-              onPress={handleSignOut}
-              variant="secondary"
-              icon={<LogOut size={16} color={colors.textPrimary} />}
-              fullWidth
-            />
+      <ScreenContainer scrollable background={<AuthBackground animated={false} />}>
+        <View style={styles.pendingWrap}>
+          {/* Header */}
+          <View style={[styles.pendingIcon, { backgroundColor: colors.warningLight }]}>
+            <Clock size={26} color={colors.warning} />
           </View>
+          <Text style={[styles.pendingTitle, { color: colors.textPrimary }]} accessibilityRole="header">
+            Waiting for approval
+          </Text>
+          <Text style={[styles.pendingText, { color: colors.textSecondary }]}>
+            We’ll let you in as soon as an admin approves your profile. You don’t need to keep this screen open.
+          </Text>
+
+          {/* Progress */}
+          <View style={[styles.pendingCard, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}>
+            {steps.map((st, i) => {
+              const done = st.state === 'done';
+              const current = st.state === 'current';
+              return (
+                <View key={st.label} style={styles.pStep}>
+                  <View style={styles.pRail}>
+                    <View
+                      style={[
+                        styles.pDot,
+                        done
+                          ? { backgroundColor: colors.success, borderColor: colors.success }
+                          : current
+                            ? { backgroundColor: colors.warningLight, borderColor: colors.warning }
+                            : { backgroundColor: colors.surface, borderColor: colors.border },
+                      ]}
+                    >
+                      {done ? <Check size={12} color="#FFFFFF" strokeWidth={3} /> : current ? <View style={[styles.pCore, { backgroundColor: colors.warning }]} /> : null}
+                    </View>
+                    {i < steps.length - 1 ? (
+                      <View style={[styles.pLine, { backgroundColor: done ? colors.success : colors.border }]} />
+                    ) : null}
+                  </View>
+                  <View style={styles.pBody}>
+                    <Text style={[styles.pLabel, { color: st.state === 'next' ? colors.textMuted : colors.textPrimary }]}>{st.label}</Text>
+                    <Text style={[styles.pSub, { color: colors.textSecondary }]}>{st.sub}</Text>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+
+          {/* Submitted details (collapsed) */}
+          {userProfile ? (
+            <View style={[styles.pendingCard, { backgroundColor: colors.surface, borderColor: colors.borderSubtle, paddingVertical: 0 }]}>
+              <TouchableOpacity
+                onPress={() => setShowSubmitted((v) => !v)}
+                style={styles.pToggle}
+                accessibilityRole="button"
+                accessibilityState={{ expanded: showSubmitted }}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.pLabel, { color: colors.textPrimary }]}>Your submitted details</Text>
+                  <Text style={[styles.pSub, { color: colors.textSecondary }]} numberOfLines={1}>
+                    {[userProfile.designation, userProfile.department].filter(Boolean).join(' · ')}
+                  </Text>
+                </View>
+                {showSubmitted ? <ChevronUp size={18} color={colors.textSecondary} /> : <ChevronDown size={18} color={colors.textSecondary} />}
+              </TouchableOpacity>
+              {showSubmitted ? (
+                <View style={[styles.pDetails, { borderTopColor: colors.borderSubtle }]}>
+                  {detailRows
+                    .filter(([, v]) => Boolean(v))
+                    .map(([k, v]) => (
+                      <View key={k} style={styles.pRow}>
+                        <Text style={[styles.pKey, { color: colors.textSecondary }]}>{k}</Text>
+                        <Text style={[styles.pVal, { color: colors.textPrimary }]} numberOfLines={1}>{v}</Text>
+                      </View>
+                    ))}
+                  {userProfile.researchInterests?.length ? (
+                    <Text style={[styles.pSub, { color: colors.textSecondary, marginTop: spacing.xs }]} numberOfLines={2}>
+                      Interests: {userProfile.researchInterests.join(', ')}
+                    </Text>
+                  ) : null}
+                </View>
+              ) : null}
+            </View>
+          ) : null}
+
+          {/* Actions */}
+          <Button
+            label="Check status"
+            onPress={handleRefresh}
+            variant="secondary"
+            icon={<RefreshCw size={16} color={colors.textPrimary} />}
+            loading={isRefreshing}
+            fullWidth
+            style={{ marginTop: spacing.sm }}
+          />
+          <TouchableOpacity onPress={handleSignOut} hitSlop={8} style={styles.pSignOut} accessibilityRole="button">
+            <LogOut size={14} color={colors.textSecondary} />
+            <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.topLink, { color: colors.textSecondary }]}>Sign out</Text>
+          </TouchableOpacity>
         </View>
       </ScreenContainer>
     );
@@ -744,7 +678,7 @@ export default function AccountSetupScreen() {
 
   if (accessState === 'rejected' && !isResubmitting) {
     return (
-      <ScreenContainer scrollable>
+      <ScreenContainer scrollable background={<AuthBackground animated={false} />}>
         <View style={styles.centerContainer}>
           <View
             style={[
@@ -859,7 +793,7 @@ export default function AccountSetupScreen() {
 
   if (accessState === 'suspended') {
     return (
-      <ScreenContainer scrollable>
+      <ScreenContainer scrollable background={<AuthBackground animated={false} />}>
         <View style={styles.centerContainer}>
           <View
             style={[
@@ -945,7 +879,7 @@ export default function AccountSetupScreen() {
 
   if (accessState === 'approved') {
     return (
-      <ScreenContainer scrollable={false}>
+      <ScreenContainer scrollable={false} background={<AuthBackground animated={false} />}>
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
           <Text style={[styles.body, { color: colors.textSecondary, marginTop: spacing.md }]}>
@@ -961,41 +895,49 @@ export default function AccountSetupScreen() {
   // =========================================================================
 
   return (
-    <ScreenContainer scrollable withKeyboardAvoidance>
+    <ScreenContainer scrollable withKeyboardAvoidance background={<AuthBackground animated={false} />}>
       <View style={styles.formContainer}>
-        {/* Header Banner */}
+        {/* Header: compact title + top-right links (Sign out / Cancel) */}
+        <View style={styles.topLinks}>
+          {isResubmitting ? (
+            <TouchableOpacity
+              onPress={() => {
+                setIsResubmitting(false);
+                setSubmitError(null);
+              }}
+              disabled={isSubmitting}
+              hitSlop={8}
+              accessibilityRole="button"
+            >
+              <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.topLink, { color: colors.textSecondary }]}>Cancel</Text>
+            </TouchableOpacity>
+          ) : (
+            <View />
+          )}
+          <TouchableOpacity onPress={handleSignOut} hitSlop={8} style={styles.topLinkRow} accessibilityRole="button" accessibilityLabel="Sign out">
+            <LogOut size={14} color={colors.textSecondary} />
+            <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.topLink, { color: colors.textSecondary }]}>Sign out</Text>
+          </TouchableOpacity>
+        </View>
         <View style={styles.header}>
-          <View
-            style={[
-              styles.headerBadge,
-              {
-                backgroundColor: colors.primaryMuted,
-                borderColor: colors.primaryLight,
-              },
-            ]}
-          >
-            <GraduationCap size={14} color={colors.primary} />
-            <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.headerBadgeText, { color: colors.primary }]}>
-              CSE Department Onboarding
-            </Text>
-          </View>
-
           <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>
-            {isResubmitting ? 'Update Your Application' : 'Complete Your Profile'}
+            {isResubmitting ? 'Update your application' : 'Complete your profile'}
           </Text>
           <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
             {isResubmitting
-              ? 'Correct the details mentioned in the review, then resubmit for administrative approval.'
-              : 'Provide your academic and scholarly details to submit an application for administrative approval.'}
+              ? 'Fix the details mentioned in the review, then resubmit.'
+              : 'A CSE admin reviews it before your account is activated.'}
           </Text>
         </View>
 
         {/* Step progress */}
         <View style={styles.stepHeader}>
-          <OnboardingProgress currentStep={step} totalSteps={3} />
           <Text style={[styles.stepCaption, { color: colors.textSecondary }]}>
-            Step {step} of 3 · {STEP_TITLES[step - 1]}
+            Step {step} of {STEP_COUNT} · <Text style={{ color: colors.textPrimary }}>{STEP_TITLES[step - 1]}</Text>
           </Text>
+          <View style={[styles.progressTrack, { backgroundColor: colors.borderSubtle }]} accessibilityElementsHidden>
+            <View style={[styles.progressFill, { backgroundColor: colors.primary, width: `${(step / STEP_COUNT) * 100}%` }]} />
+          </View>
         </View>
 
         {step === 1 ? (
@@ -1004,10 +946,7 @@ export default function AccountSetupScreen() {
         <View
           style={[
             styles.identityCard,
-            {
-              backgroundColor: colors.surface,
-              borderColor: colors.border,
-            },
+            { borderBottomColor: colors.borderSubtle },
           ]}
         >
           <Avatar
@@ -1036,7 +975,7 @@ export default function AccountSetupScreen() {
             >
               <ShieldCheck size={12} color={colors.secondary} />
               <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.verifiedPillText, { color: colors.secondaryDark }]}>
-                Verified Firebase Identity
+                Email verified
               </Text>
             </View>
           </View>
@@ -1048,16 +987,12 @@ export default function AccountSetupScreen() {
         <View
           style={[
             styles.sectionCard,
-            {
-              backgroundColor: colors.surface,
-              borderColor: colors.border,
-            },
           ]}
         >
           <View style={styles.sectionHeaderRow}>
             <View style={[styles.sectionIndicator, { backgroundColor: colors.primary }]} />
             <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
-              Section A — Personal Information
+              About you
             </Text>
           </View>
 
@@ -1155,16 +1090,12 @@ export default function AccountSetupScreen() {
         <View
           style={[
             styles.sectionCard,
-            {
-              backgroundColor: colors.surface,
-              borderColor: colors.border,
-            },
           ]}
         >
           <View style={styles.sectionHeaderRow}>
             <View style={[styles.sectionIndicator, { backgroundColor: colors.secondary }]} />
             <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
-              Section B — Academic Information
+              Academic details
             </Text>
           </View>
 
@@ -1421,16 +1352,12 @@ export default function AccountSetupScreen() {
         <View
           style={[
             styles.sectionCard,
-            {
-              backgroundColor: colors.surface,
-              borderColor: colors.border,
-            },
           ]}
         >
           <View style={styles.sectionHeaderRow}>
             <View style={[styles.sectionIndicator, { backgroundColor: colors.accent }]} />
             <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
-              Section C — Research Profile
+              Research profile
             </Text>
           </View>
 
@@ -1540,12 +1467,18 @@ export default function AccountSetupScreen() {
             ) : null}
 
             {/* Suggested Interests Grid */}
-            <View style={{ marginTop: spacing.sm }}>
+            <View style={{ marginTop: spacing.md }}>
               <Text style={[styles.suggestedLabel, { color: colors.textMuted }]}>
-                Suggested CSE research domains:
+                Popular topics — tap to add
               </Text>
               <View style={styles.chipRow}>
-                {SUGGESTED_INTERESTS.map((item, idx) => {
+                {(showAllSuggestions
+                  ? SUGGESTED_INTERESTS
+                  : SUGGESTED_INTERESTS.filter(
+                      (item, idx) =>
+                        idx < 10 || researchInterests.some((i) => i.toLowerCase() === item.toLowerCase()),
+                    )
+                ).map((item, idx) => {
                   const isSelected = researchInterests.some(
                     (i) => i.toLowerCase() === item.toLowerCase(),
                   );
@@ -1592,138 +1525,160 @@ export default function AccountSetupScreen() {
                   );
                 })}
               </View>
+              <TouchableOpacity
+                onPress={() => setShowAllSuggestions((v) => !v)}
+                hitSlop={8}
+                style={{ alignSelf: 'flex-start', marginTop: spacing.sm }}
+                accessibilityRole="button"
+              >
+                <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.topLink, { color: colors.primary }]}>
+                  {showAllSuggestions ? 'Show fewer' : `Show all ${SUGGESTED_INTERESTS.length} topics`}
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
 
-          {/* Academic & Social Links Sub-section */}
-          <View style={{ marginTop: spacing.md, paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: colors.borderSubtle }}>
-            <Text style={[styles.subSectionTitle, { color: colors.textPrimary }]}>
-              Academic &amp; Social Links <Text style={[styles.optionalTag, { color: colors.textMuted }]}>optional</Text>
-            </Text>
-
-            {/* Website */}
-            <View style={styles.inputGroup}>
-              <FieldFrame
-                style={[
-                  styles.inputWrapper,
-                  {
-                    backgroundColor: colors.surfaceSubtle,
-                    borderColor: colors.borderSubtle,
-                  },
-                ]}
-              >
-                <Globe size={18} color={colors.textMuted} style={styles.inputIcon} />
-                <TextInput
-                  value={website}
-                  onChangeText={(text) => setWebsite(text)}
-                  placeholder="Personal Website (https://...)"
-                  placeholderTextColor={colors.textMuted}
-                  style={[styles.textInput, { color: colors.textPrimary }]}
-                  autoCapitalize="none"
-                  keyboardType="url"
-                />
-              </FieldFrame>
-            </View>
-
-            {/* GitHub */}
-            <View style={styles.inputGroup}>
-              <FieldFrame
-                style={[
-                  styles.inputWrapper,
-                  {
-                    backgroundColor: colors.surfaceSubtle,
-                    borderColor: colors.borderSubtle,
-                  },
-                ]}
-              >
-                <Github size={18} color={colors.textMuted} style={styles.inputIcon} />
-                <TextInput
-                  value={github}
-                  onChangeText={(text) => setGithub(text)}
-                  placeholder="GitHub Profile (https://github.com/...)"
-                  placeholderTextColor={colors.textMuted}
-                  style={[styles.textInput, { color: colors.textPrimary }]}
-                  autoCapitalize="none"
-                  keyboardType="url"
-                />
-              </FieldFrame>
-            </View>
-
-            {/* LinkedIn */}
-            <View style={styles.inputGroup}>
-              <FieldFrame
-                style={[
-                  styles.inputWrapper,
-                  {
-                    backgroundColor: colors.surfaceSubtle,
-                    borderColor: colors.borderSubtle,
-                  },
-                ]}
-              >
-                <Linkedin size={18} color={colors.textMuted} style={styles.inputIcon} />
-                <TextInput
-                  value={linkedin}
-                  onChangeText={(text) => setLinkedin(text)}
-                  placeholder="LinkedIn Profile (https://linkedin.com/in/...)"
-                  placeholderTextColor={colors.textMuted}
-                  style={[styles.textInput, { color: colors.textPrimary }]}
-                  autoCapitalize="none"
-                  keyboardType="url"
-                />
-              </FieldFrame>
-            </View>
-
-            {/* Google Scholar */}
-            <View style={styles.inputGroup}>
-              <FieldFrame
-                style={[
-                  styles.inputWrapper,
-                  {
-                    backgroundColor: colors.surfaceSubtle,
-                    borderColor: colors.borderSubtle,
-                  },
-                ]}
-              >
-                <BookOpen size={18} color={colors.textMuted} style={styles.inputIcon} />
-                <TextInput
-                  value={googleScholar}
-                  onChangeText={(text) => setGoogleScholar(text)}
-                  placeholder="Google Scholar Profile URL"
-                  placeholderTextColor={colors.textMuted}
-                  style={[styles.textInput, { color: colors.textPrimary }]}
-                  autoCapitalize="none"
-                  keyboardType="url"
-                />
-              </FieldFrame>
-            </View>
-
-            {/* ResearchGate */}
-            <View style={styles.inputGroup}>
-              <FieldFrame
-                style={[
-                  styles.inputWrapper,
-                  {
-                    backgroundColor: colors.surfaceSubtle,
-                    borderColor: colors.borderSubtle,
-                  },
-                ]}
-              >
-                <FileText size={18} color={colors.textMuted} style={styles.inputIcon} />
-                <TextInput
-                  value={researchGate}
-                  onChangeText={(text) => setResearchGate(text)}
-                  placeholder="ResearchGate Profile URL"
-                  placeholderTextColor={colors.textMuted}
-                  style={[styles.textInput, { color: colors.textPrimary }]}
-                  autoCapitalize="none"
-                  keyboardType="url"
-                />
-              </FieldFrame>
-            </View>
-          </View>
         </View>
 
         </>
+        ) : null}
+
+        {step === 4 ? (
+        <View
+          style={[
+            styles.sectionCard,
+          ]}
+        >
+          <View style={styles.sectionHeaderRow}>
+            <View style={[styles.sectionIndicator, { backgroundColor: colors.secondary }]} />
+            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
+              Academic links
+            </Text>
+          </View>
+          <Text style={[styles.sectionHint, { color: colors.textSecondary }]}>
+            Optional. Add any profiles you have — you can also do this later from your profile.
+          </Text>
+
+          {/* Website */}
+          <View style={styles.inputGroup}>
+            <FieldFrame
+              style={[
+                styles.inputWrapper,
+                {
+                  backgroundColor: colors.surfaceSubtle,
+                  borderColor: colors.borderSubtle,
+                },
+              ]}
+            >
+              <Globe size={18} color={colors.textMuted} style={styles.inputIcon} />
+              <TextInput
+                value={website}
+                onChangeText={(text) => setWebsite(text)}
+                placeholder="Personal Website (https://...)"
+                placeholderTextColor={colors.textMuted}
+                style={[styles.textInput, { color: colors.textPrimary }]}
+                autoCapitalize="none"
+                keyboardType="url"
+              />
+            </FieldFrame>
+          </View>
+
+          {/* GitHub */}
+          <View style={styles.inputGroup}>
+            <FieldFrame
+              style={[
+                styles.inputWrapper,
+                {
+                  backgroundColor: colors.surfaceSubtle,
+                  borderColor: colors.borderSubtle,
+                },
+              ]}
+            >
+              <Github size={18} color={colors.textMuted} style={styles.inputIcon} />
+              <TextInput
+                value={github}
+                onChangeText={(text) => setGithub(text)}
+                placeholder="GitHub Profile (https://github.com/...)"
+                placeholderTextColor={colors.textMuted}
+                style={[styles.textInput, { color: colors.textPrimary }]}
+                autoCapitalize="none"
+                keyboardType="url"
+              />
+            </FieldFrame>
+          </View>
+
+          {/* LinkedIn */}
+          <View style={styles.inputGroup}>
+            <FieldFrame
+              style={[
+                styles.inputWrapper,
+                {
+                  backgroundColor: colors.surfaceSubtle,
+                  borderColor: colors.borderSubtle,
+                },
+              ]}
+            >
+              <Linkedin size={18} color={colors.textMuted} style={styles.inputIcon} />
+              <TextInput
+                value={linkedin}
+                onChangeText={(text) => setLinkedin(text)}
+                placeholder="LinkedIn Profile (https://linkedin.com/in/...)"
+                placeholderTextColor={colors.textMuted}
+                style={[styles.textInput, { color: colors.textPrimary }]}
+                autoCapitalize="none"
+                keyboardType="url"
+              />
+            </FieldFrame>
+          </View>
+
+          {/* Google Scholar */}
+          <View style={styles.inputGroup}>
+            <FieldFrame
+              style={[
+                styles.inputWrapper,
+                {
+                  backgroundColor: colors.surfaceSubtle,
+                  borderColor: colors.borderSubtle,
+                },
+              ]}
+            >
+              <BookOpen size={18} color={colors.textMuted} style={styles.inputIcon} />
+              <TextInput
+                value={googleScholar}
+                onChangeText={(text) => setGoogleScholar(text)}
+                placeholder="Google Scholar Profile URL"
+                placeholderTextColor={colors.textMuted}
+                style={[styles.textInput, { color: colors.textPrimary }]}
+                autoCapitalize="none"
+                keyboardType="url"
+              />
+            </FieldFrame>
+          </View>
+
+          {/* ResearchGate */}
+          <View style={styles.inputGroup}>
+            <FieldFrame
+              style={[
+                styles.inputWrapper,
+                {
+                  backgroundColor: colors.surfaceSubtle,
+                  borderColor: colors.borderSubtle,
+                },
+              ]}
+            >
+              <FileText size={18} color={colors.textMuted} style={styles.inputIcon} />
+              <TextInput
+                value={researchGate}
+                onChangeText={(text) => setResearchGate(text)}
+                placeholder="ResearchGate Profile URL"
+                placeholderTextColor={colors.textMuted}
+                style={[styles.textInput, { color: colors.textPrimary }]}
+                autoCapitalize="none"
+                keyboardType="url"
+              />
+            </FieldFrame>
+          </View>
+        </View>
         ) : null}
 
         {/* Submit Error Banner */}
@@ -1744,61 +1699,35 @@ export default function AccountSetupScreen() {
           </View>
         ) : null}
 
-        {/* Submit Action Buttons */}
-        <View style={styles.actionsContainer}>
-          {step < 3 ? (
-            <Button
-              label={`Continue to ${STEP_TITLES[step]}`}
-              onPress={goNext}
-              variant="primary"
-              fullWidth
-              style={{ marginBottom: spacing.sm }}
-            />
-          ) : (
-            <Button
-              label={isResubmitting ? 'Resubmit for Approval' : 'Submit Profile for Approval'}
-              onPress={handleSubmitProfile}
-              variant="primary"
-              loading={isSubmitting}
-              disabled={isSubmitting}
-              icon={<CircleCheck size={18} color={colors.textInverse} />}
-              fullWidth
-              style={{ marginBottom: spacing.sm }}
-            />
-          )}
-
+        {/* Actions: Back + Continue / Submit side by side */}
+        <View style={styles.actionsRow}>
           {step > 1 ? (
             <Button
               label="Back"
               onPress={goBack}
               variant="secondary"
               disabled={isSubmitting}
-              fullWidth
-              style={{ marginBottom: spacing.sm }}
+              style={styles.actionBack}
             />
           ) : null}
-
-          {isResubmitting ? (
+          {step < STEP_COUNT ? (
             <Button
-              label="Cancel"
-              onPress={() => {
-                setIsResubmitting(false);
-                setSubmitError(null);
-              }}
-              variant="ghost"
-              disabled={isSubmitting}
-              fullWidth
-              style={{ marginBottom: spacing.sm }}
+              label={`Next: ${STEP_TITLES[step]}`}
+              onPress={goNext}
+              variant="primary"
+              style={styles.actionMain}
             />
-          ) : null}
-
-          <Button
-            label="Sign Out"
-            onPress={handleSignOut}
-            variant="ghost"
-            icon={<LogOut size={16} color={colors.textSecondary} />}
-            fullWidth
-          />
+          ) : (
+            <Button
+              label={isResubmitting ? 'Resubmit' : 'Submit for approval'}
+              onPress={handleSubmitProfile}
+              variant="primary"
+              loading={isSubmitting}
+              disabled={isSubmitting}
+              icon={<CircleCheck size={18} color={colors.textInverse} />}
+              style={styles.actionMain}
+            />
+          )}
         </View>
       </View>
     </ScreenContainer>
@@ -1810,13 +1739,37 @@ export default function AccountSetupScreen() {
 // ---------------------------------------------------------------------------
 
 const styles = StyleSheet.create({
+  // Pending (compact)
+  pendingWrap: { width: '100%', maxWidth: 480, alignSelf: 'center', paddingTop: spacing.xxl, paddingBottom: spacing.xl, gap: spacing.md },
+  pendingIcon: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', alignSelf: 'center' },
+  pendingTitle: { ...typography.headline, textAlign: 'center' },
+  pendingText: { ...typography.body, textAlign: 'center', marginTop: -spacing.xs },
+  pendingCard: { borderWidth: 1, borderRadius: radius.md, padding: spacing.md },
+  pStep: { flexDirection: 'row', gap: 12 },
+  pRail: { alignItems: 'center', width: 22 },
+  pDot: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  pCore: { width: 8, height: 8, borderRadius: 4 },
+  pLine: { width: 2, flex: 1, minHeight: 18, marginVertical: 2 },
+  pBody: { flex: 1, paddingBottom: spacing.sm },
+  pLabel: { ...typography.label, fontFamily: fontFamilies.sansSemiBold },
+  pSub: { ...typography.caption },
+  pToggle: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: 14 },
+  pDetails: { borderTopWidth: 1, paddingVertical: spacing.sm, gap: 6 },
+  pRow: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md },
+  pKey: { ...typography.bodySmall },
+  pVal: { ...typography.bodySmall, fontFamily: fontFamilies.sansSemiBold, flexShrink: 1, textAlign: 'right' },
+  pSignOut: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: spacing.sm },
+  progressTrack: { height: 3, borderRadius: 2, overflow: 'hidden' },
+  progressFill: { height: 3, borderRadius: 2 },
+  topLinks: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.sm },
+  topLinkRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  topLink: { ...typography.buttonSmall },
+  sectionHint: { ...typography.bodySmall, marginTop: -spacing.xs, marginBottom: spacing.md },
+  actionsRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm },
+  actionBack: { flex: 1 },
+  actionMain: { flex: 2 },
   // Containers
-  formContainer: {
-    paddingVertical: spacing.lg,
-    maxWidth: 640,
-    width: '100%',
-    alignSelf: 'center',
-  },
+  formContainer: { paddingTop: spacing.md, paddingBottom: spacing.xl, maxWidth: 560, width: '100%', alignSelf: 'center' },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -1855,9 +1808,7 @@ const styles = StyleSheet.create({
   },
 
   // Headers
-  header: {
-    marginBottom: spacing.lg,
-  },
+  header: { marginBottom: spacing.xl },
   headerBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1873,23 +1824,11 @@ const styles = StyleSheet.create({
     ...typography.caption,
     fontFamily: fontFamilies.sansSemiBold,
   },
-  headerTitle: {
-    ...typography.headline,
-    marginBottom: 4,
-  },
-  headerSubtitle: {
-    ...typography.bodySmall,
-  },
+  headerTitle: { ...typography.title, fontFamily: fontFamilies.sansBold, fontSize: 28, lineHeight: 34, letterSpacing: -0.5, marginBottom: 6 },
+  headerSubtitle: { ...typography.body },
 
   // Identity Card
-  identityCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: spacing.md,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    marginBottom: spacing.lg,
-  },
+  identityCard: { flexDirection: 'row', alignItems: 'center', paddingBottom: spacing.lg, marginBottom: spacing.xl, borderBottomWidth: StyleSheet.hairlineWidth },
   identityDetails: {
     marginLeft: spacing.md,
     flex: 1,
@@ -1926,32 +1865,12 @@ const styles = StyleSheet.create({
   },
 
   // Sections
-  sectionCard: {
-    borderRadius: radius.md,
-    borderWidth: 1,
-    padding: spacing.cardPadding,
-    marginBottom: spacing.lg,
-  },
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.md,
-  },
-  sectionIndicator: {
-    width: 4,
-    height: 18,
-    borderRadius: radius.full,
-    marginRight: spacing.sm,
-  },
-  stepHeader: {
-    alignItems: 'center',
-    marginBottom: spacing.md,
-    gap: spacing.xs,
-  },
-  stepCaption: {
-    ...typography.caption,
-  },
-  sectionTitle: { ...typography.sectionTitle },
+  sectionCard: { marginBottom: spacing.xl },
+  sectionHeaderRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.lg },
+  sectionIndicator: { display: 'none' },
+  stepHeader: { marginBottom: spacing.xl, gap: spacing.sm },
+  stepCaption: { ...typography.bodySmall, fontFamily: fontFamilies.sansSemiBold },
+  sectionTitle: { ...typography.title, fontFamily: fontFamilies.sansBold, fontSize: 20, lineHeight: 26 },
   subSectionTitle: {
     ...typography.bodyCompact,
     fontFamily: fontFamilies.sansSemiBold,
@@ -1959,10 +1878,8 @@ const styles = StyleSheet.create({
   },
 
   // Inputs
-  inputGroup: {
-    marginBottom: spacing.md,
-  },
-  inputLabel: { ...typography.bodySmall, fontFamily: fontFamilies.sansSemiBold, marginBottom: 6, lineHeight: undefined },
+  inputGroup: { marginBottom: spacing.lg },
+  inputLabel: { ...typography.label, fontFamily: fontFamilies.sansSemiBold, marginBottom: 8, lineHeight: undefined },
   optionalTag: {
     ...typography.caption,
     fontFamily: fontFamilies.sansRegular,
@@ -1978,13 +1895,13 @@ const styles = StyleSheet.create({
     ...typography.micro,
     fontFamily: fontFamilies.sansRegular,
     textAlign: 'right',
-    marginTop: 4,
+    marginTop: 6,
     fontVariant: ['tabular-nums'],
   },
   errorText: {
     ...typography.caption,
     fontFamily: fontFamilies.sansMedium,
-    marginTop: 4,
+    marginTop: 6,
   },
   twoColumnRow: {
     flexDirection: 'row',
@@ -2010,7 +1927,7 @@ const styles = StyleSheet.create({
     fontFamily: fontFamilies.sansSemiBold,
   },
   selectedChipsContainer: {
-    marginTop: spacing.sm,
+    marginTop: spacing.md,
   },
   selectedChipsLabel: {
     ...typography.caption,
@@ -2021,7 +1938,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 6,
-    marginTop: 4,
+    marginTop: spacing.sm + 4,
   },
   chip: {
     paddingHorizontal: 10,
@@ -2041,7 +1958,7 @@ const styles = StyleSheet.create({
   suggestedLabel: {
     ...typography.caption,
     fontFamily: fontFamilies.sansRegular,
-    marginBottom: 4,
+    marginBottom: 6,
   },
 
   // Banner & Feedback

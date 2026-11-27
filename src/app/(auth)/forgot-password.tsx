@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { AuthBackground } from '@/components/auth/AuthBackground';
 import { useRouter } from 'expo-router';
 import { Mail, ArrowLeft, KeyRound } from 'lucide-react-native';
 import { ICON_STROKE } from '@/constants/icons';
@@ -44,7 +45,7 @@ export default function ForgotPasswordScreen() {
   };
 
   return (
-    <ScreenContainer scrollable withKeyboardAvoidance>
+    <ScreenContainer scrollable withKeyboardAvoidance background={<AuthBackground />}>
       <View style={styles.container}>
         <View
           style={[

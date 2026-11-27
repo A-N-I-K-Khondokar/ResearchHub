@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { AuthBackground } from '@/components/auth/AuthBackground';
 import { useRouter } from 'expo-router';
 import { CheckCircle2 } from 'lucide-react-native';
 import { ICON_STROKE } from '@/constants/icons';
@@ -12,7 +13,7 @@ export default function ForgotPasswordSuccessScreen() {
   const { colors } = useTheme();
 
   return (
-    <ScreenContainer scrollable>
+    <ScreenContainer scrollable background={<AuthBackground />}>
       <View style={styles.container}>
         <View
           style={[

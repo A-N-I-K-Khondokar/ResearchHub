@@ -1,67 +1,67 @@
+/**
+ * src/components/onboarding/OnboardingHeader.tsx
+ *
+ * Minimal header for the welcome steps: Back · Skip, and one thin progress line.
+ */
+
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ViewStyle } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { ArrowLeft } from 'lucide-react-native';
-import { radius, spacing, typography } from '@/constants';
-import { useTheme } from '@/hooks/useTheme';
+import { COMPACT_FONT_SCALE } from '@/constants/typography';
+import { spacing, typography } from '@/constants';
+import { useTheme } from '@/context/ThemeContext';
+
+export const ONBOARDING_STEPS = ['Welcome', 'Your topics', 'Contact', 'Get started'] as const;
 
 export interface OnboardingHeaderProps {
+  /** 1-based step index. */
   step: number;
-  totalSteps?: number;
   onBack?: () => void;
-  showBack?: boolean;
-  style?: ViewStyle;
+  onSkip?: () => void;
 }
 
-export const OnboardingHeader: React.FC<OnboardingHeaderProps> = ({
-  step,
-  totalSteps = 5,
-  onBack,
-  showBack = true,
-  style,
-}) => {
+export const OnboardingHeader: React.FC<OnboardingHeaderProps> = ({ step, onBack, onSkip }) => {
   const { colors } = useTheme();
+  const total = ONBOARDING_STEPS.length;
 
   return (
-    <View style={[styles.container, style]}>
-      {showBack && onBack ? (
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={onBack}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          style={[styles.backButton, { backgroundColor: colors.surfaceSubtle }]}
-        >
-          <ArrowLeft size={20} color={colors.textPrimary} />
-        </TouchableOpacity>
-      ) : (
-        <View style={styles.placeholder} />
-      )}
-
-      <Text style={[styles.stepText, { color: colors.textSecondary }]}>
-        Step {step} of {totalSteps}
-      </Text>
-
-      <View style={styles.placeholder} />
+    <View style={styles.wrap}>
+      <View style={styles.row}>
+        {onBack ? (
+          <TouchableOpacity onPress={onBack} hitSlop={10} style={styles.side} accessibilityRole="button" accessibilityLabel="Back">
+            <ArrowLeft size={22} color={colors.textPrimary} />
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.side} />
+        )}
+        {onSkip ? (
+          <TouchableOpacity onPress={onSkip} hitSlop={10} style={[styles.side, styles.right]} accessibilityRole="button" accessibilityLabel="Skip setup">
+            <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.skip, { color: colors.textSecondary }]}>
+              Skip
+            </Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.side} />
+        )}
+      </View>
+      <View
+        style={[styles.track, { backgroundColor: colors.borderSubtle }]}
+        accessibilityRole="progressbar"
+        accessibilityValue={{ min: 0, max: total, now: step }}
+        accessibilityLabel={`Step ${step} of ${total}`}
+      >
+        <View style={[styles.fill, { backgroundColor: colors.primary, width: `${(step / total) * 100}%` }]} />
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    height: 48,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.screenHorizontal,
-  },
-  backButton: {
-    width: spacing.iconButtonSize,
-    height: spacing.iconButtonSize,
-    borderRadius: radius.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  placeholder: {
-    width: 36,
-  },
-  stepText: { ...typography.overline },
+  wrap: { gap: spacing.sm },
+  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', height: 44 },
+  side: { minWidth: 44, height: 44, justifyContent: 'center' },
+  right: { alignItems: 'flex-end' },
+  skip: { ...typography.buttonSmall, fontSize: 14 },
+  track: { height: 3, borderRadius: 2, overflow: 'hidden' },
+  fill: { height: 3, borderRadius: 2 },
 });

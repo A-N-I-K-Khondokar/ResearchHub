@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { AuthBackground } from '@/components/auth/AuthBackground';
 import { COMPACT_FONT_SCALE } from '@/constants/typography';
 import { useRouter } from 'expo-router';
 import { Mail, Lock } from 'lucide-react-native';
@@ -93,7 +94,7 @@ export default function LoginScreen() {
   };
 
   return (
-    <ScreenContainer scrollable withKeyboardAvoidance>
+    <ScreenContainer scrollable withKeyboardAvoidance background={<AuthBackground />}>
       <View style={styles.content}>
         {/* Header Branding */}
         <AuthHeader
