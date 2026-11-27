@@ -13,7 +13,6 @@ import {
   Clock,
   ShieldCheck,
   LogOut,
-  User as UserIcon,
   GraduationCap,
   BookOpen,
   Plus,
@@ -29,7 +28,9 @@ import {
   Mail,
   Building2,
   Check,
+  User as UserIcon,
 } from 'lucide-react-native';
+import { ICON_STROKE } from '@/constants/icons';
 import { ScreenContainer, Button, Avatar, OnboardingProgress } from '@/components';
 import { radius, spacing, typography, fontFamilies } from '@/constants';
 import { useTheme } from '@/context/ThemeContext';
@@ -498,7 +499,7 @@ export default function AccountSetupScreen() {
                 },
               ]}
             >
-              <CircleAlert size={40} color={colors.error} />
+              <CircleAlert size={40} color={colors.error} strokeWidth={ICON_STROKE.light} />
             </View>
 
             <Text style={[styles.title, { color: colors.textPrimary }]}>
@@ -563,7 +564,7 @@ export default function AccountSetupScreen() {
                 },
               ]}
             >
-              <Clock size={40} color={colors.accent} />
+              <Clock size={40} color={colors.accent} strokeWidth={ICON_STROKE.light} />
             </View>
 
             <Text style={[styles.title, { color: colors.textPrimary }]}>
@@ -765,7 +766,7 @@ export default function AccountSetupScreen() {
                 },
               ]}
             >
-              <CircleAlert size={40} color={colors.error} />
+              <CircleAlert size={40} color={colors.error} strokeWidth={ICON_STROKE.light} />
             </View>
 
             <Text style={[styles.title, { color: colors.textPrimary }]}>
@@ -880,7 +881,7 @@ export default function AccountSetupScreen() {
                 },
               ]}
             >
-              <TriangleAlert size={40} color={colors.error} />
+              <TriangleAlert size={40} color={colors.error} strokeWidth={ICON_STROKE.light} />
             </View>
 
             <Text style={[styles.title, { color: colors.textPrimary }]}>

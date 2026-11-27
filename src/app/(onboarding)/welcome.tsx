@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ArrowRight, FlaskConical, Network, BookOpen, Sparkles } from 'lucide-react-native';
+import { ArrowRight, FlaskConical, Network, BookOpen, GraduationCap } from 'lucide-react-native';
+import { ICON_STROKE } from '@/constants/icons';
 import { ScreenContainer, Button, OnboardingProgress } from '@/components';
 import { radius, spacing, typography } from '@/constants';
 import { useTheme } from '@/context/ThemeContext';
@@ -38,7 +39,7 @@ export default function OnboardingWelcomeScreen() {
                 },
               ]}
             >
-              <Sparkles size={48} color={colors.primary} />
+              <GraduationCap size={48} color={colors.primary} strokeWidth={ICON_STROKE.light} />
             </View>
           </View>
 

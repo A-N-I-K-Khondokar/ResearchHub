@@ -22,7 +22,8 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { BellOff, Check, CheckCheck, PartyPopper, UserPlus, Users, XCircle } from 'lucide-react-native';
+import { BadgeCheck, BellOff, Check, CheckCheck, UserPlus, Users, XCircle } from 'lucide-react-native';
+import { ICON_STROKE } from '@/constants/icons';
 import { spacing, radius, typography, fontFamilies } from '@/constants';
 import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
@@ -281,7 +282,7 @@ export default function NotificationsTab() {
   const typeBadge = (type: InAppNotification['type']) => {
     const map: Record<string, { bg: string; Icon: typeof Users }> = {
       collab_request: { bg: colors.primary, Icon: Users },
-      collab_accepted: { bg: colors.success, Icon: PartyPopper },
+      collab_accepted: { bg: colors.success, Icon: BadgeCheck },
       collab_declined: { bg: colors.textMuted, Icon: XCircle },
       connection_request: { bg: colors.primary, Icon: UserPlus },
       connection_accepted: { bg: colors.success, Icon: Check },
@@ -289,7 +290,7 @@ export default function NotificationsTab() {
     const { bg, Icon } = map[type] ?? map.connection_request;
     return (
       <View style={[styles.typeBadge, { backgroundColor: bg, borderColor: colors.surface }]}>
-        <Icon size={10} color="#FFFFFF" strokeWidth={2.4} />
+        <Icon size={10} color="#FFFFFF" strokeWidth={ICON_STROKE.emphasis} />
       </View>
     );
   };
@@ -302,7 +303,7 @@ export default function NotificationsTab() {
         : item.type === 'collab_request'
           ? `applied to join "${item.workTitle}" as ${item.role}.`
           : item.type === 'collab_accepted'
-            ? `accepted you to "${item.workTitle}" as ${item.role}. 🎉`
+            ? `accepted you to "${item.workTitle}" as ${item.role}.`
             : `declined your application to "${item.workTitle}".`;
 
   const smallBtn = (label: string, onPress: () => void, primary = false, icon?: React.ReactNode, disabled = false) => (
@@ -325,7 +326,7 @@ export default function NotificationsTab() {
 
   const statusText = (text: string, ok: boolean) => (
     <View style={styles.statusRow}>
-      {ok ? <Check size={14} color={colors.success} strokeWidth={2.4} /> : null}
+      {ok ? <Check size={14} color={colors.success} /> : null}
       <Text style={[styles.statusText, { color: ok ? colors.success : colors.textMuted }]}>{text}</Text>
     </View>
   );
@@ -506,7 +507,7 @@ export default function NotificationsTab() {
               accessibilityRole="button"
               accessibilityLabel="Mark all as read"
             >
-              <CheckCheck size={14} color={colors.primary} strokeWidth={2.2} />
+              <CheckCheck size={14} color={colors.primary} />
               <Text style={[styles.headerBtnText, { color: colors.primary }]}>Mark all read</Text>
             </TouchableOpacity>
           ) : null
@@ -598,7 +599,7 @@ export default function NotificationsTab() {
           ) : (
             <View style={styles.empty}>
               <View style={[styles.emptyIcon, { backgroundColor: colors.surfaceSubtle, borderColor: colors.borderSubtle }]}>
-                <BellOff size={30} color={colors.textSecondary} strokeWidth={1.8} />
+                <BellOff size={30} color={colors.textSecondary} strokeWidth={ICON_STROKE.light} />
               </View>
               <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>
                 {loadError ? 'Could not load notifications' : 'Nothing here'}

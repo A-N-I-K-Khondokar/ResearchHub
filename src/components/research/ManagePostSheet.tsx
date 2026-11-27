@@ -9,7 +9,7 @@
 import React from 'react';
 import { Modal, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Check, ChevronRight, Pencil, Send, Settings2, X } from 'lucide-react-native';
+import { Check, CheckCircle2, ChevronRight, Pencil, Send, Settings2, X, XCircle } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { Avatar } from '@/components/common/Avatar';
 import { SoftDangerButton } from '@/components/common/SoftDangerButton';
@@ -208,14 +208,16 @@ export const ManagePostSheet: React.FC<ManagePostSheetProps> = ({
                           </TouchableOpacity>
                         </View>
                       ) : (
-                        <Text
-                          style={[
-                            styles.rowSub,
-                            { color: r.status === 'accepted' ? colors.success : colors.textMuted, marginTop: spacing.xs },
-                          ]}
-                        >
-                          {r.status === 'accepted' ? '✓ Accepted — on your team' : 'Declined'}
-                        </Text>
+                        <View style={styles.statusRow}>
+                          {r.status === 'accepted' ? (
+                            <CheckCircle2 size={14} color={colors.success} />
+                          ) : (
+                            <XCircle size={14} color={colors.textMuted} />
+                          )}
+                          <Text style={[styles.rowSub, { color: r.status === 'accepted' ? colors.success : colors.textMuted }]}>
+                            {r.status === 'accepted' ? 'Accepted — on your team' : 'Declined'}
+                          </Text>
+                        </View>
                       )}
                     </View>
                   ))
@@ -283,5 +285,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   actionText: { ...typography.label, fontFamily: fontFamilies.sansSemiBold },
+  statusRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: spacing.xs },
   danger: { borderTopWidth: 1, paddingTop: spacing.md, marginTop: spacing.sm },
 });

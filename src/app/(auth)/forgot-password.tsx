@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Mail, ArrowLeft, KeyRound } from 'lucide-react-native';
+import { ICON_STROKE } from '@/constants/icons';
 import { ScreenContainer, Button, AuthInput } from '@/components';
 import { radius, spacing, typography } from '@/constants';
 import { useTheme } from '@/context/ThemeContext';
@@ -67,7 +68,7 @@ export default function ForgotPasswordScreen() {
               },
             ]}
           >
-            <KeyRound size={32} color={colors.primary} />
+            <KeyRound size={32} color={colors.primary} strokeWidth={ICON_STROKE.light} />
           </View>
 
           {/* Title & Description */}

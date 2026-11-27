@@ -23,6 +23,8 @@ import {
   Users,
   UserPlus,
   X,
+  Star,
+  UserCheck,
 } from 'lucide-react-native';
 import { spacing, radius, typography, fontFamilies } from '../../constants';
 import { useTheme } from '@/context/ThemeContext';
@@ -241,9 +243,12 @@ export default function MyNetworkScreen() {
 
   const sharedTag = (shared: string[]) =>
     shared.length ? (
-      <Text style={[styles.shared, { color: colors.success }]} numberOfLines={1}>
-        ✓ {shared.length} shared · {shared.slice(0, 2).join(', ')}
-      </Text>
+      <View style={styles.sharedRow}>
+        <Star size={11} color={colors.success} fill={colors.success} />
+        <Text style={[styles.shared, { color: colors.success, flexShrink: 1 }]} numberOfLines={1}>
+          {shared.length} shared · {shared.slice(0, 2).join(', ')}
+        </Text>
+      </View>
     ) : null;
 
   const statusChip = (status: CollabRequest['status']) => {
@@ -495,7 +500,7 @@ export default function MyNetworkScreen() {
       </View>
 
       <View style={styles.block}>
-        <Title icon={<Sparkles size={16} color={colors.primary} />} text={`Teams I'm on · ${joinedWorks.length}`} />
+        <Title icon={<UserCheck size={16} color={colors.primary} />} text={`Teams I'm on · ${joinedWorks.length}`} />
         {joinedWorks.length === 0 ? (
           <EmptyBox
             text="Apply to an open collaboration to join a team."
@@ -690,6 +695,7 @@ const styles = StyleSheet.create({
   name: { ...typography.label, fontFamily: fontFamilies.sansSemiBold },
   meta: { ...typography.caption },
   shared: { ...typography.micro, fontFamily: fontFamilies.sansSemiBold },
+  sharedRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   actions: { flexDirection: 'row', gap: spacing.xs },
   btn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, height: 32, borderRadius: radius.button, borderWidth: 1 },
   btnText: { ...typography.caption, fontSize: 13, fontFamily: fontFamilies.sansSemiBold },

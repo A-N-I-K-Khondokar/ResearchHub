@@ -112,7 +112,7 @@ export const DialogProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             ]}
           >
             <View style={[styles.iconCircle, { backgroundColor: iconBg }]}>
-              <Icon size={24} color={accent} strokeWidth={2.2} />
+              <Icon size={24} color={accent} />
             </View>
             <Text style={[styles.title, { color: colors.textPrimary }]}>{dialog?.title}</Text>
             {dialog?.message ? (

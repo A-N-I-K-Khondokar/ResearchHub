@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ViewStyle } from 'react-native';
-import { Search, Inbox } from 'lucide-react-native';
+import { Search } from 'lucide-react-native';
+import { ICON_STROKE } from '@/constants/icons';
 import { spacing, radius, typography } from '@/constants';
 import { useTheme } from '@/context/ThemeContext';
 import { Button } from '../common/Button';
@@ -36,7 +37,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
       ]}
     >
       <View style={[styles.iconContainer, { backgroundColor: colors.primaryMuted }]}>
-        {icon || <Search size={28} color={colors.primary} />}
+        {icon || <Search size={28} color={colors.primary} strokeWidth={ICON_STROKE.light} />}
       </View>
       <Text style={[styles.title, { color: colors.textPrimary }]}>{title}</Text>
       {description ? (

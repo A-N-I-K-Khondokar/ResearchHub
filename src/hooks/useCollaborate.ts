@@ -30,10 +30,14 @@ export interface CollaborationPostLike {
   team?: { uid: string }[];
 }
 
+export type CollaborateState = 'own' | 'member' | 'declined' | 'pending' | 'closed' | 'open';
+
 export interface CollaborateProps {
   onCollaboratePress?: () => void;
   collaborateLabel?: string;
   collaborateDisabled?: boolean;
+  /** Drives the button icon (see collabStateIcon). */
+  collaborateState?: CollaborateState;
 }
 
 export function useCollaborate() {
@@ -47,20 +51,21 @@ export function useCollaborate() {
       if (!authorUid) return {};
 
       if (authorUid === firebaseUser?.uid) {
-        return { collaborateLabel: 'Your collaboration post', collaborateDisabled: true, onCollaboratePress: () => {} };
+        return { collaborateLabel: 'Your collaboration post', collaborateState: 'own', collaborateDisabled: true, onCollaboratePress: () => {} };
       }
 
       const application = applicationFor(post.id);
       const onTeam = (post.team ?? []).some((m) => m.uid === firebaseUser?.uid);
       if (onTeam || application?.status === 'accepted') {
-        return { collaborateLabel: "You're on the team ✓", collaborateDisabled: true, onCollaboratePress: () => {} };
+        return { collaborateLabel: "You're on the team", collaborateState: 'member', collaborateDisabled: true, onCollaboratePress: () => {} };
       }
       if (application?.status === 'declined') {
-        return { collaborateLabel: 'Application declined', collaborateDisabled: true, onCollaboratePress: () => {} };
+        return { collaborateLabel: 'Application declined', collaborateState: 'declined', collaborateDisabled: true, onCollaboratePress: () => {} };
       }
       if (application?.status === 'pending') {
         return {
           collaborateLabel: 'Application sent · Tap to withdraw',
+          collaborateState: 'pending',
           onCollaboratePress: async () => {
             const ok = await confirmAction({
               title: 'Withdraw application?',
@@ -73,10 +78,11 @@ export function useCollaborate() {
         };
       }
       if (post.collabStatus === 'closed') {
-        return { collaborateLabel: 'Team formed', collaborateDisabled: true, onCollaboratePress: () => {} };
+        return { collaborateLabel: 'Team formed', collaborateState: 'closed', collaborateDisabled: true, onCollaboratePress: () => {} };
       }
       return {
         collaborateLabel: "I'm interested · Apply",
+        collaborateState: 'open',
         onCollaboratePress: () =>
           openApply({
             id: post.id,

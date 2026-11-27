@@ -12,6 +12,7 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Check, ChevronRight, Clock, FileText, Star, UserPlus, Users } from 'lucide-react-native';
+import { TopicIcon } from '@/components/common/TopicIcon';
 import { useTheme } from '@/context/ThemeContext';
 import { Avatar } from '@/components/common/Avatar';
 import type { CurrentWork, UserProfile } from '@/types';
@@ -115,9 +116,12 @@ export const CollabCard: React.FC<{
       </View>
 
       {hint ? (
-        <Text style={[styles.hint, { color: colors.success }]} numberOfLines={1}>
-          ✓ {hint}
-        </Text>
+        <View style={styles.hintRow}>
+          <Star size={12} color={colors.success} fill={colors.success} />
+          <Text style={[styles.hint, { color: colors.success, flexShrink: 1 }]} numberOfLines={1}>
+            {hint}
+          </Text>
+        </View>
       ) : null}
 
       <View style={styles.collabBottom}>
@@ -240,11 +244,14 @@ export const TopicCard: React.FC<{
       accessibilityLabel={`${name}${mine ? ', one of your interests' : ''}: ${researchers} researchers, ${posts} posts`}
     >
       <View style={styles.topicTop}>
-        <Text style={[styles.topicName, { color: mine ? colors.primary : colors.textPrimary }]} numberOfLines={2}>
-          {name}
-        </Text>
+        <View style={[styles.topicIcon, { backgroundColor: mine ? colors.surface : colors.primaryMuted }]}>
+          <TopicIcon name={name} size={16} color={colors.primary} />
+        </View>
         {mine ? <Star size={13} color={colors.primary} fill={colors.primary} /> : null}
       </View>
+      <Text style={[styles.topicName, { color: mine ? colors.primary : colors.textPrimary }]} numberOfLines={2}>
+        {name}
+      </Text>
       <View style={styles.topicCounts}>
         <Users size={12} color={colors.textMuted} />
         <Text style={[styles.micro, { color: colors.textSecondary }]}>{researchers}</Text>
@@ -299,6 +306,7 @@ const styles = StyleSheet.create({
   micro: { ...typography.micro },
   caption: { ...typography.caption },
   hint: { ...typography.micro, fontFamily: fontFamilies.sansSemiBold },
+  hintRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
 
   collabCard: { width: 264, borderWidth: 1, borderRadius: radius.md, padding: spacing.md, gap: spacing.xs },
   collabTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
@@ -328,9 +336,10 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
   },
 
-  topicCard: { flexBasis: '48%', flexGrow: 1, borderWidth: 1, borderRadius: radius.md, padding: spacing.sm, minHeight: 72, justifyContent: 'space-between' },
-  topicTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 4 },
-  topicName: { ...typography.label, fontFamily: fontFamilies.sansSemiBold, flex: 1 },
+  topicCard: { flexBasis: '48%', flexGrow: 1, borderWidth: 1, borderRadius: radius.md, padding: spacing.sm, minHeight: 72, justifyContent: 'space-between', gap: 6 },
+  topicTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  topicIcon: { width: 30, height: 30, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
+  topicName: { ...typography.label, fontFamily: fontFamilies.sansSemiBold },
   topicCounts: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: spacing.xs },
 
   prompt: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderWidth: 1, borderRadius: radius.md, padding: spacing.md },

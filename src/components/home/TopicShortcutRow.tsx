@@ -3,12 +3,13 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-nati
 import { Topic } from '../../types';
 import { spacing, radius, typography, fontFamilies, shadows } from '../../constants';
 import { useTheme } from '@/context/ThemeContext';
+import { TopicIcon } from '@/components/common/TopicIcon';
 
 interface TopicShortcutRowProps {
   topics: Topic[];
   selectedTopicId?: string | null;
   onSelectTopic?: (topic: Topic) => void;
-  /** Topic ids to mark with ★ (e.g. the user's own interests). */
+  /** Topic ids to highlight (e.g. the user's own interests). */
   markedIds?: Set<string>;
 }
 
@@ -28,6 +29,7 @@ export const TopicShortcutRow: React.FC<TopicShortcutRowProps> = ({
     >
       {topics.map((topic) => {
         const isSelected = selectedTopicId === topic.id;
+        const isMarked = !isSelected && Boolean(markedIds?.has(topic.id));
         const count = topic.activeCount ?? topic.currentWorkCount;
 
         return (
@@ -41,6 +43,10 @@ export const TopicShortcutRow: React.FC<TopicShortcutRowProps> = ({
                 backgroundColor: colors.surface,
                 borderColor: colors.borderSubtle,
               },
+              isMarked && {
+                backgroundColor: colors.primaryMuted,
+                borderColor: colors.primaryLight,
+              },
               isSelected && {
                 backgroundColor: colors.primary,
                 borderColor: colors.primary,
@@ -48,19 +54,23 @@ export const TopicShortcutRow: React.FC<TopicShortcutRowProps> = ({
             ]}
             accessibilityRole="button"
             accessibilityState={{ selected: isSelected }}
-            accessibilityLabel={`Filter by ${topic.name}`}
+            accessibilityLabel={`Filter by ${topic.name}${isMarked ? ', one of your interests' : ''}`}
           >
-            {topic.icon ? (
-              <Text style={styles.icon}>{topic.icon}</Text>
-            ) : null}
+            <View style={styles.icon}>
+              <TopicIcon
+                iconName={topic.iconName}
+                name={topic.name}
+                size={14}
+                color={isSelected ? colors.textInverse : isMarked ? colors.primary : colors.textSecondary}
+              />
+            </View>
             <Text
               style={[
                 styles.label,
-                { color: isSelected ? colors.textInverse : colors.textPrimary },
-                isSelected && styles.labelSelected,
+                { color: isSelected ? colors.textInverse : isMarked ? colors.primary : colors.textPrimary },
+                (isSelected || isMarked) && styles.labelSelected,
               ]}
             >
-              {markedIds?.has(topic.id) ? '★ ' : ''}
               {topic.name}
             </Text>
             {count !== undefined && count > 0 ? (
@@ -105,7 +115,6 @@ const styles = StyleSheet.create({
     ...shadows.subtle,
   },
   icon: {
-    fontSize: 14,
     marginRight: 6,
   },
   label: {

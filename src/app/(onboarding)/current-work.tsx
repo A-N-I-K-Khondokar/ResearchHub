@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ArrowRight, Info, UploadCloud, Check } from 'lucide-react-native';
+import { ICON_STROKE } from '@/constants/icons';
 import {
   ScreenContainer,
   Button,
@@ -123,7 +124,7 @@ export default function CurrentWorkScreen() {
               ) : isExtracted ? (
                 <Check
                   size={16}
-                  strokeWidth={2.4}
+                  strokeWidth={ICON_STROKE.emphasis}
                   color={colors.secondary}
                 />
               ) : (

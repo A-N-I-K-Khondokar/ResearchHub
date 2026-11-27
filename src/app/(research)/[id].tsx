@@ -39,16 +39,20 @@ import {
   Pencil,
   Send,
   Settings2,
+  Share2,
   UserPlus,
   Users,
 } from 'lucide-react-native';
+import { ICON_STROKE } from '@/constants/icons';
 import { spacing, radius, typography, fontFamilies, shadows } from '../../constants';
+import { collabStateIcon } from '@/components/common/collabStateIcon';
 import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import { useContactCard } from '@/context/ContactCardContext';
 import { Avatar } from '../../components/common/Avatar';
 import { ScreenHeader, ScreenHeaderAction } from '../../components/layout/ScreenHeader';
+import { Share as RNShare } from 'react-native';
 import { DetailSkeleton } from '../../components/feedback/Skeleton';
 import { Button } from '../../components/common/Button';
 import { ContactSheet, type ContactPerson } from '../../components/common/ContactSheet';
@@ -56,7 +60,7 @@ import { EditWorkSheet } from '@/components/research/EditWorkSheet';
 import { ManagePostSheet } from '@/components/research/ManagePostSheet';
 import { StageProgress } from '@/components/research/StageProgress';
 import {
-  getResearchWork,
+  subscribeResearchWork,
   deleteResearchWork,
   formatWorkDate,
   getPublishedWorksByAuthor,
@@ -68,10 +72,31 @@ import type { ResearchWork } from '@/types/research.types';
 import type { CollabRequest } from '@/types/collab.types';
 import { useConnections } from '@/hooks/useConnections';
 import { useCollaborate } from '@/hooks/useCollaborate';
+import { useCollab } from '@/context/CollabContext';
+import { useResearchDirectory } from '@/hooks/useResearchDirectory';
+import { formatRelativeDate } from '@/utils/date';
+import { tagMatchKey } from '@/utils/researchWork';
+import { TOPIC_TAXONOMY } from '@/utils/search';
 import { useSavedItems } from '@/hooks/useSavedItems';
 import { confirmAction } from '@/utils/dialogs';
 
-type LoadState = 'loading' | 'ready' | 'not-found' | 'error';
+type LoadState = 'loading' | 'ready' | 'not-found' | 'removed' | 'error';
+
+/** Splits text into plain parts and tappable http(s) links. */
+const URL_RE = /(https?:\/\/[^\s)]+)/g;
+function linkParts(text: string): { text: string; url?: string }[] {
+  const parts: { text: string; url?: string }[] = [];
+  let last = 0;
+  for (const m of text.matchAll(URL_RE)) {
+    const start = m.index ?? 0;
+    if (start > last) parts.push({ text: text.slice(last, start) });
+    const url = m[0].replace(/[.,;:!?]+$/, '');
+    parts.push({ text: url, url });
+    last = start + url.length;
+  }
+  if (last < text.length) parts.push({ text: text.slice(last) });
+  return parts;
+}
 
 const DESCRIPTION_PREVIEW_LINES = 5;
 const DESCRIPTION_LONG = 280;
@@ -108,40 +133,68 @@ export default function ResearchDetailScreen() {
   // Data
   // -------------------------------------------------------------------------
 
-  const load = useCallback(
-    async (silent = false) => {
-      if (!id) {
-        setState('not-found');
-        return;
-      }
-      if (!silent) setState('loading');
-      try {
-        const result = await getResearchWork(id);
-        setWork(result);
-        setState(result ? 'ready' : 'not-found');
-        if (result) {
-          getPublishedWorksByAuthor(result.authorUid)
-            .then((works) => setMoreWorks(works.filter((w) => w.id !== result.id).slice(0, 6)))
-            .catch(() => setMoreWorks([]));
-        }
-      } catch (err: any) {
-        // Unknown / legacy IDs and inaccessible drafts are denied by the rules.
-        if (!silent) setState(err?.code === 'permission-denied' ? 'not-found' : 'error');
-        else toast.show('Could not refresh. Check your connection.', 'error');
-      }
-    },
-    [id, toast],
-  );
-
+  // Live post: edits, stage, team, Team formed and deletion appear immediately
+  const [liveKey, setLiveKey] = useState(0);
+  const wasReady = React.useRef(false);
   useEffect(() => {
-    load();
-  }, [load]);
+    if (!id) {
+      setState('not-found');
+      return;
+    }
+    setState((s) => (s === 'ready' ? s : 'loading'));
+    return subscribeResearchWork(
+      id,
+      (result) => {
+        setRefreshing(false);
+        if (result) {
+          wasReady.current = true;
+          setWork(result);
+          setState('ready');
+        } else {
+          setState(wasReady.current ? 'removed' : 'not-found');
+          setWork(null);
+        }
+      },
+      (err) => {
+        setRefreshing(false);
+        // Unknown / legacy IDs and inaccessible drafts are denied by the rules.
+        setState(err?.code === 'permission-denied' ? (wasReady.current ? 'removed' : 'not-found') : 'error');
+      },
+    );
+  }, [id, liveKey]);
+  const load = useCallback(() => setLiveKey((k) => k + 1), []);
 
-  const onRefresh = async () => {
+  // "More from <author>" once per author
+  const authorUid = work?.authorUid;
+  useEffect(() => {
+    if (!authorUid) return;
+    getPublishedWorksByAuthor(authorUid)
+      .then((works) => setMoreWorks(works.filter((w) => w.id !== id).slice(0, 6)))
+      .catch(() => setMoreWorks([]));
+  }, [authorUid, id]);
+
+  const onRefresh = () => {
     setRefreshing(true);
-    await load(true);
-    setRefreshing(false);
+    load();
+    setTimeout(() => setRefreshing(false), 1500);
   };
+
+  // Related research: other authors, overlapping topics (from the shared directory)
+  const directory = useResearchDirectory();
+  const related = React.useMemo(() => {
+    if (!work || work.tags.length === 0) return [];
+    const keys = new Set(work.tags.map(tagMatchKey));
+    return directory.works
+      .filter((w) => w.id !== work.id && w.authorUid !== work.authorUid)
+      .map((w) => ({ w, n: w.tags.filter((t) => keys.has(tagMatchKey(t))).length }))
+      .filter((x) => x.n > 0)
+      .sort((a, b) => b.n - a.n)
+      .slice(0, 6)
+      .map((x) => x.w);
+  }, [work, directory.works]);
+
+  // My own application to this post (applicants see its status here)
+  const { applicationFor, withdraw } = useCollab();
 
   const myUid = firebaseUser?.uid ?? '';
   const isOwner = Boolean(work && myUid && work.authorUid === myUid);
@@ -189,7 +242,6 @@ export default function ResearchDetailScreen() {
         accept ? 'success' : 'info',
       );
       if (accept) {
-        await load(true);
         if (hasMyCard === false) {
           setManageOpen(false);
           setTimeout(() => openContactEditor(), 900);
@@ -274,6 +326,40 @@ export default function ResearchDetailScreen() {
     }
   };
 
+  const shareWork = async () => {
+    if (!work) return;
+    const summary = work.description.length > 160 ? `${work.description.slice(0, 157)}…` : work.description;
+    const kind = isCollabPost ? `Collaboration — looking for ${work.lookingFor.join(', ')}` : `Research · ${work.stage}`;
+    try {
+      await RNShare.share({
+        title: work.title,
+        message: `${work.title}\nby ${work.authorName} · ${kind}\n\n${summary}\n\nOpen in CSE Research Hub: cseresearchhub://research/${work.id}`,
+      });
+    } catch {
+      // user dismissed / share unavailable
+    }
+  };
+
+  /** Tags open the matching topic page (or a search when it isn't a known topic). */
+  const openTag = (tag: string) => {
+    const key = tagMatchKey(tag);
+    const topic = TOPIC_TAXONOMY.find((t) => tagMatchKey(t.name) === key);
+    if (topic) router.push({ pathname: '/(explore)/topic-researchers' as any, params: { topic: topic.name } });
+    else router.push({ pathname: '/(explore)/search' as any, params: { q: tag.replace(/^#/, '') } });
+  };
+
+  const withdrawMine = async () => {
+    const mine = work ? applicationFor(work.id) : undefined;
+    if (!mine) return;
+    const ok = await confirmAction({
+      title: 'Withdraw application?',
+      message: `Withdraw your application to "${mine.workTitle}" as ${mine.role}?`,
+      confirmLabel: 'Withdraw',
+      destructive: true,
+    });
+    if (ok) await withdraw(mine);
+  };
+
   const openLink = (url: string) => Linking.openURL(url).catch(() => toast.show('Unable to open this link', 'error'));
   const openProfile = (uid: string) =>
     router.push((uid === myUid ? '/(tabs)/profile' : `/(profile)/${uid}`) as any);
@@ -304,13 +390,15 @@ export default function ResearchDetailScreen() {
     return (
       <View style={styles.centered}>
         <View style={[styles.iconContainer, { backgroundColor: colors.primaryMuted }]}>
-          <BookOpen size={36} color={colors.primary} />
+          <BookOpen size={36} color={colors.primary} strokeWidth={ICON_STROKE.light} />
         </View>
         <Text style={[styles.statusTitle, { color: colors.textPrimary }]}>
-          {state === 'not-found' ? 'Research not available' : 'Something went wrong'}
+          {state === 'removed' ? 'This post was removed' : state === 'not-found' ? 'Research not available' : 'Something went wrong'}
         </Text>
         <Text style={[styles.statusText, { color: colors.textSecondary }]}>
-          {state === 'not-found'
+          {state === 'removed'
+            ? 'The author deleted it or it is no longer shared.'
+            : state === 'not-found'
             ? 'This post may have been removed, or it is not shared with you.'
             : 'We could not load this post. Check your connection and try again.'}
         </Text>
@@ -401,6 +489,7 @@ export default function ResearchDetailScreen() {
     } else if (isCollabPost) {
       const action = collaborate(work);
       const disabled = Boolean(action.collaborateDisabled);
+      const CollabIcon = collabStateIcon(action.collaborateState);
       primary = (
         <TouchableOpacity
           onPress={action.onCollaboratePress}
@@ -414,7 +503,7 @@ export default function ResearchDetailScreen() {
           accessibilityRole="button"
           accessibilityLabel={action.collaborateLabel}
         >
-          <UserPlus size={17} color={disabled ? colors.textMuted : '#FFFFFF'} />
+          <CollabIcon size={17} color={disabled ? colors.textMuted : '#FFFFFF'} />
           <Text style={[styles.primaryText, disabled && { color: colors.textMuted }]} numberOfLines={1}>
             {action.collaborateLabel}
           </Text>
@@ -493,17 +582,24 @@ export default function ResearchDetailScreen() {
       <ScreenHeader
         title="Research Details"
         right={
-          state === 'ready' && work && isOwner ? (
-            <ScreenHeaderAction
-              onPress={() => setManageOpen(true)}
-              label={pendingCount ? `Manage post, ${pendingCount} applicants waiting` : 'Manage post'}
-              icon={
-                <View>
-                  <MoreHorizontal size={22} color={colors.textPrimary} />
-                  {pendingCount ? <View style={[styles.dot, { backgroundColor: colors.error, borderColor: colors.surface }]} /> : null}
-                </View>
-              }
-            />
+          state === 'ready' && work ? (
+            <>
+              {work.status === 'published' ? (
+                <ScreenHeaderAction onPress={shareWork} label="Share this post" icon={<Share2 size={20} color={colors.textPrimary} />} />
+              ) : null}
+              {isOwner ? (
+                <ScreenHeaderAction
+                  onPress={() => setManageOpen(true)}
+                  label={pendingCount ? `Manage post, ${pendingCount} applicants waiting` : 'Manage post'}
+                  icon={
+                    <View>
+                      <MoreHorizontal size={22} color={colors.textPrimary} />
+                      {pendingCount ? <View style={[styles.dot, { backgroundColor: colors.error, borderColor: colors.surface }]} /> : null}
+                    </View>
+                  }
+                />
+              ) : null}
+            </>
           ) : null
         }
       />
@@ -554,7 +650,12 @@ export default function ResearchDetailScreen() {
                     <Text style={[styles.typeText, { color: colors.warning }]}>Draft</Text>
                   </View>
                 ) : null}
-                <Text style={[styles.date, { color: colors.textMuted }]}>{formatWorkDate(work.createdAt)}</Text>
+                <Text style={[styles.date, { color: colors.textMuted }]}>
+                  {formatWorkDate(work.createdAt)}
+                  {(work.updatedAt?.toMillis?.() ?? 0) - (work.createdAt?.toMillis?.() ?? 0) > 60_000
+                    ? ` · Edited ${formatRelativeDate(work.updatedAt)}`
+                    : ''}
+                </Text>
               </View>
 
               <Text style={[styles.title, { color: colors.textPrimary }]}>{work.title}</Text>
@@ -593,7 +694,20 @@ export default function ResearchDetailScreen() {
                 style={[styles.description, { color: colors.textPrimary }]}
                 numberOfLines={expanded || !longDescription ? undefined : DESCRIPTION_PREVIEW_LINES}
               >
-                {work.description}
+                {linkParts(work.description).map((p, i) =>
+                  p.url ? (
+                    <Text
+                      key={i}
+                      onPress={() => openLink(p.url!)}
+                      style={{ color: colors.primary, textDecorationLine: 'underline' }}
+                      accessibilityRole="link"
+                    >
+                      {p.text}
+                    </Text>
+                  ) : (
+                    <Text key={i}>{p.text}</Text>
+                  ),
+                )}
               </Text>
               {longDescription ? (
                 <TouchableOpacity onPress={() => setExpanded((v) => !v)} style={styles.readMore} accessibilityRole="button">
@@ -605,11 +719,17 @@ export default function ResearchDetailScreen() {
               {work.tags.length > 0 || work.externalUrl ? (
                 <View style={styles.tagsRow}>
                   {work.tags.map((tag) => (
-                    <View key={tag} style={[styles.tag, { backgroundColor: colors.surfaceSubtle }]}>
+                    <TouchableOpacity
+                      key={tag}
+                      onPress={() => openTag(tag)}
+                      style={[styles.tag, { backgroundColor: colors.surfaceSubtle }]}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Topic ${tag}`}
+                    >
                       <Text style={[styles.tagText, { color: colors.textSecondary }]} numberOfLines={1}>
                         {tag}
                       </Text>
-                    </View>
+                    </TouchableOpacity>
                   ))}
                   {work.externalUrl ? (
                     <TouchableOpacity
@@ -651,6 +771,45 @@ export default function ResearchDetailScreen() {
                       </View>
                     </>
                   ) : null}
+
+                  {/* Your application (applicants only) */}
+                  {(() => {
+                    const mine = !isOwner ? applicationFor(work.id) : undefined;
+                    if (!mine) return null;
+                    const tone =
+                      mine.status === 'accepted'
+                        ? { fg: colors.success, bg: colors.successLight, text: 'Accepted — you are on the team' }
+                        : mine.status === 'declined'
+                          ? { fg: colors.textMuted, bg: colors.surfaceSubtle, text: 'Declined' }
+                          : { fg: colors.primary, bg: colors.primaryMuted, text: 'Pending review' };
+                    return (
+                      <View style={[styles.myApp, { backgroundColor: colors.surface, borderColor: colors.primaryLight }]}>
+                        <View style={styles.myAppHead}>
+                          <Text style={[styles.myAppTitle, { color: colors.textPrimary }]}>Your application</Text>
+                          <View style={[styles.myAppChip, { backgroundColor: tone.bg }]}>
+                            <Text style={[styles.myAppChipText, { color: tone.fg }]}>{tone.text}</Text>
+                          </View>
+                        </View>
+                        <Text style={[styles.muted, { color: colors.textSecondary }]}>
+                          As {mine.role} · sent {formatRelativeDate(mine.createdAt)}
+                        </Text>
+                        {mine.message ? (
+                          <Text style={[styles.myAppMsg, { color: colors.textPrimary, backgroundColor: colors.surfaceSubtle }]} numberOfLines={4}>
+                            “{mine.message}”
+                          </Text>
+                        ) : null}
+                        {mine.status === 'pending' ? (
+                          <TouchableOpacity
+                            onPress={withdrawMine}
+                            style={[styles.myAppBtn, { borderColor: colors.border }]}
+                            accessibilityRole="button"
+                          >
+                            <Text style={[styles.myAppBtnText, { color: colors.textPrimary }]}>Withdraw application</Text>
+                          </TouchableOpacity>
+                        ) : null}
+                      </View>
+                    );
+                  })()}
 
                   <Text style={[styles.subLabel, { color: colors.textSecondary }]}>Team</Text>
                   {work.team.length === 0 ? (
@@ -802,6 +961,41 @@ export default function ResearchDetailScreen() {
                 </ScrollView>
               </>
             ) : null}
+            {/* ===== Related research (other authors, same topics) ===== */}
+            {related.length > 0 ? (
+              <>
+                <View style={[styles.divider, { backgroundColor: colors.borderSubtle }]} />
+                <View style={styles.sectionHeaderRow}>
+                  <Text style={[styles.sectionTitle, { color: colors.textPrimary, marginBottom: 0 }]}>Related research</Text>
+                </View>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.moreRow}>
+                  {related.map((w) => (
+                    <TouchableOpacity
+                      key={w.id}
+                      activeOpacity={0.85}
+                      onPress={() => router.push(`/(research)/${w.id}` as any)}
+                      style={[styles.moreCard, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Open ${w.title} by ${w.authorName}`}
+                    >
+                      <View style={[styles.moreAccent, { backgroundColor: w.postType === 'collaboration' ? colors.primary : colors.border }]} />
+                      <Text style={[styles.moreType, { color: w.postType === 'collaboration' ? colors.primary : colors.textMuted }]}>
+                        {w.postType === 'collaboration' ? 'Collaboration' : 'Research work'}
+                      </Text>
+                      <Text style={[styles.moreTitle, { color: colors.textPrimary }]} numberOfLines={2}>
+                        {w.title}
+                      </Text>
+                      <View style={styles.moreMeta}>
+                        <Avatar name={w.authorName} uri={w.authorPhotoURL} size="xs" />
+                        <Text style={[styles.moreMetaText, { color: colors.textMuted }]} numberOfLines={1}>
+                          {w.authorName} · {w.stage}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </>
+            ) : null}
           </ScrollView>
 
           {renderBottomBar()}
@@ -946,6 +1140,16 @@ const styles = StyleSheet.create({
   moreTitle: { ...typography.label, fontFamily: fontFamilies.sansSemiBold, minHeight: 40 },
   moreMeta: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: spacing.sm },
   moreMetaText: { ...typography.micro, flex: 1 },
+
+  // your application
+  myApp: { borderWidth: 1, borderRadius: radius.md, padding: spacing.md, gap: 6, marginTop: spacing.md },
+  myAppHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
+  myAppTitle: { ...typography.label, fontFamily: fontFamilies.sansSemiBold },
+  myAppChip: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: radius.full },
+  myAppChipText: { ...typography.micro, fontFamily: fontFamilies.sansSemiBold },
+  myAppMsg: { ...typography.caption, fontStyle: 'italic', padding: spacing.sm, borderRadius: radius.sm },
+  myAppBtn: { alignSelf: 'flex-start', paddingHorizontal: 12, height: 34, borderRadius: radius.button, borderWidth: 1, justifyContent: 'center', marginTop: 2 },
+  myAppBtnText: { ...typography.caption, fontFamily: fontFamilies.sansSemiBold },
 
   // header dot
   dot: { position: 'absolute', top: -2, right: -4, width: 10, height: 10, borderRadius: 5, borderWidth: 2 },

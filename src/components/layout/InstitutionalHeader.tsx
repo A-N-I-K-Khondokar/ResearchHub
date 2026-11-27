@@ -24,7 +24,7 @@ export const InstitutionalHeader: React.FC<InstitutionalHeaderProps> = ({ onSear
       right={
         onSearchPress ? (
           <HeaderIconButton
-            icon={<Search size={18} color={colors.textPrimary} strokeWidth={2.1} />}
+            icon={<Search size={18} color={colors.textPrimary} />}
             onPress={onSearchPress}
             label="Search research and people"
           />

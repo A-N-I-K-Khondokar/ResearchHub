@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { CheckCircle2 } from 'lucide-react-native';
+import { ICON_STROKE } from '@/constants/icons';
 import { ScreenContainer, Button } from '@/components';
 import { radius, spacing, typography } from '@/constants';
 import { useTheme } from '@/context/ThemeContext';
@@ -32,7 +33,7 @@ export default function ForgotPasswordSuccessScreen() {
               },
             ]}
           >
-            <CheckCircle2 size={44} color={colors.primary} />
+            <CheckCircle2 size={44} color={colors.primary} strokeWidth={ICON_STROKE.light} />
           </View>
 
           {/* Title and Message */}

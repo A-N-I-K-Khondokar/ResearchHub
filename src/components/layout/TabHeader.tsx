@@ -50,7 +50,7 @@ export const TabHeader: React.FC<TabHeaderProps> = ({ title, subtitle, brand, ac
         {brand ? (
           <View style={styles.brand}>
             <View style={[styles.logo, { backgroundColor: colors.primaryMuted, borderColor: colors.primaryLight }]}>
-              <GraduationCap size={20} color={colors.primary} strokeWidth={2.3} />
+              <GraduationCap size={20} color={colors.primary} />
             </View>
             <View style={styles.titleCol}>
               <Text style={[styles.brandTitle, { color: colors.textPrimary }]} numberOfLines={1}>

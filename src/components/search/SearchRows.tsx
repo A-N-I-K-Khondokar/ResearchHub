@@ -7,7 +7,8 @@
 
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View, type TextStyle, type StyleProp } from 'react-native';
-import { BookOpen, Check, Clock, Hash, Layers, UserPlus, Users } from 'lucide-react-native';
+import { BookOpen, Check, Clock, Layers, UserPlus, Users } from 'lucide-react-native';
+import { TopicIcon } from '@/components/common/TopicIcon';
 import { useTheme } from '@/context/ThemeContext';
 import { Avatar } from '@/components/common/Avatar';
 import { highlightParts } from '@/utils/searchRank';
@@ -218,7 +219,7 @@ export const TopicRow: React.FC<{
       accessibilityLabel={`Topic ${name}`}
     >
       <View style={[styles.iconBox, { backgroundColor: colors.successLight }]}>
-        <Hash size={18} color={colors.success} />
+        <TopicIcon name={name} size={18} color={colors.success} />
       </View>
       <View style={styles.body}>
         <HighlightText text={name} terms={terms} style={[styles.title, { color: colors.textPrimary }]} numberOfLines={1} />

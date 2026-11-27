@@ -68,11 +68,11 @@ export const WorkListItem: React.FC<{ work: ResearchWork; onPress: () => void; b
         </Text>
         <View style={styles.metaRow}>
           <View style={styles.metaItem}>
-            <Calendar size={13} color={colors.textSecondary} strokeWidth={2} />
+            <Calendar size={13} color={colors.textSecondary} />
             <Text style={[styles.metaText, { color: colors.textSecondary }]}>{formatWorkDate(work.createdAt)}</Text>
           </View>
           <View style={styles.metaItem}>
-            <Layers size={13} color={colors.textSecondary} strokeWidth={2} />
+            <Layers size={13} color={colors.textSecondary} />
             <Text style={[styles.metaText, { color: colors.textSecondary }]}>{work.stage}</Text>
           </View>
           {work.status === 'draft' ? (
@@ -151,9 +151,9 @@ export const ProfileListCard: React.FC<{ items: ProfileListItem[] }> = ({ items 
             {item.label}
           </Text>
           {item.trailing === 'external' ? (
-            <ExternalLink size={16} color={colors.textMuted} strokeWidth={2} />
+            <ExternalLink size={16} color={colors.textMuted} />
           ) : (
-            <ChevronRight size={16} color={colors.textMuted} strokeWidth={2} />
+            <ChevronRight size={16} color={colors.textMuted} />
           )}
         </TouchableOpacity>
       ))}

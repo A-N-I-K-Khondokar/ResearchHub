@@ -226,6 +226,26 @@ export async function publishDraft(workId: string): Promise<void> {
   await updateDoc(doc(getFirestoreDb(), COLLECTION, workId), { status: 'published', updatedAt: serverTimestamp() });
 }
 
+/**
+ * Live single post. `null` = it does not exist (deleted). Permission errors
+ * (draft of someone else / legacy ids) go to onError with the Firestore code.
+ */
+export function subscribeResearchWork(
+  workId: string,
+  onUpdate: (work: ResearchWork | null) => void,
+  onError?: (error: { code?: string }) => void,
+): () => void {
+  if (!db || !workId) {
+    onUpdate(null);
+    return () => {};
+  }
+  return onSnapshot(
+    doc(db, COLLECTION, workId),
+    (snap) => onUpdate(snap.exists() ? toResearchWork(snap) : null),
+    (err) => onError?.(err as { code?: string }),
+  );
+}
+
 /** Quick stage change from the stage stepper. */
 export async function updateResearchStage(workId: string, stage: ResearchWork['stage']): Promise<void> {
   await updateDoc(doc(getFirestoreDb(), COLLECTION, workId), { stage, updatedAt: serverTimestamp() });

@@ -150,8 +150,7 @@ export const ResearcherDiscoveryCard: React.FC<ResearcherDiscoveryCardProps> = (
           <View style={styles.activeResearchHeader}>
             <FlaskConical
               size={13}
-              color={isDark ? '#93C5FD' : colors.primary}
-              strokeWidth={2.2}
+              color={isDark ? "#93C5FD" : colors.primary}
             />
             <Text
               style={[
@@ -262,7 +261,7 @@ export const ResearcherDiscoveryCard: React.FC<ResearcherDiscoveryCardProps> = (
         >
           {connectionStatus === 'connected' ? (
             <>
-              <Check size={16} color={colors.secondary} strokeWidth={2.2} />
+              <Check size={16} color={colors.secondary} />
               <Text
                 style={[styles.connectTextConnected, { color: colors.secondary }]}
                 numberOfLines={1}
@@ -284,7 +283,7 @@ export const ResearcherDiscoveryCard: React.FC<ResearcherDiscoveryCardProps> = (
             </>
           ) : (
             <>
-              <UserPlus size={16} color="#FFFFFF" strokeWidth={2.2} />
+              <UserPlus size={16} color="#FFFFFF" />
               <Text
                 style={styles.connectText}
                 numberOfLines={1}

@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { CheckCircle2, ArrowRight } from 'lucide-react-native';
+import { ICON_STROKE } from '@/constants/icons';
 import { ScreenContainer, Button, OnboardingProgress } from '@/components';
 import { radius, spacing, typography } from '@/constants';
 import { useTheme } from '@/context/ThemeContext';
@@ -42,7 +43,7 @@ export default function ReadyToExploreScreen() {
                 },
               ]}
             >
-              <CheckCircle2 size={54} color={colors.primary} />
+              <CheckCircle2 size={54} color={colors.primary} strokeWidth={ICON_STROKE.light} />
             </View>
           </View>
         </View>

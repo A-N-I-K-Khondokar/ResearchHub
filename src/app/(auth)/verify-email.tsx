@@ -2,7 +2,8 @@ import React, { useState, useRef, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useToast } from '@/context/ToastContext';
 import { useRouter } from 'expo-router';
-import { MailCheck, ArrowLeft, RefreshCw, CheckCircle } from 'lucide-react-native';
+import { MailCheck, ArrowLeft, RefreshCw, CheckCircle2 } from 'lucide-react-native';
+import { ICON_STROKE } from '@/constants/icons';
 import { ScreenContainer, Button } from '@/components';
 import { radius, spacing, typography, fontFamilies } from '@/constants';
 import { useTheme } from '@/context/ThemeContext';
@@ -111,7 +112,7 @@ export default function VerifyEmailScreen() {
               },
             ]}
           >
-            <MailCheck size={40} color={colors.primary} />
+            <MailCheck size={40} color={colors.primary} strokeWidth={ICON_STROKE.light} />
           </View>
 
           {/* Title and Message */}
@@ -167,7 +168,7 @@ export default function VerifyEmailScreen() {
               variant="primary"
               loading={checkingVerification}
               disabled={checkingVerification || resending}
-              icon={<CheckCircle size={16} color={colors.textInverse} />}
+              icon={<CheckCircle2 size={16} color={colors.textInverse} />}
               fullWidth
             />
 

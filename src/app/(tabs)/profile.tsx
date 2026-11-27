@@ -18,15 +18,9 @@ import { SettingsSheet } from '@/components/profile/SettingsSheet';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
   Settings,
-  Edit3,
-  GraduationCap,
   Check,
   Users,
-  ExternalLink,
-  Globe,
-  Code2,
   Lock,
-  Linkedin,
   Bookmark,
   IdCard,
   Mail,
@@ -38,8 +32,11 @@ import {
   ChevronRight,
   CheckCircle2,
   Circle,
+  Pencil,
 } from 'lucide-react-native';
 import { spacing, radius, typography, fontFamilies, floatingButtonTokens } from '@/constants';
+import { linkIconFor } from '@/components/common/linkIcon';
+import { ICON_STROKE } from '@/constants/icons';
 import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
 import { Avatar } from '@/components/common/Avatar';
@@ -269,12 +266,8 @@ export default function ProfileTab() {
   // Theme picker options
 
   const linkIcon = (key: keyof UserSocialLinks) => {
-    const props = { size: 18, color: colors.primary, strokeWidth: 2 };
-    if (key === 'googleScholar') return <GraduationCap {...props} />;
-    if (key === 'researchGate') return <Globe {...props} />;
-    if (key === 'github') return <Code2 {...props} />;
-    if (key === 'linkedin') return <Linkedin {...props} />;
-    return <ExternalLink {...props} />;
+    const Icon = linkIconFor(String(key));
+    return <Icon size={18} color={colors.primary} />;
   };
 
   const academicLinks: ProfileListItem[] = useMemo(() => {
@@ -333,7 +326,7 @@ export default function ProfileTab() {
     {
       id: 'saved',
       label: `Saved Items (${savedItems.length})`,
-      icon: <Bookmark size={18} color={colors.primary} strokeWidth={2} />,
+      icon: <Bookmark size={18} color={colors.primary} />,
       onPress: () => router.push('/(profile)/saved' as any),
       trailing: 'chevron',
     },
@@ -342,7 +335,7 @@ export default function ProfileTab() {
       label: `My Network · ${connected.length} connection${connected.length === 1 ? '' : 's'}${
         incomingRequests.length ? ` · ${incomingRequests.length} request${incomingRequests.length === 1 ? '' : 's'}` : ''
       }`,
-      icon: <Users size={18} color={colors.primary} strokeWidth={2} />,
+      icon: <Users size={18} color={colors.primary} />,
       onPress: () => router.push('/(profile)/network' as any),
       trailing: 'chevron',
     },
@@ -354,7 +347,7 @@ export default function ProfileTab() {
         title="Profile"
         right={
           <HeaderIconButton
-            icon={<Settings size={18} color={colors.textPrimary} strokeWidth={2} />}
+            icon={<Settings size={18} color={colors.textPrimary} />}
             onPress={() => setIsSettingsModalVisible(true)}
             label="Open settings and theme options"
           />
@@ -379,12 +372,12 @@ export default function ProfileTab() {
             <>
               <HeroActionButton
                 label="Edit profile"
-                icon={<Edit3 size={15} color={colors.textPrimary} strokeWidth={2} />}
+                icon={<Pencil size={15} color={colors.textPrimary} />}
                 onPress={handleOpenEditModal}
               />
               <HeroActionButton
                 label="Public view"
-                icon={<Eye size={15} color={colors.textPrimary} strokeWidth={2} />}
+                icon={<Eye size={15} color={colors.textPrimary} />}
                 onPress={() =>
                   userProfile?.uid &&
                   router.push({ pathname: `/(profile)/${userProfile.uid}` as any, params: { preview: '1' } })
@@ -420,7 +413,10 @@ export default function ProfileTab() {
                 <View style={[styles.meterFill, { width: `${completeness}%`, backgroundColor: colors.primary }]} />
               </View>
               {!showChecklist && nextStep ? (
-                <Text style={[styles.meterNext, { color: colors.textSecondary }]}>Next: {nextStep.label} →</Text>
+                <View style={styles.meterNextRow}>
+                  <Text style={[styles.meterNext, { color: colors.textSecondary }]}>Next: {nextStep.label}</Text>
+                  <ChevronRight size={15} color={colors.textSecondary} />
+                </View>
               ) : null}
             </TouchableOpacity>
             {showChecklist ? (
@@ -588,13 +584,13 @@ export default function ProfileTab() {
                 <ProfileListCard
                   items={[
                     ...(myCard?.email
-                      ? [{ id: 'email', label: myCard.email, icon: <Mail size={18} color={colors.primary} strokeWidth={2} />, onPress: openContactEditor, trailing: 'chevron' as const }]
+                      ? [{ id: 'email', label: myCard.email, icon: <Mail size={18} color={colors.primary} />, onPress: openContactEditor, trailing: 'chevron' as const }]
                       : []),
                     ...(myCard?.preferredContact
                       ? [{
                           id: 'preferred',
                           label: myCard.preferredContact,
-                          icon: <MessageCircle size={18} color={colors.primary} strokeWidth={2} />,
+                          icon: <MessageCircle size={18} color={colors.primary} />,
                           onPress: openContactEditor,
                           trailing: 'chevron' as const,
                         }]
@@ -721,7 +717,7 @@ export default function ProfileTab() {
                     <View style={styles.inputLabelRow}>
                       <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>{field.label}</Text>
                       <View style={styles.lockedBadge}>
-                        <Lock size={10} color={colors.textMuted} strokeWidth={2.4} />
+                        <Lock size={10} color={colors.textMuted} strokeWidth={ICON_STROKE.emphasis} />
                         <Text style={[styles.lockedText, { color: colors.textMuted }]}>Locked</Text>
                       </View>
                     </View>
@@ -890,9 +886,14 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: radius.full,
   },
+  meterNextRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    marginTop: spacing.sm,
+  },
   meterNext: {
     ...typography.bodySmall,
-    marginTop: spacing.sm,
   },
 
   // Settings modal

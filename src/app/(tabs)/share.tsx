@@ -35,7 +35,8 @@ import { formatResearchTag } from '@/utils/researchWork';
 import { RESEARCH_LIMITS, type ResearchStage, type ResearchPostType, SUGGESTED_COLLAB_ROLES } from '@/types/research.types';
 import { useLocalSearchParams } from 'expo-router';
 import { CurrentWorkCard } from '@/components/cards/CurrentWorkCard';
-import { Users, Eye, Send, ChevronDown, ChevronUp, CheckCircle2, Circle, Save } from 'lucide-react-native';
+import { Users, Eye, Send, ChevronDown, ChevronUp, Check, CheckCircle2, Circle, Save, Star } from 'lucide-react-native';
+import { ICON_STROKE } from '@/constants/icons';
 import { useToast } from '@/context/ToastContext';
 import { tagMatchKey } from '@/utils/researchWork';
 import { confirmAction } from '@/utils/dialogs';
@@ -472,7 +473,7 @@ export default function ShareTab() {
             {/* Field: Research Title */}
             <View style={styles.fieldBlock} onLayout={trackField('title')}>
               <View style={styles.labelRow}>
-                <PenLine size={15} strokeWidth={1.8} color={colors.textSecondary} />
+                <PenLine size={15} strokeWidth={ICON_STROKE.regular} color={colors.textSecondary} />
                 <Text style={[styles.fieldLabel, { color: colors.textPrimary }]}>
                   {isCollab ? 'Project Title' : 'Research Title'}
                 </Text>
@@ -519,7 +520,7 @@ export default function ShareTab() {
             {/* Field: Abstract / Description */}
             <View style={styles.fieldBlock} onLayout={trackField('desc')}>
               <View style={styles.labelRow}>
-                <AlignLeft size={15} strokeWidth={1.8} color={colors.textSecondary} />
+                <AlignLeft size={15} strokeWidth={ICON_STROKE.regular} color={colors.textSecondary} />
                 <Text style={[styles.fieldLabel, { color: colors.textPrimary }]}>
                   {isCollab ? 'Project & Help Needed' : 'Abstract / Update Summary'}
                 </Text>
@@ -583,7 +584,7 @@ export default function ShareTab() {
             {isCollab ? (
               <View style={styles.fieldBlock} onLayout={trackField('roles')}>
                 <View style={styles.labelRow}>
-                  <Users size={15} strokeWidth={1.8} color={colors.textSecondary} />
+                  <Users size={15} strokeWidth={ICON_STROKE.regular} color={colors.textSecondary} />
                   <Text style={[styles.fieldLabel, { color: colors.textPrimary }]}>
                     Looking For <Text style={styles.optionalText}>({lookingFor.length}/{RESEARCH_LIMITS.lookingForMax})</Text>
                   </Text>
@@ -619,7 +620,7 @@ export default function ShareTab() {
                       accessibilityRole="button"
                       accessibilityLabel="Add role"
                     >
-                      <Plus size={14} color="#FFFFFF" strokeWidth={2.4} />
+                      <Plus size={14} color="#FFFFFF" strokeWidth={ICON_STROKE.emphasis} />
                     </TouchableOpacity>
                   ) : null}
                 </View>
@@ -639,7 +640,7 @@ export default function ShareTab() {
                           {role}
                         </Text>
                         <View style={styles.tagCloseIconWrapper}>
-                          <X size={11} strokeWidth={2.2} color={colors.primary} />
+                          <X size={11} strokeWidth={ICON_STROKE.emphasis} color={colors.primary} />
                         </View>
                       </TouchableOpacity>
                     ))}
@@ -667,7 +668,7 @@ export default function ShareTab() {
             {/* Field: Hybrid Research Areas (Custom Tag Input + Clickable Suggestions) */}
             <View style={styles.fieldBlock}>
               <View style={styles.labelRow}>
-                <Hash size={15} strokeWidth={1.8} color={colors.textSecondary} />
+                <Hash size={15} strokeWidth={ICON_STROKE.regular} color={colors.textSecondary} />
                 <Text style={[styles.fieldLabel, { color: colors.textPrimary }]}>
                   Research Areas <Text style={styles.optionalText}>(Custom & Suggested)</Text>
                 </Text>
@@ -703,7 +704,7 @@ export default function ShareTab() {
                     accessibilityRole="button"
                     accessibilityLabel="Add custom tag"
                   >
-                    <Plus size={14} strokeWidth={2.4} color={colors.textInverse} />
+                    <Plus size={14} strokeWidth={ICON_STROKE.emphasis} color={colors.textInverse} />
                   </TouchableOpacity>
                 ) : null}
               </View>
@@ -735,7 +736,7 @@ export default function ShareTab() {
                         {tag}
                       </Text>
                       <View style={styles.tagCloseIconWrapper}>
-                        <X size={11} strokeWidth={2.2} color={colors.textSecondary} />
+                        <X size={11} strokeWidth={ICON_STROKE.emphasis} color={colors.textSecondary} />
                       </View>
                     </TouchableOpacity>
                   ))}
@@ -774,8 +775,15 @@ export default function ShareTab() {
                           },
                         ]}
                         accessibilityRole="button"
-                        accessibilityLabel={`Suggested tag: ${tag}`}
+                        accessibilityLabel={`Suggested tag: ${tag}${isAlreadySelected ? ', added' : ''}`}
                       >
+                        {isAlreadySelected ? (
+                          <Check size={13} color={colors.primary} />
+                        ) : myTagKeys.has(tagMatchKey(tag)) ? (
+                          <Star size={12} color={colors.primary} fill={colors.primary} />
+                        ) : (
+                          <Plus size={13} color={colors.textMuted} />
+                        )}
                         <Text
                           style={[
                             styles.suggestedPillText,
@@ -791,7 +799,7 @@ export default function ShareTab() {
                           numberOfLines={1}
                           ellipsizeMode="tail"
                         >
-                          {isAlreadySelected ? `${tag} ✓` : myTagKeys.has(tagMatchKey(tag)) ? `★ ${tag}` : tag}
+                          {tag}
                         </Text>
                       </TouchableOpacity>
                     );
@@ -803,7 +811,7 @@ export default function ShareTab() {
             {/* Field: Current Stage Selector with Clean Centered Vector Icons */}
             <View style={styles.fieldBlock}>
               <View style={styles.labelRow}>
-                <Layers size={15} strokeWidth={1.8} color={colors.textSecondary} />
+                <Layers size={15} strokeWidth={ICON_STROKE.regular} color={colors.textSecondary} />
                 <Text style={[styles.fieldLabel, { color: colors.textPrimary }]}>
                   Current Stage
                 </Text>
@@ -835,7 +843,7 @@ export default function ShareTab() {
                       <View style={styles.stageIconWrapper}>
                         <IconComponent
                           size={14}
-                          strokeWidth={1.9}
+                          strokeWidth={ICON_STROKE.regular}
                           color={isSelected ? colors.textInverse : colors.textSecondary}
                         />
                       </View>
@@ -863,7 +871,7 @@ export default function ShareTab() {
             {/* Field: External Link (Optional) */}
             <View style={[styles.fieldBlock, { marginBottom: spacing.md }]} onLayout={trackField('url')}>
               <View style={styles.labelRow}>
-                <Link2 size={15} strokeWidth={1.8} color={colors.textSecondary} />
+                <Link2 size={15} strokeWidth={ICON_STROKE.regular} color={colors.textSecondary} />
                 <Text style={[styles.fieldLabel, { color: colors.textPrimary }]}>
                   External Link <Text style={styles.optionalText}>(Optional)</Text>
                 </Text>
@@ -913,7 +921,7 @@ export default function ShareTab() {
               accessibilityRole="button"
               accessibilityState={{ expanded: showPreview }}
             >
-              <Eye size={15} strokeWidth={1.8} color={colors.textSecondary} />
+              <Eye size={15} strokeWidth={ICON_STROKE.regular} color={colors.textSecondary} />
               <Text style={[styles.fieldLabel, { color: colors.textPrimary, flex: 1 }]}>Preview</Text>
               {showPreview ? <ChevronUp size={18} color={colors.textMuted} /> : <ChevronDown size={18} color={colors.textMuted} />}
             </TouchableOpacity>
@@ -1241,7 +1249,10 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   suggestedPill: {
-    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: radius.full,
     borderWidth: 1,

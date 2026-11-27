@@ -10,12 +10,14 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { User, UserPlus, Check, Clock, GraduationCap, Globe, Code2, Linkedin, ExternalLink, Eye, Sparkles } from 'lucide-react-native';
+import { User, UserPlus, Check, Clock, Eye, Star } from 'lucide-react-native';
+import { ICON_STROKE } from '@/constants/icons';
 import { WorkRow } from '@/components/search/SearchRows';
 import { useCollaborate } from '@/hooks/useCollaborate';
 import { toCurrentWork } from '@/services/research.service';
 import { tagMatchKey } from '@/utils/researchWork';
 import { spacing, radius, typography, fontFamilies } from '../../constants';
+import { linkIconFor } from '@/components/common/linkIcon';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/context/AuthContext';
 import { TopicChip } from '../../components/common/TopicChip';
@@ -121,13 +123,10 @@ export default function ResearcherProfileScreen() {
     router.push({ pathname: '/(explore)/topic-researchers' as any, params: { topic } });
 
   const links: ProfileListItem[] = useMemo(() => {
-    const iconProps = { size: 18, color: colors.primary, strokeWidth: 2 };
-    const iconFor = (key: string) =>
-      key === 'googleScholar' ? <GraduationCap {...iconProps} />
-      : key === 'researchGate' ? <Globe {...iconProps} />
-      : key === 'github' ? <Code2 {...iconProps} />
-      : key === 'linkedin' ? <Linkedin {...iconProps} />
-      : <ExternalLink {...iconProps} />;
+    const iconFor = (key: string) => {
+      const Icon = linkIconFor(key);
+      return <Icon size={18} color={colors.primary} />;
+    };
     return Object.entries(profile?.socialLinks ?? {})
       .filter(([, v]) => Boolean(v))
       .map(([key, value]) => {
@@ -193,7 +192,7 @@ export default function ResearcherProfileScreen() {
       ) : state !== 'ready' || !profile ? (
         <View style={styles.centered}>
           <View style={[styles.iconContainer, { backgroundColor: colors.primaryMuted }]}>
-            <User size={36} color={colors.primary} />
+            <User size={36} color={colors.primary} strokeWidth={ICON_STROKE.light} />
           </View>
           <Text style={[styles.stateTitle, { color: colors.textPrimary }]}>
             {state === 'not-found' ? 'Researcher not available' : 'Something went wrong'}
@@ -236,7 +235,7 @@ export default function ResearcherProfileScreen() {
 
           {sharedInterests.length > 0 ? (
             <View style={[styles.sharedLine, { backgroundColor: colors.successLight }]}>
-              <Sparkles size={14} color={colors.success} />
+              <Star size={14} color={colors.success} fill={colors.success} />
               <Text style={[styles.sharedText, { color: colors.success }]} numberOfLines={2}>
                 You share {sharedInterests.length} interest{sharedInterests.length === 1 ? '' : 's'}: {sharedInterests.slice(0, 3).join(', ')}
                 {sharedInterests.length > 3 ? '…' : ''}
@@ -253,7 +252,8 @@ export default function ResearcherProfileScreen() {
                   {profile.researchInterests.map((interest) => (
                     <TopicChip
                       key={interest}
-                      label={sharedInterests.includes(interest) ? `★ ${interest}` : interest}
+                      label={interest}
+                      icon={sharedInterests.includes(interest) ? <Star size={12} color={colors.primary} fill={colors.primary} /> : undefined}
                       variant={sharedInterests.includes(interest) ? 'primary' : 'teal'}
                       onPress={() => openTopic(interest)}
                     />
@@ -318,7 +318,7 @@ export default function ResearcherProfileScreen() {
                       ? [{
                           id: 'email',
                           label: contact.email,
-                          icon: <Mail size={18} color={colors.primary} strokeWidth={2} />,
+                          icon: <Mail size={18} color={colors.primary} />,
                           trailing: 'external' as const,
                           onPress: () =>
                             Linking.openURL(`mailto:${contact.email}`).catch(() => toast.show('Unable to open email app', 'error')),
@@ -328,7 +328,7 @@ export default function ResearcherProfileScreen() {
                       ? [{
                           id: 'preferred',
                           label: contact.preferredContact,
-                          icon: <MessageCircle size={18} color={colors.primary} strokeWidth={2} />,
+                          icon: <MessageCircle size={18} color={colors.primary} />,
                           trailing: (contactActionFor(contact.preferredContact) ? 'external' : 'chevron') as 'external' | 'chevron',
                           onPress: () => {
                             const action = contactActionFor(contact.preferredContact);

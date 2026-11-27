@@ -4,7 +4,7 @@
  *   header: title + search bar (opens Search; Search owns all filters)
  *   1. Open collaborations   (swipe cards with Apply; your interests first)
  *   2. People like you       (shared interests; prompt if you have none)
- *   3. Topics                (live counts; your topics first ★)
+ *   3. Topics                (live counts; your topics first, highlighted)
  *   4. Recent research       (compact rows)
  *   5. Researchers to know   (active posters you are not connected to yet)
  * Every "See all" opens Search on the matching filter.
@@ -237,7 +237,7 @@ export default function ExploreScreen() {
               <SectionTitle
                 icon={<Hash size={17} color={colors.primary} />}
                 title="Topics"
-                subtitle={hasInterests ? 'Your topics are marked ★' : 'Find researchers by area'}
+                subtitle={hasInterests ? 'Your topics are highlighted' : 'Find researchers by area'}
                 actionLabel="All topics"
                 onAction={() => openSearch('topics')}
               />

@@ -13,7 +13,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Bell, ChevronRight, FileText, Sparkles, UserPlus, Users, X, Zap } from 'lucide-react-native';
+import { Bell, BellRing, BookOpen, CheckCircle2, ChevronRight, Sparkles, UserPlus, Users, X } from 'lucide-react-native';
 import { spacing, radius, typography, fontFamilies } from '../../constants';
 import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
@@ -319,7 +319,10 @@ export default function HomeFeedScreen() {
             </Text>
           </TouchableOpacity>
         ) : feed.length > PAGE ? (
-          <Text style={[styles.end, { color: colors.textMuted }]}>You're all caught up ✓</Text>
+          <View style={styles.endRow}>
+            <CheckCircle2 size={14} color={colors.textMuted} />
+            <Text style={[styles.end, { color: colors.textMuted }]}>You're all caught up</Text>
+          </View>
         ) : null}
       </>
     );
@@ -338,7 +341,7 @@ export default function HomeFeedScreen() {
         {/* Greeting + composer */}
         <View style={[styles.hero, { backgroundColor: colors.surface, borderBottomColor: colors.borderSubtle }]}>
           <Text style={[styles.greeting, { color: colors.textPrimary }]} numberOfLines={1}>
-            {greeting}, {firstName} 👋
+            {greeting}, {firstName}
           </Text>
           <TouchableOpacity
             activeOpacity={0.85}
@@ -358,7 +361,7 @@ export default function HomeFeedScreen() {
               style={[styles.quick, { backgroundColor: colors.surfaceSubtle, borderColor: colors.borderSubtle }]}
               accessibilityRole="button"
             >
-              <FileText size={15} color={colors.textPrimary} />
+              <BookOpen size={15} color={colors.textPrimary} />
               <Text style={[styles.quickText, { color: colors.textPrimary }]}>Share update</Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -376,7 +379,7 @@ export default function HomeFeedScreen() {
         {attention.length > 0 ? (
           <View style={styles.attention}>
             <View style={styles.attentionHead}>
-              <Zap size={15} color={colors.warning} />
+              <BellRing size={15} color={colors.warning} />
               <Text style={[styles.attentionTitle, { color: colors.textPrimary }]}>Needs your attention</Text>
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.stripList}>
@@ -535,5 +538,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   moreText: { ...typography.label, fontFamily: fontFamilies.sansSemiBold },
-  end: { ...typography.caption, textAlign: 'center', marginTop: spacing.md },
+  end: { ...typography.caption, textAlign: 'center' },
+  endRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: spacing.md },
 });

@@ -172,7 +172,7 @@ export const SettingsSheet: React.FC<SettingsSheetProps> = ({
               accessibilityRole="button"
               accessibilityLabel="Sign out"
             >
-              <LogOut size={16} color={colors.error} strokeWidth={2.2} />
+              <LogOut size={16} color={colors.error} />
               <Text style={[styles.signOutText, { color: colors.error }]}>{signingOut ? 'Signing out…' : 'Sign out'}</Text>
             </TouchableOpacity>
           </ScrollView>

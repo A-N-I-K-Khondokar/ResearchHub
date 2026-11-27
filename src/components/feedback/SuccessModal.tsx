@@ -7,6 +7,7 @@ import {
   Pressable,
 } from 'react-native';
 import { Check } from 'lucide-react-native';
+import { ICON_STROKE } from '@/constants/icons';
 import { useTheme } from '@/context/ThemeContext';
 import { fontFamilies, radius, spacing } from '@/constants';
 import { Button } from '../common/Button';
@@ -74,7 +75,7 @@ export const SuccessModal: React.FC<SuccessModalProps> = ({
             <Check
               size={32}
               color={colors.secondary}
-              strokeWidth={3}
+              strokeWidth={ICON_STROKE.emphasis}
             />
           </View>
 

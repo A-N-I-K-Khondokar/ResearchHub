@@ -8,10 +8,11 @@ import {
   Calendar,
   Layers,
   Users,
-  UserPlus,
 } from 'lucide-react-native';
 import { CurrentWork } from '../../types';
 import { spacing, radius, typography, fontFamilies } from '../../constants';
+import { collabStateIcon } from '@/components/common/collabStateIcon';
+import type { CollaborateState } from '@/hooks/useCollaborate';
 import { useTheme } from '@/context/ThemeContext';
 import { Avatar } from '../common/Avatar';
 import { formatRelativeDate } from '@/utils/date';
@@ -32,6 +33,7 @@ export interface CurrentWorkCardProps {
   onCollaboratePress?: () => void;
   collaborateLabel?: string;
   collaborateDisabled?: boolean;
+  collaborateState?: CollaborateState;
   /** @deprecated Likes/comments are not part of the data model; kept for call-site compatibility. */
   onLikePress?: () => void;
   /** @deprecated */
@@ -56,6 +58,7 @@ export const CurrentWorkCard: React.FC<CurrentWorkCardProps> = ({
   onCollaboratePress,
   collaborateLabel = "I'm interested · Apply",
   collaborateDisabled = false,
+  collaborateState,
 }) => {
   const { colors, isDark } = useTheme();
   const isCollaboration = work.postType === 'collaboration';
@@ -84,6 +87,7 @@ export const CurrentWorkCard: React.FC<CurrentWorkCardProps> = ({
   };
 
   // Single line under the author: Department • Role
+  const CollabIcon = collabStateIcon(collaborateState);
   const dept = authorBatch?.split('•')[0]?.trim() || 'CSE';
   const subtitle = authorRole ? `${dept} • ${authorRole}` : dept;
 
@@ -106,7 +110,7 @@ export const CurrentWorkCard: React.FC<CurrentWorkCardProps> = ({
       {/* Collaboration badge */}
       {isCollaboration ? (
         <View style={[styles.collabBadge, { backgroundColor: teamFormed ? colors.successLight : colors.primaryMuted }]}>
-          <Users size={13} color={teamFormed ? colors.success : colors.primary} strokeWidth={2.2} />
+          <Users size={13} color={teamFormed ? colors.success : colors.primary} />
           <Text style={[styles.collabBadgeText, { color: teamFormed ? colors.success : colors.primary }]}>
             {teamFormed ? 'Team formed' : 'Looking for collaborators'}
           </Text>
@@ -217,7 +221,7 @@ export const CurrentWorkCard: React.FC<CurrentWorkCardProps> = ({
           accessibilityRole="button"
           accessibilityLabel={collaborateLabel}
         >
-          <UserPlus size={15} color={collaborateDisabled ? colors.textMuted : '#FFFFFF'} />
+          <CollabIcon size={15} color={collaborateDisabled ? colors.textMuted : '#FFFFFF'} />
           <Text style={[styles.collabButtonText, { color: collaborateDisabled ? colors.textMuted : '#FFFFFF' }]}>
             {collaborateLabel}
           </Text>
@@ -230,12 +234,12 @@ export const CurrentWorkCard: React.FC<CurrentWorkCardProps> = ({
       <View style={styles.footer}>
         <View style={styles.footerLeft}>
           <View style={styles.metaItem}>
-            <Calendar size={14} color={colors.textSecondary} strokeWidth={2} />
+            <Calendar size={14} color={colors.textSecondary} />
             <Text style={[styles.metaText, { color: colors.textSecondary }]}>{formatRelativeDate(work.createdAt)}</Text>
           </View>
           {work.stage ? (
             <View style={styles.metaItem}>
-              <Layers size={14} color={colors.textSecondary} strokeWidth={2} />
+              <Layers size={14} color={colors.textSecondary} />
               <Text style={[styles.metaText, { color: colors.textSecondary }]} numberOfLines={1}>
                 {work.stage}
               </Text>

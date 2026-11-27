@@ -13,6 +13,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Refres
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { AlertTriangle, Bookmark, BookOpen, ChevronDown, Layers, Search, Users, X } from 'lucide-react-native';
+import { ICON_STROKE } from '@/constants/icons';
 import { ScreenHeader } from '../../components/layout/ScreenHeader';
 import { SkeletonList } from '../../components/feedback/Skeleton';
 import { HighlightText } from '@/components/search/SearchRows';
@@ -273,7 +274,7 @@ export default function SavedItemsScreen() {
       ) : items.length === 0 ? (
         <View style={styles.centered}>
           <View style={[styles.emptyIcon, { backgroundColor: colors.primaryMuted }]}>
-            <Bookmark size={32} color={colors.primary} />
+            <Bookmark size={32} color={colors.primary} strokeWidth={ICON_STROKE.light} />
           </View>
           <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>No saved research yet</Text>
           <Text style={[styles.emptyText, { color: colors.textSecondary }]}>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Check } from 'lucide-react-native';
+import { ICON_STROKE } from '@/constants/icons';
 import { spacing, radius, typography, fontFamilies } from '@/constants';
 import { useTheme } from '@/context/ThemeContext';
 import { Avatar } from '../common/Avatar';
@@ -53,7 +54,7 @@ export const ProfileHero: React.FC<ProfileHeroProps> = ({
         <Avatar name={name} uri={photoURL} size="xl" />
         {verified ? (
           <View style={[styles.verifiedBadge, { backgroundColor: colors.primary, borderColor: colors.surface }]}>
-            <Check size={11} color="#FFFFFF" strokeWidth={3} />
+            <Check size={11} color="#FFFFFF" strokeWidth={ICON_STROKE.emphasis} />
           </View>
         ) : null}
       </View>

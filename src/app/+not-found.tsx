@@ -4,6 +4,7 @@ import { Link, Stack } from 'expo-router';
 import { useTheme } from '@/context/ThemeContext';
 import { fontFamilies, radius, spacing, floatingButtonTokens } from '@/constants';
 import { FileQuestion, ArrowLeft } from 'lucide-react-native';
+import { ICON_STROKE } from '@/constants/icons';
 
 export default function NotFoundScreen() {
   const { colors, isDark } = useTheme();
@@ -24,7 +25,7 @@ export default function NotFoundScreen() {
           ]}
         >
           <View style={[styles.iconCircle, { backgroundColor: isDark ? colors.primaryLight : '#EEF3FD' }]}>
-            <FileQuestion size={36} color={colors.primary} />
+            <FileQuestion size={36} color={colors.primary} strokeWidth={ICON_STROKE.light} />
           </View>
           <Text style={[styles.title, { color: colors.textPrimary }]}>Route Not Found</Text>
           <Text style={[styles.message, { color: colors.textSecondary }]}>

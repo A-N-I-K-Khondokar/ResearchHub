@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Tabs } from 'expo-router';
 import { Home, Compass, Plus, Bell, User } from 'lucide-react-native';
+import { ICON_STROKE } from '@/constants/icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/context/ThemeContext';
 import { fontFamilies, shadows } from '@/constants';
@@ -134,7 +135,7 @@ export default function TabLayout() {
                 },
               ]}
             >
-              <Plus size={24} color="#FFFFFF" strokeWidth={2.6} />
+              <Plus size={24} color="#FFFFFF" strokeWidth={ICON_STROKE.emphasis} />
             </View>
             {label('Share', focused)}
             </View>

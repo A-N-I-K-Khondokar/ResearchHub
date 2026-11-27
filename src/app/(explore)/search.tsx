@@ -13,6 +13,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, ChevronRight, Clock, SearchX, Sparkles, Users, X } from 'lucide-react-native';
+import { ICON_STROKE } from '@/constants/icons';
 import { spacing, radius, typography, fontFamilies } from '@/constants';
 import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
@@ -252,7 +253,7 @@ export default function GlobalSearchScreen() {
   const renderNoResults = () => (
     <View style={styles.empty}>
       <View style={[styles.emptyIcon, { backgroundColor: colors.surfaceSubtle }]}>
-        <SearchX size={28} color={colors.textMuted} />
+        <SearchX size={28} color={colors.textMuted} strokeWidth={ICON_STROKE.light} />
       </View>
       <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>No matches for "{debounced.trim()}"</Text>
       <Text style={[styles.emptyText, { color: colors.textSecondary }]}>

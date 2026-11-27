@@ -144,7 +144,7 @@ export const ResearcherCard: React.FC<ResearcherCardProps> = ({
       >
         {isConnected ? (
           <>
-            <Check size={14} color={colors.secondary} strokeWidth={2.5} />
+            <Check size={14} color={colors.secondary} />
             <Text
               style={[styles.connectText, { color: colors.secondary }]}
               numberOfLines={1}

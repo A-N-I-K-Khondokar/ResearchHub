@@ -9,7 +9,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenHeader } from '@/components/layout/ScreenHeader';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, Users, Sparkles, Filter, ArrowUpDown } from 'lucide-react-native';
+import { Filter, ArrowUpDown } from 'lucide-react-native';
 import { spacing, radius, typography, fontFamilies, shadows } from '@/constants';
 import { useTheme } from '@/context/ThemeContext';
 import { SectionHeader } from '@/components/common/SectionHeader';

@@ -5,7 +5,7 @@ import {
   GraduationCap,
   FlaskConical,
   Cpu,
-  Code2,
+  Github,
   Globe,
   ArrowRight,
 } from 'lucide-react-native';
@@ -96,7 +96,7 @@ export default function ExternalProfilesScreen() {
             onChangeText={setGithub}
             placeholder="https://github.com/username"
             keyboardType="url"
-            leftIcon={<Code2 size={18} color={colors.textPrimary} />}
+            leftIcon={<Github size={18} color={colors.textPrimary} />}
           />
 
           <AuthInput
