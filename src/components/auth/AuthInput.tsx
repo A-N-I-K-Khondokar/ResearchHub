@@ -8,9 +8,10 @@ import {
   ViewStyle,
   TextInputProps,
 } from 'react-native';
-import { Eye, EyeOff } from 'lucide-react-native';
+import { AlertCircle, Eye, EyeOff } from 'lucide-react-native';
 import { radius, spacing, typography, fontFamilies } from '@/constants';
 import { useTheme } from '@/context/ThemeContext';
+import { noWebOutline } from '@/components/common/TextField';
 
 export interface AuthInputProps extends Omit<TextInputProps, 'style'> {
   label: string;
@@ -72,7 +73,6 @@ export const AuthInput: React.FC<AuthInputProps> = ({
               ? colors.surface
               : colors.surfaceSubtle,
             borderColor: isFocused ? colors.primary : colors.borderSubtle,
-            borderWidth: isFocused ? 1.5 : 1,
           },
           floating && {
             shadowColor: isDark ? 'transparent' : '#071A3E',
@@ -81,7 +81,7 @@ export const AuthInput: React.FC<AuthInputProps> = ({
             shadowRadius: 12,
             elevation: isDark ? 0 : 1,
           },
-          Boolean(error) && { borderColor: colors.error, borderWidth: 1.5 },
+          Boolean(error) && { borderColor: colors.error },
           wrapperStyle,
         ]}
       >
@@ -92,10 +92,14 @@ export const AuthInput: React.FC<AuthInputProps> = ({
           onChangeText={onChangeText}
           placeholder={placeholder}
           placeholderTextColor={colors.textMuted}
+          selectionColor={colors.primary}
+          cursorColor={colors.primary}
+          accessibilityLabel={label}
+          accessibilityHint={error || undefined}
           secureTextEntry={isPassword && !showPassword}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
-          style={[styles.input, { color: colors.textPrimary }]}
+          style={[styles.input, { color: colors.textPrimary }, noWebOutline]}
           autoCapitalize="none"
           autoCorrect={false}
           {...rest}
@@ -107,6 +111,8 @@ export const AuthInput: React.FC<AuthInputProps> = ({
             onPress={() => setShowPassword(!showPassword)}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             style={styles.passwordToggle}
+            accessibilityRole="button"
+            accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
           >
             {showPassword ? (
               <EyeOff size={18} color={colors.textMuted} />
@@ -117,14 +123,19 @@ export const AuthInput: React.FC<AuthInputProps> = ({
         )}
       </View>
 
-      {error ? <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text> : null}
+      {error ? (
+        <View style={styles.errorRow}>
+          <AlertCircle size={13} color={colors.error} />
+          <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
+        </View>
+      ) : null}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: spacing.md + 4,
+    marginBottom: spacing.md,
   },
   labelRow: {
     flexDirection: 'row',
@@ -144,11 +155,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   inputWrapper: {
-    height: 50,
-    borderRadius: radius.md,
+    height: spacing.inputHeight,
+    borderRadius: radius.button,
+    borderWidth: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
   },
   leftIconContainer: {
     marginRight: 10,
@@ -164,9 +176,15 @@ const styles = StyleSheet.create({
     padding: spacing.xs,
     marginLeft: spacing.xs,
   },
+  errorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 6,
+  },
   errorText: {
     fontFamily: fontFamilies.sansMedium,
     fontSize: 12,
-    marginTop: 4,
+    flexShrink: 1,
   },
 });

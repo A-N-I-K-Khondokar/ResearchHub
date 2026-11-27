@@ -26,6 +26,7 @@ import {
 } from 'lucide-react-native';
 import { spacing, radius, fontFamilies, typography } from '@/constants';
 import { useTheme } from '@/context/ThemeContext';
+import { TextField, FieldFrame } from '@/components/common/TextField';
 import { Button } from '@/components/common/Button';
 import { Avatar } from '@/components/common/Avatar';
 import { SuccessModal } from '@/components/feedback/SuccessModal';
@@ -478,7 +479,7 @@ export default function ShareTab() {
                   {isCollab ? 'Project Title' : 'Research Title'}
                 </Text>
               </View>
-              <TextInput
+              <TextField
                 value={title}
                 onChangeText={(val) => {
                   setTitle(val);
@@ -525,7 +526,7 @@ export default function ShareTab() {
                   {isCollab ? 'Project & Help Needed' : 'Abstract / Update Summary'}
                 </Text>
               </View>
-              <TextInput
+              <TextField
                 value={description}
                 onChangeText={(val) => {
                   setDescription(val);
@@ -589,7 +590,7 @@ export default function ShareTab() {
                     Looking For <Text style={styles.optionalText}>({lookingFor.length}/{RESEARCH_LIMITS.lookingForMax})</Text>
                   </Text>
                 </View>
-                <View
+                <FieldFrame
                   style={[
                     styles.input,
                     styles.roleInputRow,
@@ -623,7 +624,7 @@ export default function ShareTab() {
                       <Plus size={14} color="#FFFFFF" strokeWidth={ICON_STROKE.emphasis} />
                     </TouchableOpacity>
                   ) : null}
-                </View>
+                </FieldFrame>
                 {roleError ? <Text style={[styles.errorText, { color: colors.error }]}>{roleError}</Text> : null}
                 {lookingFor.length > 0 ? (
                   <View style={styles.tagsContainer}>
@@ -675,7 +676,7 @@ export default function ShareTab() {
               </View>
 
               {/* Tag Input Box with Add Action */}
-              <View
+              <FieldFrame
                 style={[
                   styles.tagInputContainer,
                   {
@@ -707,7 +708,7 @@ export default function ShareTab() {
                     <Plus size={14} strokeWidth={ICON_STROKE.emphasis} color={colors.textInverse} />
                   </TouchableOpacity>
                 ) : null}
-              </View>
+              </FieldFrame>
 
               {/* Selected Tags Display with Deletion */}
               {selectedTags.length > 0 ? (
@@ -876,7 +877,7 @@ export default function ShareTab() {
                   External Link <Text style={styles.optionalText}>(Optional)</Text>
                 </Text>
               </View>
-              <TextInput
+              <TextField
                 value={externalUrl}
                 onChangeText={(text) => {
                   setExternalUrl(text);
@@ -1081,17 +1082,8 @@ const styles = StyleSheet.create({
     fontFamily: fontFamilies.sansRegular,
     marginTop: spacing.sm,
   },
-  roleInputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 0,
-  },
-  roleTextInput: {
-    flex: 1,
-    minHeight: 44,
-    fontSize: 14,
-    fontFamily: fontFamilies.sansRegular,
-  },
+  roleInputRow: { flexDirection: 'row', alignItems: 'center' },
+  roleTextInput: { flex: 1, minHeight: 46, ...typography.body },
   previewSection: {
     marginTop: spacing.lg,
   },
@@ -1148,30 +1140,15 @@ const styles = StyleSheet.create({
     gap: 6,
     marginBottom: 8,
   },
-  fieldLabel: {
-    fontSize: 14,
-    fontFamily: fontFamilies.sansSemiBold,
-    letterSpacing: 0.1,
-  },
+  fieldLabel: { ...typography.bodySmall, fontFamily: fontFamilies.sansSemiBold, letterSpacing: 0.1 },
   optionalText: {
     fontSize: 12,
     fontFamily: fontFamilies.sansRegular,
     fontWeight: '400',
     opacity: 0.7,
   },
-  input: {
-    borderRadius: 12,
-    borderWidth: 1,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 12,
-    fontSize: 14,
-    fontFamily: fontFamilies.sansRegular,
-  },
-  textArea: {
-    minHeight: 110,
-    paddingTop: 12,
-    lineHeight: 20,
-  },
+  input: {},
+  textArea: {},
   charCountRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1187,20 +1164,8 @@ const styles = StyleSheet.create({
     fontFamily: fontFamilies.sansRegular,
     marginTop: 4,
   },
-  tagInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 12,
-    borderWidth: 1,
-    paddingHorizontal: spacing.md,
-    paddingVertical: Platform.OS === 'ios' ? 10 : 4,
-  },
-  tagTextInput: {
-    flex: 1,
-    fontSize: 14,
-    fontFamily: fontFamilies.sansRegular,
-    paddingVertical: 6,
-  },
+  tagInputContainer: { flexDirection: 'row', alignItems: 'center' },
+  tagTextInput: { flex: 1, paddingVertical: 10, ...typography.body },
   tagAddBtn: {
     width: 26,
     height: 26,

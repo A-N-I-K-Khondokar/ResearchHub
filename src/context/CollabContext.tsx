@@ -22,6 +22,7 @@ import {
 import { Users, X } from 'lucide-react-native';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
+import { TextField } from '@/components/common/TextField';
 import { useToast } from '@/context/ToastContext';
 import { useContactCard } from '@/context/ContactCardContext';
 import { applyToCollaboration, subscribeMyApplications, withdrawApplication } from '@/services/collab.service';
@@ -227,7 +228,7 @@ export const CollabProvider: React.FC<{ children: React.ReactNode }> = ({ childr
               <Text style={[styles.label, { color: colors.textPrimary }]}>
                 Message <Text style={{ color: colors.textMuted }}>(optional)</Text>
               </Text>
-              <TextInput
+              <TextField
                 value={message}
                 onChangeText={setMessage}
                 placeholder="Briefly say what you can contribute or relevant experience…"
@@ -289,13 +290,7 @@ const styles = StyleSheet.create({
   rolesRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   rolePill: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: radius.full, borderWidth: 1 },
   roleText: { ...typography.caption, fontSize: 13, fontFamily: fontFamilies.sansSemiBold },
-  input: {
-    ...typography.bodyCompact,
-    borderWidth: 1,
-    borderRadius: radius.sm,
-    padding: 12,
-    minHeight: 110,
-  },
+  input: {},
   counter: { ...typography.micro, alignSelf: 'flex-end' },
   note: { ...typography.caption, textAlign: 'center', marginTop: spacing.xs },
 });

@@ -21,6 +21,7 @@ import {
 } from 'react-native';
 import { Pencil, Plus, X } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
+import { TextField } from '@/components/common/TextField';
 import { useToast } from '@/context/ToastContext';
 import { Button } from '@/components/common/Button';
 import { updateResearchWork } from '@/services/research.service';
@@ -178,7 +179,7 @@ export const EditWorkSheet: React.FC<EditWorkSheetProps> = ({ work, visible, onC
 
           <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.body}>
             <Text style={[styles.label, { color: colors.textPrimary }]}>Title</Text>
-            <TextInput value={title} onChangeText={setTitle} maxLength={RESEARCH_LIMITS.titleMax} style={inputStyle} />
+            <TextField value={title} onChangeText={setTitle} maxLength={RESEARCH_LIMITS.titleMax} style={inputStyle} />
 
             <Text style={[styles.label, { color: colors.textPrimary }]}>Stage</Text>
             <View style={styles.chips}>
@@ -204,7 +205,7 @@ export const EditWorkSheet: React.FC<EditWorkSheetProps> = ({ work, visible, onC
             </View>
 
             <Text style={[styles.label, { color: colors.textPrimary }]}>Description</Text>
-            <TextInput
+            <TextField
               value={description}
               onChangeText={setDescription}
               multiline
@@ -221,7 +222,7 @@ export const EditWorkSheet: React.FC<EditWorkSheetProps> = ({ work, visible, onC
                 <Text style={[styles.label, { color: colors.textPrimary }]}>Looking for</Text>
                 {chipList(roles, setRoles, true)}
                 <View style={styles.addRow}>
-                  <TextInput
+                  <TextField
                     value={roleInput}
                     onChangeText={setRoleInput}
                     placeholder="Add a role, e.g. ML Engineer"
@@ -264,7 +265,7 @@ export const EditWorkSheet: React.FC<EditWorkSheetProps> = ({ work, visible, onC
             <Text style={[styles.label, { color: colors.textPrimary }]}>Topics</Text>
             {chipList(tags, setTags, false)}
             <View style={styles.addRow}>
-              <TextInput
+              <TextField
                 value={tagInput}
                 onChangeText={setTagInput}
                 placeholder="Add a topic, e.g. Machine Learning"
@@ -291,7 +292,7 @@ export const EditWorkSheet: React.FC<EditWorkSheetProps> = ({ work, visible, onC
             <Text style={[styles.label, { color: colors.textPrimary }]}>
               Link <Text style={{ color: colors.textMuted }}>(optional)</Text>
             </Text>
-            <TextInput
+            <TextField
               value={link}
               onChangeText={setLink}
               placeholder="https://…"
@@ -336,9 +337,9 @@ const styles = StyleSheet.create({
   title: { ...typography.title, flex: 1 },
   close: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   body: { padding: spacing.md, paddingBottom: spacing.xl, gap: spacing.xs },
-  label: { ...typography.label, fontFamily: fontFamilies.sansSemiBold, marginTop: spacing.sm },
-  input: { ...typography.bodyCompact, borderWidth: 1, borderRadius: radius.sm, paddingHorizontal: 12, paddingVertical: 10, minHeight: 44 },
-  multiline: { minHeight: 120 },
+  label: { ...typography.bodySmall, fontFamily: fontFamilies.sansSemiBold, marginTop: spacing.sm },
+  input: {},
+  multiline: {},
   counter: { ...typography.micro, alignSelf: 'flex-end' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, height: 32, borderRadius: radius.full, borderWidth: 1 },

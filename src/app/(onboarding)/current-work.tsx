@@ -19,6 +19,7 @@ import {
 } from '@/components';
 import { radius, spacing, typography, fontFamilies } from '@/constants';
 import { useTheme } from '@/context/ThemeContext';
+import { TextField } from '@/components/common/TextField';
 
 const STAGE_OPTIONS = [
   'Ideation',
@@ -174,7 +175,7 @@ export default function CurrentWorkScreen() {
             <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>
               Project / Thesis Title
             </Text>
-            <TextInput
+            <TextField
               value={title}
               onChangeText={setTitle}
               placeholder="e.g., Evaluating Transformer Models for Bangla NLP"
@@ -195,7 +196,7 @@ export default function CurrentWorkScreen() {
             <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>
               Short Overview / Focus
             </Text>
-            <TextInput
+            <TextField
               value={description}
               onChangeText={setDescription}
               placeholder="Briefly describe what you are testing, dataset progress, or research goals..."
@@ -344,22 +345,9 @@ const styles = StyleSheet.create({
   inputGroup: {
     marginBottom: spacing.md,
   },
-  inputLabel: {
-    ...typography.caption,
-    fontWeight: '600',
-    marginBottom: spacing.xs + 2,
-  },
-  textInput: {
-    borderWidth: 1,
-    borderRadius: radius.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    ...typography.body,
-  },
-  textArea: {
-    height: 96,
-    paddingTop: spacing.sm,
-  },
+  inputLabel: { ...typography.bodySmall, fontFamily: fontFamilies.sansSemiBold, marginBottom: 6 },
+  textInput: {},
+  textArea: {},
   stageRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',

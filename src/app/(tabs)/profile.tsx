@@ -39,6 +39,7 @@ import { spacing, radius, typography, fontFamilies, floatingButtonTokens } from 
 import { linkIconFor } from '@/components/common/linkIcon';
 import { ICON_STROKE } from '@/constants/icons';
 import { useTheme } from '@/context/ThemeContext';
+import { TextField } from '@/components/common/TextField';
 import { useAuth } from '@/context/AuthContext';
 import { Avatar } from '@/components/common/Avatar';
 import { TopicChip } from '@/components/common/TopicChip';
@@ -700,7 +701,7 @@ export default function ProfileTab() {
               <View style={styles.editFormFields}>
                 <View style={styles.inputGroup}>
                   <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>Full Name</Text>
-                  <TextInput
+                  <TextField
                     value={editName}
                     onChangeText={setEditName}
                     placeholder="Enter your full name"
@@ -722,7 +723,7 @@ export default function ProfileTab() {
                         <Text style={[styles.lockedText, { color: colors.textMuted }]}>Locked</Text>
                       </View>
                     </View>
-                    <TextInput
+                    <TextField
                       value={field.value}
                       editable={false}
                       selectTextOnFocus={false}
@@ -736,7 +737,7 @@ export default function ProfileTab() {
 
                 <View style={styles.inputGroup}>
                   <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>Bio & Research Focus</Text>
-                  <TextInput
+                  <TextField
                     value={editBio}
                     onChangeText={setEditBio}
                     placeholder="Write a brief overview of your academic focus..."
@@ -766,7 +767,7 @@ export default function ProfileTab() {
                       ))}
                     </View>
                   ) : null}
-                  <TextInput
+                  <TextField
                     value={interestInput}
                     onChangeText={setInterestInput}
                     onSubmitEditing={() => addInterest(interestInput)}
@@ -788,7 +789,7 @@ export default function ProfileTab() {
                 <View style={styles.inputGroup}>
                   <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>Academic Links</Text>
                   {LINK_META.map((m) => (
-                    <TextInput
+                    <TextField
                       key={m.key as string}
                       value={editLinks[m.key as string] ?? ''}
                       onChangeText={(v) => setEditLinks((prev) => ({ ...prev, [m.key as string]: v }))}
@@ -973,18 +974,9 @@ const styles = StyleSheet.create({
   lockedText: {
     ...typography.micro,
   },
-  textInput: {
-    ...typography.bodyCompact,
-    borderWidth: 1,
-    borderRadius: radius.sm,
-    paddingHorizontal: 12,
-    minHeight: spacing.inputHeight,
-  },
+  textInput: {},
   disabledInput: {
     opacity: 0.8,
   },
-  bioInput: {
-    minHeight: 110,
-    paddingTop: 12,
-  },
+  bioInput: {},
 });

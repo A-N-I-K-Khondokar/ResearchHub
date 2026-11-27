@@ -26,6 +26,7 @@ import {
 import { Check, ExternalLink, IdCard, Link2, Mail, MessageCircle, Pencil, Phone, Send, X } from 'lucide-react-native';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
+import { FieldFrame } from '@/components/common/TextField';
 import { useToast } from '@/context/ToastContext';
 import { getContactCard, saveContactCard } from '@/services/collab.service';
 import {
@@ -249,7 +250,7 @@ export const ContactCardProvider: React.FC<{ children: React.ReactNode }> = ({ c
               </View>
 
               {/* 3. Value */}
-              <View
+              <FieldFrame
                 style={[
                   styles.inputWrap,
                   {
@@ -272,7 +273,7 @@ export const ContactCardProvider: React.FC<{ children: React.ReactNode }> = ({ c
                   accessibilityLabel={`${CONTACT_METHODS.find((m) => m.id === method)?.label} contact`}
                 />
                 {value.trim() && !error ? <Check size={16} color={colors.success} /> : null}
-              </View>
+              </FieldFrame>
               <Text style={[styles.hint, { color: error ? colors.error : colors.textMuted }]}>{error ?? input.hint}</Text>
 
               {/* 4. Preview */}
@@ -371,18 +372,9 @@ const styles = StyleSheet.create({
   },
   methodText: { ...typography.caption, fontSize: 13, fontFamily: fontFamilies.sansSemiBold },
   dot: { width: 6, height: 6, borderRadius: 3 },
-  inputWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    borderWidth: 1.5,
-    borderRadius: radius.sm,
-    paddingHorizontal: 12,
-    minHeight: 48,
-    marginTop: spacing.xs,
-  },
+  inputWrap: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: spacing.xs },
   prefix: { ...typography.bodyCompact },
-  input: { ...typography.bodyCompact, flex: 1, paddingVertical: 10 },
+  input: { flex: 1, paddingVertical: 10, ...typography.body },
   hint: { ...typography.micro },
   preview: { borderWidth: 1, borderRadius: radius.md, padding: spacing.sm, gap: spacing.sm, marginBottom: spacing.sm },
   previewRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },

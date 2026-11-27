@@ -10,6 +10,7 @@ import {
 import { Search, X, SlidersHorizontal } from 'lucide-react-native';
 import { radius, spacing, typography } from '@/constants';
 import { useTheme } from '@/context/ThemeContext';
+import { FieldFrame } from './TextField';
 
 export interface SearchBarProps extends Omit<TextInputProps, 'style'> {
   value: string;
@@ -41,12 +42,12 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   };
 
   return (
-    <View
+    <FieldFrame
       style={[
         styles.container,
         {
           backgroundColor: colors.surfaceSubtle,
-          borderColor: colors.border,
+          borderColor: colors.borderSubtle,
         },
         style,
       ]}
@@ -62,6 +63,9 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         autoCapitalize="none"
         autoCorrect={false}
         returnKeyType="search"
+        selectionColor={colors.primary}
+        cursorColor={colors.primary}
+        accessibilityLabel={placeholder}
         style={[styles.input, { color: colors.textPrimary }]}
         {...rest}
       />
@@ -85,22 +89,19 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           onPress={onFilterPress}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           style={[styles.iconButton, styles.filterButton, { borderLeftColor: colors.border }]}
+          accessibilityRole="button"
+          accessibilityLabel="Filters"
         >
           <SlidersHorizontal size={16} color={colors.primary} />
         </TouchableOpacity>
       )}
-    </View>
+    </FieldFrame>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    height: 48,
-    borderWidth: 1,
-    borderRadius: radius.sm,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
+    height: spacing.inputHeight,
   },
   searchIcon: {
     marginRight: spacing.sm,

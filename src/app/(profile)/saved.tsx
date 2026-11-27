@@ -13,6 +13,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Refres
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { AlertTriangle, Bookmark, BookOpen, ChevronDown, Layers, Search, Users, X } from 'lucide-react-native';
+import { FieldFrame } from '@/components/common/TextField';
 import { ICON_STROKE } from '@/constants/icons';
 import { ScreenHeader } from '../../components/layout/ScreenHeader';
 import { SkeletonList } from '../../components/feedback/Skeleton';
@@ -298,7 +299,7 @@ export default function SavedItemsScreen() {
         >
           {/* Search + sort */}
           <View style={styles.toolbar}>
-            <View style={[styles.search, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}>
+            <FieldFrame style={[styles.search, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}>
               <Search size={16} color={colors.textMuted} />
               <TextInput
                 value={query}
@@ -315,7 +316,7 @@ export default function SavedItemsScreen() {
                   <X size={15} color={colors.textMuted} />
                 </TouchableOpacity>
               ) : null}
-            </View>
+            </FieldFrame>
             <TouchableOpacity
               onPress={() => setSort((s) => (s === 'saved' ? 'updated' : 'saved'))}
               style={[styles.sortBtn, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}

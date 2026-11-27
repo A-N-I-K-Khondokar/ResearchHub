@@ -26,6 +26,7 @@ import {
   Star,
   UserCheck,
 } from 'lucide-react-native';
+import { FieldFrame } from '@/components/common/TextField';
 import { spacing, radius, typography, fontFamilies } from '../../constants';
 import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
@@ -270,7 +271,7 @@ export default function MyNetworkScreen() {
   const renderConnections = () => (
     <>
       <View style={styles.toolbar}>
-        <View style={[styles.search, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}>
+        <FieldFrame style={[styles.search, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}>
           <Search size={16} color={colors.textMuted} />
           <TextInput
             value={query}
@@ -287,7 +288,7 @@ export default function MyNetworkScreen() {
               <X size={15} color={colors.textMuted} />
             </TouchableOpacity>
           ) : null}
-        </View>
+        </FieldFrame>
         <TouchableOpacity
           onPress={() => setSort((s) => (s === 'recent' ? 'name' : 'recent'))}
           style={[styles.sortBtn, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}

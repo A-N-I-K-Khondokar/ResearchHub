@@ -34,6 +34,7 @@ import { ICON_STROKE } from '@/constants/icons';
 import { ScreenContainer, Button, Avatar, OnboardingProgress } from '@/components';
 import { radius, spacing, typography, fontFamilies } from '@/constants';
 import { useTheme } from '@/context/ThemeContext';
+import { FieldFrame } from '@/components/common/TextField';
 import { useAuth } from '@/context/AuthContext';
 import { createPendingUserProfile, resubmitApplication } from '@/services/user.service';
 import { Skeleton } from '@/components/feedback/Skeleton';
@@ -1064,7 +1065,7 @@ export default function AccountSetupScreen() {
             <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>
               Full Display Name <Text style={{ color: colors.error }}>*</Text>
             </Text>
-            <View
+            <FieldFrame
               style={[
                 styles.inputWrapper,
                 {
@@ -1091,7 +1092,7 @@ export default function AccountSetupScreen() {
                 style={[styles.textInput, { color: colors.textPrimary }]}
                 maxLength={100}
               />
-            </View>
+            </FieldFrame>
             {errors.displayName ? (
               <Text style={[styles.errorText, { color: colors.error }]}>
                 {errors.displayName}
@@ -1104,7 +1105,7 @@ export default function AccountSetupScreen() {
             <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>
               Profile Photo URL <Text style={[styles.optionalTag, { color: colors.textMuted }]}>optional</Text>
             </Text>
-            <View
+            <FieldFrame
               style={[
                 styles.inputWrapper,
                 {
@@ -1133,7 +1134,7 @@ export default function AccountSetupScreen() {
                 keyboardType="url"
                 maxLength={500}
               />
-            </View>
+            </FieldFrame>
             {errors.photoURL ? (
               <Text style={[styles.errorText, { color: colors.error }]}>
                 {errors.photoURL}
@@ -1171,7 +1172,7 @@ export default function AccountSetupScreen() {
             <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>
               Department <Text style={{ color: colors.error }}>*</Text>
             </Text>
-            <View
+            <FieldFrame
               style={[
                 styles.inputWrapper,
                 {
@@ -1198,7 +1199,7 @@ export default function AccountSetupScreen() {
                 style={[styles.textInput, { color: colors.textPrimary }]}
                 maxLength={100}
               />
-            </View>
+            </FieldFrame>
             {errors.department ? (
               <Text style={[styles.errorText, { color: colors.error }]}>
                 {errors.department}
@@ -1211,7 +1212,7 @@ export default function AccountSetupScreen() {
             <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>
               Designation / Academic Role <Text style={{ color: colors.error }}>*</Text>
             </Text>
-            <View
+            <FieldFrame
               style={[
                 styles.inputWrapper,
                 {
@@ -1238,7 +1239,7 @@ export default function AccountSetupScreen() {
                 style={[styles.textInput, { color: colors.textPrimary }]}
                 maxLength={100}
               />
-            </View>
+            </FieldFrame>
             {errors.designation ? (
               <Text style={[styles.errorText, { color: colors.error }]}>
                 {errors.designation}
@@ -1302,7 +1303,7 @@ export default function AccountSetupScreen() {
             <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>
               Program <Text style={[styles.optionalTag, { color: colors.textMuted }]}>optional</Text>
             </Text>
-            <View
+            <FieldFrame
               style={[
                 styles.inputWrapper,
                 {
@@ -1320,7 +1321,7 @@ export default function AccountSetupScreen() {
                 style={[styles.textInput, { color: colors.textPrimary }]}
                 maxLength={100}
               />
-            </View>
+            </FieldFrame>
             {/* Quick Program Suggestions */}
             <View style={styles.chipRow}>
               {COMMON_PROGRAMS.map((item, idx) => (
@@ -1362,7 +1363,7 @@ export default function AccountSetupScreen() {
               <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>
                 Batch / Cohort
               </Text>
-              <View
+              <FieldFrame
                 style={[
                   styles.inputWrapper,
                   {
@@ -1379,14 +1380,14 @@ export default function AccountSetupScreen() {
                   style={[styles.textInput, { color: colors.textPrimary }]}
                   maxLength={50}
                 />
-              </View>
+              </FieldFrame>
             </View>
 
             <View style={[styles.inputGroup, { flex: 1 }]}>
               <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>
                 Student / Faculty ID
               </Text>
-              <View
+              <FieldFrame
                 style={[
                   styles.inputWrapper,
                   {
@@ -1403,7 +1404,7 @@ export default function AccountSetupScreen() {
                   style={[styles.textInput, { color: colors.textPrimary }]}
                   maxLength={50}
                 />
-              </View>
+              </FieldFrame>
             </View>
           </View>
         </View>
@@ -1437,7 +1438,7 @@ export default function AccountSetupScreen() {
             <Text style={[styles.inputLabel, { color: colors.textPrimary }]}>
               Scholarly Biography / Focus Summary <Text style={[styles.optionalTag, { color: colors.textMuted }]}>optional</Text>
             </Text>
-            <View
+            <FieldFrame
               style={[
                 styles.textAreaWrapper,
                 {
@@ -1457,7 +1458,7 @@ export default function AccountSetupScreen() {
                 textAlignVertical="top"
                 maxLength={2000}
               />
-            </View>
+            </FieldFrame>
             <Text style={[styles.charCount, { color: colors.textMuted }]}>
               {bio.length}/2000 characters
             </Text>
@@ -1471,7 +1472,7 @@ export default function AccountSetupScreen() {
 
             {/* Custom Tag Input Row */}
             <View style={styles.tagInputRow}>
-              <View
+              <FieldFrame
                 style={[
                   styles.inputWrapper,
                   {
@@ -1492,7 +1493,7 @@ export default function AccountSetupScreen() {
                   returnKeyType="done"
                   maxLength={50}
                 />
-              </View>
+              </FieldFrame>
 
               <TouchableOpacity
                 activeOpacity={0.7}
@@ -1601,7 +1602,7 @@ export default function AccountSetupScreen() {
 
             {/* Website */}
             <View style={styles.inputGroup}>
-              <View
+              <FieldFrame
                 style={[
                   styles.inputWrapper,
                   {
@@ -1620,12 +1621,12 @@ export default function AccountSetupScreen() {
                   autoCapitalize="none"
                   keyboardType="url"
                 />
-              </View>
+              </FieldFrame>
             </View>
 
             {/* GitHub */}
             <View style={styles.inputGroup}>
-              <View
+              <FieldFrame
                 style={[
                   styles.inputWrapper,
                   {
@@ -1644,12 +1645,12 @@ export default function AccountSetupScreen() {
                   autoCapitalize="none"
                   keyboardType="url"
                 />
-              </View>
+              </FieldFrame>
             </View>
 
             {/* LinkedIn */}
             <View style={styles.inputGroup}>
-              <View
+              <FieldFrame
                 style={[
                   styles.inputWrapper,
                   {
@@ -1668,12 +1669,12 @@ export default function AccountSetupScreen() {
                   autoCapitalize="none"
                   keyboardType="url"
                 />
-              </View>
+              </FieldFrame>
             </View>
 
             {/* Google Scholar */}
             <View style={styles.inputGroup}>
-              <View
+              <FieldFrame
                 style={[
                   styles.inputWrapper,
                   {
@@ -1692,12 +1693,12 @@ export default function AccountSetupScreen() {
                   autoCapitalize="none"
                   keyboardType="url"
                 />
-              </View>
+              </FieldFrame>
             </View>
 
             {/* ResearchGate */}
             <View style={styles.inputGroup}>
-              <View
+              <FieldFrame
                 style={[
                   styles.inputWrapper,
                   {
@@ -1716,7 +1717,7 @@ export default function AccountSetupScreen() {
                   autoCapitalize="none"
                   keyboardType="url"
                 />
-              </View>
+              </FieldFrame>
             </View>
           </View>
         </View>
@@ -1965,46 +1966,18 @@ const styles = StyleSheet.create({
   inputGroup: {
     marginBottom: spacing.md,
   },
-  inputLabel: {
-    fontFamily: fontFamilies.sansMedium,
-    fontSize: 13,
-    marginBottom: 6,
-  },
+  inputLabel: { ...typography.bodySmall, fontFamily: fontFamilies.sansSemiBold, marginBottom: 6 },
   optionalTag: {
     fontFamily: fontFamilies.sansRegular,
     fontSize: 12,
   },
-  inputWrapper: {
-    height: 48,
-    borderRadius: radius.sm,
-    borderWidth: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-  },
+  inputWrapper: { height: 48, flexDirection: 'row', alignItems: 'center' },
   inputIcon: {
     marginRight: 8,
   },
-  textInput: {
-    flex: 1,
-    height: '100%',
-    fontFamily: fontFamilies.sansRegular,
-    fontSize: 14,
-    paddingVertical: 0,
-  },
-  textAreaWrapper: {
-    borderRadius: radius.sm,
-    borderWidth: 1,
-    padding: 12,
-    minHeight: 96,
-  },
-  textArea: {
-    fontFamily: fontFamilies.sansRegular,
-    fontSize: 14,
-    lineHeight: 20,
-    minHeight: 72,
-    padding: 0,
-  },
+  textInput: { flex: 1, height: '100%', fontFamily: fontFamilies.sansRegular, fontSize: 15, paddingVertical: 0 },
+  textAreaWrapper: { minHeight: 112, flexDirection: 'column', alignItems: 'stretch', paddingVertical: 12 },
+  textArea: { fontFamily: fontFamilies.sansRegular, fontSize: 15, lineHeight: 22, minHeight: 72, padding: 0 },
   charCount: {
     fontFamily: fontFamilies.sansRegular,
     fontSize: 11,
