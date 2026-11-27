@@ -89,6 +89,11 @@ export const CollabProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       prevStatus.current = new Map(requests.map((r) => [r.id, r.status] as const));
       setMyApplications(requests);
       if (!before) return; // first snapshot: nothing "just" happened
+      const removed = requests.find((r) => r.status === 'removed' && before.get(r.id) === 'accepted');
+      if (removed) {
+        toast.show(`You were removed from "${removed.workTitle}". See Notifications for the reason.`, 'info');
+        return;
+      }
       const joined = requests.find((r) => r.status === 'accepted' && before.get(r.id) === 'pending');
       if (!joined) return;
       const hasCard = hasMyCardRef.current !== false;
@@ -107,12 +112,14 @@ export const CollabProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const openApply = useCallback((post: ApplyTarget) => {
     // One application per person per post: never open the sheet twice.
+    // A "removed" application doesn't block applying again (it is cleared on send).
     const existing = byWork.get(post.id);
-    if (existing || (uid && post.teamUids?.includes(uid))) {
+    const blocking = existing && existing.status !== 'removed' ? existing : undefined;
+    if (blocking || (uid && post.teamUids?.includes(uid))) {
       toast.show(
-        existing?.status === 'pending'
+        blocking?.status === 'pending'
           ? 'You have already applied — your application is pending.'
-          : existing?.status === 'declined'
+          : blocking?.status === 'declined'
             ? 'Your application to this post was declined.'
             : "You're already on this team.",
         'info',
@@ -138,7 +145,8 @@ export const CollabProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const send = async () => {
     if (!target || !userProfile || !role || sendingRef.current) return;
-    if (byWork.has(target.id)) {
+    const previous = byWork.get(target.id);
+    if (previous && previous.status !== 'removed') {
       // Already applied (e.g. from another screen while the sheet was open).
       toast.show('You have already applied to this post.', 'info');
       setTarget(null);
@@ -147,6 +155,8 @@ export const CollabProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     sendingRef.current = true;
     setSending(true);
     try {
+      // Applying again after being removed: clear the old application first.
+      if (previous?.status === 'removed') await withdrawApplication(previous.id);
       await applyToCollaboration(
         userProfile,
         { id: target.id, authorUid: target.authorUid, title: target.title },

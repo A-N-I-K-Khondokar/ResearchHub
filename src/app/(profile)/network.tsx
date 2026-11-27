@@ -174,7 +174,8 @@ export default function MyNetworkScreen() {
   );
   const roleFor = useMemo(() => new Map(myApplications.map((a) => [a.workId, a.role] as const)), [myApplications]);
   const openApps = myApplications.filter((a) => a.status === 'pending');
-  const declinedApps = myApplications.filter((a) => a.status === 'declined');
+  // Past applications: declined, or removed from the team (with the lead's reason).
+  const declinedApps = myApplications.filter((a) => a.status === 'declined' || a.status === 'removed');
 
   // ---------------------------------------------------------------------------
   // Actions
@@ -259,6 +260,7 @@ export default function MyNetworkScreen() {
       pending: { text: 'Pending', fg: colors.primary, bg: colors.primaryMuted },
       accepted: { text: 'On the team', fg: colors.success, bg: colors.successLight },
       declined: { text: 'Declined', fg: colors.textMuted, bg: colors.surfaceSubtle },
+      removed: { text: 'Removed', fg: colors.warning, bg: colors.warningLight },
     }[status];
     return (
       <View style={[styles.chip, { backgroundColor: map.bg }]}>
@@ -569,7 +571,7 @@ export default function MyNetworkScreen() {
           <>
             <TouchableOpacity onPress={() => setShowDeclined((v) => !v)} style={styles.foldBtn} accessibilityRole="button">
               <Text style={[styles.foldText, { color: colors.textSecondary }]}>
-                {showDeclined ? 'Hide' : 'Show'} {declinedApps.length} declined
+                {showDeclined ? 'Hide' : 'Show'} {declinedApps.length} past application{declinedApps.length === 1 ? '' : 's'}
               </Text>
               <ChevronDown size={14} color={colors.textSecondary} style={showDeclined ? { transform: [{ rotate: '180deg' }] } : undefined} />
             </TouchableOpacity>
@@ -585,6 +587,11 @@ export default function MyNetworkScreen() {
                     <View style={styles.rowBody}>
                       <Text style={[styles.workName, { color: colors.textPrimary }]} numberOfLines={1}>{r.workTitle}</Text>
                       <Text style={[styles.meta, { color: colors.textSecondary }]} numberOfLines={1}>As {r.role}</Text>
+                      {r.status === 'removed' && r.removalMessage ? (
+                        <Text style={[styles.meta, { color: colors.textPrimary, marginTop: 2 }]} numberOfLines={2}>
+                          Reason: {r.removalMessage}
+                        </Text>
+                      ) : null}
                     </View>
                     {statusChip(r.status)}
                   </TouchableOpacity>

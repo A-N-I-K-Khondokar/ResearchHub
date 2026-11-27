@@ -23,7 +23,7 @@ import {
 } from 'react-native';
 import { COMPACT_FONT_SCALE } from '@/constants/typography';
 import { useRouter } from 'expo-router';
-import { BadgeCheck, BellOff, Check, CheckCheck, UserPlus, Users, XCircle } from 'lucide-react-native';
+import { BadgeCheck, BellOff, Check, CheckCheck, UserPlus, Users, XCircle, UserMinus } from 'lucide-react-native';
 import { ICON_STROKE } from '@/constants/icons';
 import { spacing, radius, typography, fontFamilies } from '@/constants';
 import { useTheme } from '@/context/ThemeContext';
@@ -285,6 +285,7 @@ export default function NotificationsTab() {
       collab_request: { bg: colors.primary, Icon: Users },
       collab_accepted: { bg: colors.success, Icon: BadgeCheck },
       collab_declined: { bg: colors.textMuted, Icon: XCircle },
+      collab_removed: { bg: colors.warning, Icon: UserMinus },
       connection_request: { bg: colors.primary, Icon: UserPlus },
       connection_accepted: { bg: colors.success, Icon: Check },
     };
@@ -305,7 +306,9 @@ export default function NotificationsTab() {
           ? `applied to join "${item.workTitle}" as ${item.role}.`
           : item.type === 'collab_accepted'
             ? `accepted you to "${item.workTitle}" as ${item.role}.`
-            : `declined your application to "${item.workTitle}".`;
+            : item.type === 'collab_removed'
+              ? `removed you from "${item.workTitle}" (${item.role}).`
+              : `declined your application to "${item.workTitle}".`;
 
   const smallBtn = (label: string, onPress: () => void, primary = false, icon?: React.ReactNode, disabled = false) => (
     <TouchableOpacity
@@ -350,6 +353,7 @@ export default function NotificationsTab() {
       if (!req) return receivedLoaded ? statusText('Application withdrawn', false) : null;
       if (req.status === 'accepted') return statusText('Accepted — on your team', true);
       if (req.status === 'declined') return statusText('Declined', false);
+      if (req.status === 'removed') return statusText('Removed from the team', false);
       const busy = busyRequest === req.id;
       return (
         <>
@@ -385,6 +389,25 @@ export default function NotificationsTab() {
             true,
           )}
         </View>
+      );
+    }
+    if (item.type === 'collab_removed') {
+      const workId = workIdOf(item);
+      return (
+        <>
+          {item.message ? (
+            <Text style={[styles.quote, { color: colors.textPrimary, backgroundColor: colors.surfaceSubtle, borderLeftColor: colors.warning }]}>
+              {item.message}
+            </Text>
+          ) : null}
+          <View style={styles.btnRow}>
+            {workId ? smallBtn('Open project', () => { markRead(item); router.push(`/(research)/${workId}` as any); }) : null}
+            {smallBtn('Browse collaborations', () => {
+              markRead(item);
+              router.push({ pathname: '/(explore)/search' as any, params: { category: 'collaborations' } });
+            })}
+          </View>
+        </>
       );
     }
     if (item.type === 'collab_declined') {

@@ -69,7 +69,7 @@ import {
   updateResearchStage,
   publishDraft,
 } from '@/services/research.service';
-import { respondToApplication, setCollabStatus, subscribeReceivedApplications } from '@/services/collab.service';
+import { removeTeamMember, respondToApplication, setCollabStatus, subscribeReceivedApplications } from '@/services/collab.service';
 import type { ResearchWork } from '@/types/research.types';
 import type { CollabRequest } from '@/types/collab.types';
 import { useConnections } from '@/hooks/useConnections';
@@ -254,6 +254,24 @@ export default function ResearchDetailScreen() {
       toast.show('Could not update the application. Please try again.', 'error');
     } finally {
       setBusyRequest(null);
+    }
+  };
+
+  /** Author removes an accepted member, with the required reason (notifies them).
+   *  Returns null on success, or a message shown inside the Manage sheet. */
+  const handleRemoveMember = async (request: CollabRequest, message: string): Promise<string | null> => {
+    if (!userProfile) return 'Your profile is still loading. Please try again.';
+    try {
+      await removeTeamMember(userProfile, request, message);
+      toast.show(`${request.applicant.displayName.split(' ')[0]} was removed from the team`, 'info');
+      return null;
+    } catch (err: any) {
+      console.error('[ResearchDetail] remove member failed:', err);
+      if (err?.code === 'permission-denied') {
+        return "The server didn't allow this removal. Member removal needs the updated Firestore rules to be deployed.";
+      }
+      if (err?.code === 'unavailable') return "You're offline. Check your connection and try again.";
+      return 'Could not remove this member. Please try again.';
     }
   };
 
@@ -781,6 +799,8 @@ export default function ResearchDetailScreen() {
                     const tone =
                       mine.status === 'accepted'
                         ? { fg: colors.success, bg: colors.successLight, text: 'Accepted — you are on the team' }
+                        : mine.status === 'removed'
+                          ? { fg: colors.warning, bg: colors.warningLight, text: 'Removed from the team' }
                         : mine.status === 'declined'
                           ? { fg: colors.textMuted, bg: colors.surfaceSubtle, text: 'Declined' }
                           : { fg: colors.primary, bg: colors.primaryMuted, text: 'Pending review' };
@@ -799,6 +819,19 @@ export default function ResearchDetailScreen() {
                           <Text style={[styles.myAppMsg, { color: colors.textPrimary, backgroundColor: colors.surfaceSubtle, borderLeftColor: colors.primaryLight }]} numberOfLines={4}>
                             “{mine.message}”
                           </Text>
+                        ) : null}
+                        {mine.status === 'removed' && mine.removalMessage ? (
+                          <View style={{ gap: 4 }}>
+                            <Text style={[styles.muted, { color: colors.textSecondary }]}>
+                              Message from {work.authorName.split(' ')[0]}:
+                            </Text>
+                            <Text style={[styles.myAppMsg, { color: colors.textPrimary, backgroundColor: colors.surfaceSubtle, borderLeftColor: colors.warning }]}>
+                              {mine.removalMessage}
+                            </Text>
+                            {work.collabStatus !== 'closed' ? (
+                              <Text style={[styles.muted, { color: colors.textMuted }]}>You can apply again below if the post is still open.</Text>
+                            ) : null}
+                          </View>
                         ) : null}
                         {mine.status === 'pending' ? (
                           <TouchableOpacity
@@ -897,6 +930,19 @@ export default function ResearchDetailScreen() {
                               ) : null}
                             </TouchableOpacity>
                           ))}
+                          {isOwner ? (
+                            <TouchableOpacity
+                              onPress={() => setManageOpen(true)}
+                              style={styles.manageTeamLink}
+                              accessibilityRole="button"
+                              accessibilityLabel="Manage team: keep or remove members"
+                            >
+                              <Settings2 size={14} color={colors.primary} />
+                              <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.manageTeamText, { color: colors.primary }]}>
+                                Manage team
+                              </Text>
+                            </TouchableOpacity>
+                          ) : null}
                         </View>
                       ) : null}
                     </>
@@ -1014,6 +1060,7 @@ export default function ResearchDetailScreen() {
             onPublish={handlePublish}
             onToggleOpen={handleToggleOpen}
             onRespond={handleRespond}
+            onRemoveMember={handleRemoveMember}
             onDelete={handleDelete}
           />
         </>
@@ -1117,6 +1164,8 @@ const styles = StyleSheet.create({
   stackMoreText: { ...typography.micro, fontFamily: fontFamilies.sansSemiBold },
   teamCount: { ...typography.label, fontFamily: fontFamilies.sansSemiBold, flex: 1, fontVariant: ['tabular-nums'] },
   teamList: { marginTop: spacing.sm, gap: 2 },
+  manageTeamLink: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', paddingVertical: spacing.xs, marginTop: 2 },
+  manageTeamText: { ...typography.buttonSmall },
   memberRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: 6 },
   memberName: { ...typography.label, flex: 1, minWidth: 0 },
   rolePill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: radius.full, maxWidth: 140 },

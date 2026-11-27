@@ -6,11 +6,12 @@
  * owner control out of the public reading layout.
  */
 
-import React from 'react';
-import { Modal, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
+import React, { useState } from 'react';
+import { KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { COMPACT_FONT_SCALE } from '@/constants/typography';
 import { useRouter } from 'expo-router';
-import { Check, CheckCircle2, ChevronRight, Pencil, Send, Settings2, X, XCircle } from 'lucide-react-native';
+import { ArrowLeft, Check, ChevronRight, Pencil, Send, Settings2, UserMinus, X, XCircle } from 'lucide-react-native';
+import { RemoveMemberPanel } from './RemoveMemberSheet';
 import { useTheme } from '@/context/ThemeContext';
 import { Avatar } from '@/components/common/Avatar';
 import { SoftDangerButton } from '@/components/common/SoftDangerButton';
@@ -32,6 +33,8 @@ interface ManagePostSheetProps {
   onPublish?: () => void;
   onToggleOpen: (open: boolean) => void;
   onRespond: (request: CollabRequest, accept: boolean) => void;
+  /** Remove an accepted member (reason required). Resolves null on success, or an error message. */
+  onRemoveMember: (request: CollabRequest, message: string) => Promise<string | null>;
   onDelete: () => void;
 }
 
@@ -47,34 +50,80 @@ export const ManagePostSheet: React.FC<ManagePostSheetProps> = ({
   onPublish,
   onToggleOpen,
   onRespond,
+  onRemoveMember,
   onDelete,
 }) => {
   const { colors } = useTheme();
   const router = useRouter();
   const isCollab = work.postType === 'collaboration';
-  const sorted = [...applicants].sort(
+  // Team = accepted applications (each one can be removed with a reason).
+  const members = applicants.filter((a) => a.status === 'accepted');
+  const others = applicants.filter((a) => a.status !== 'accepted');
+  const sorted = [...others].sort(
     (a, b) => (a.status === 'pending' ? 0 : 1) - (b.status === 'pending' ? 0 : 1),
   );
   const pending = applicants.filter((a) => a.status === 'pending').length;
+  // "Remove from team" is a step inside this sheet (no second modal).
+  const [removing, setRemoving] = useState<CollabRequest | null>(null);
+  const [removeBusy, setRemoveBusy] = useState(false);
+  const [removeError, setRemoveError] = useState<string | null>(null);
+  const startRemove = (m: CollabRequest) => {
+    setRemoveError(null);
+    setRemoving(m);
+  };
+  const cancelRemove = () => {
+    if (removeBusy) return;
+    setRemoveError(null);
+    setRemoving(null);
+  };
+  const confirmRemove = async (message: string) => {
+    if (!removing) return;
+    setRemoveBusy(true);
+    setRemoveError(null);
+    const error = await onRemoveMember(removing, message);
+    setRemoveBusy(false);
+    if (error) setRemoveError(error);
+    else setRemoving(null);
+  };
+  const close = () => {
+    if (removeBusy) return;
+    setRemoving(null);
+    setRemoveError(null);
+    onClose();
+  };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View style={styles.overlay}>
-        <TouchableOpacity style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Close" />
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={removing ? cancelRemove : close}>
+      <KeyboardAvoidingView style={styles.overlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <TouchableOpacity style={StyleSheet.absoluteFill} onPress={close} accessibilityLabel="Close" />
         <View style={[styles.sheet, { backgroundColor: colors.surface, borderColor: colors.borderSubtle }]}>
           <View style={[styles.grabber, { backgroundColor: colors.border }]} />
           <View style={styles.header}>
-            <View style={[styles.iconBadge, { backgroundColor: colors.primaryMuted }]}>
-              <Settings2 size={17} color={colors.primary} />
-            </View>
+            {removing ? (
+              <TouchableOpacity
+                onPress={cancelRemove}
+                hitSlop={10}
+                style={[styles.iconBadge, { backgroundColor: colors.surfaceSubtle }]}
+                accessibilityRole="button"
+                accessibilityLabel="Back to Manage post"
+              >
+                <ArrowLeft size={18} color={colors.textPrimary} />
+              </TouchableOpacity>
+            ) : (
+              <View style={[styles.iconBadge, { backgroundColor: colors.primaryMuted }]}>
+                <Settings2 size={17} color={colors.primary} />
+              </View>
+            )}
             <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={[styles.title, { color: colors.textPrimary }]}>Manage post</Text>
+              <Text style={[styles.title, { color: colors.textPrimary }]}>
+                {removing ? 'Remove from team' : 'Manage post'}
+              </Text>
               <Text style={[styles.subtitle, { color: colors.textSecondary }]} numberOfLines={1}>
                 {work.title}
               </Text>
             </View>
             <TouchableOpacity
-              onPress={onClose}
+              onPress={close}
               hitSlop={10}
               style={[styles.close, { backgroundColor: colors.surfaceSubtle }]}
               accessibilityRole="button"
@@ -84,7 +133,17 @@ export const ManagePostSheet: React.FC<ManagePostSheetProps> = ({
             </TouchableOpacity>
           </View>
 
-          <ScrollView contentContainerStyle={styles.body}>
+          <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
+            {removing ? (
+              <RemoveMemberPanel
+                request={removing}
+                busy={removeBusy}
+                error={removeError}
+                onCancel={cancelRemove}
+                onConfirm={confirmRemove}
+              />
+            ) : (
+            <>
             {/* Publish (drafts) */}
             {work.status === 'draft' && onPublish ? (
               <TouchableOpacity
@@ -149,9 +208,51 @@ export const ManagePostSheet: React.FC<ManagePostSheetProps> = ({
                   />
                 </View>
 
+                {/* Team */}
+                <Text style={[styles.section, { color: colors.textSecondary }]}>Team ({members.length})</Text>
+                {members.length === 0 ? (
+                  <Text style={[styles.empty, { color: colors.textSecondary }]}>
+                    No members yet. Accepted applicants appear here.
+                  </Text>
+                ) : (
+                  members.map((m) => (
+                    <View key={m.id} style={[styles.memberRow, { borderColor: colors.borderSubtle }]}>
+                      <TouchableOpacity
+                        style={styles.person}
+                        onPress={() => {
+                          onClose();
+                          router.push(`/(profile)/${m.applicantUid}` as any);
+                        }}
+                        accessibilityRole="button"
+                        accessibilityLabel={`${m.applicant.displayName}, ${m.role}`}
+                      >
+                        <Avatar name={m.applicant.displayName} uri={m.applicant.photoURL} size="sm" />
+                        <View style={{ flex: 1, minWidth: 0 }}>
+                          <Text style={[styles.rowTitle, { color: colors.textPrimary }]} numberOfLines={1}>
+                            {m.applicant.displayName}
+                          </Text>
+                          <Text style={[styles.rowSub, { color: colors.textSecondary }]} numberOfLines={1}>
+                            {m.role}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() => startRemove(m)}
+                        hitSlop={6}
+                        style={[styles.removeBtn, { borderColor: colors.borderSubtle }]}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Remove ${m.applicant.displayName} from the team`}
+                      >
+                        <UserMinus size={14} color={colors.error} />
+                        <Text maxFontSizeMultiplier={COMPACT_FONT_SCALE} style={[styles.removeText, { color: colors.error }]}>Remove</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ))
+                )}
+
                 {/* Applicants */}
                 <Text style={[styles.section, { color: colors.textSecondary }]}>
-                  Applicants ({applicants.length}){pending ? ` · ${pending} waiting` : ''}
+                  Applicants ({others.length}){pending ? ` · ${pending} waiting` : ''}
                 </Text>
                 {sorted.length === 0 ? (
                   <Text style={[styles.empty, { color: colors.textSecondary }]}>
@@ -212,13 +313,15 @@ export const ManagePostSheet: React.FC<ManagePostSheetProps> = ({
                         </View>
                       ) : (
                         <View style={styles.statusRow}>
-                          {r.status === 'accepted' ? (
-                            <CheckCircle2 size={14} color={colors.success} />
+                          {r.status === 'removed' ? (
+                            <UserMinus size={14} color={colors.textMuted} />
                           ) : (
                             <XCircle size={14} color={colors.textMuted} />
                           )}
-                          <Text style={[styles.rowSub, { color: r.status === 'accepted' ? colors.success : colors.textMuted }]}>
-                            {r.status === 'accepted' ? 'Accepted — on your team' : 'Declined'}
+                          <Text style={[styles.rowSub, { color: colors.textMuted, flexShrink: 1 }]} numberOfLines={2}>
+                            {r.status === 'removed'
+                              ? `Removed from the team${r.removalMessage ? ` — “${r.removalMessage}”` : ''}`
+                              : 'Declined'}
                           </Text>
                         </View>
                       )}
@@ -236,9 +339,11 @@ export const ManagePostSheet: React.FC<ManagePostSheetProps> = ({
                 loading={isDeleting}
               />
             </View>
+            </>
+            )}
           </ScrollView>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };
@@ -288,6 +393,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   actionText: { ...typography.buttonSmall },
+  memberRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderWidth: 1, borderRadius: radius.md, padding: spacing.sm },
+  removeBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, height: spacing.compactButtonHeight, paddingHorizontal: 12, borderWidth: 1, borderRadius: radius.button },
+  removeText: { ...typography.buttonSmall },
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: spacing.xs },
   danger: { borderTopWidth: 1, paddingTop: spacing.md, marginTop: spacing.sm },
 });

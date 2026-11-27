@@ -51,7 +51,21 @@ export function buildCollabResponse(accept: boolean, timestamp: unknown): Record
   return { status: accept ? 'accepted' : 'declined', respondedAt: timestamp, updatedAt: timestamp };
 }
 
-export type CollabNotificationType = 'collab_request' | 'collab_accepted' | 'collab_declined';
+/** Author removes an accepted member: the request moves accepted -> removed with a reason. */
+export const REMOVAL_MESSAGE = { min: 10, max: 300 } as const;
+
+export function validateRemovalMessage(message: string): string | null {
+  const m = message.trim();
+  if (m.length < REMOVAL_MESSAGE.min) return `Write at least ${REMOVAL_MESSAGE.min} characters so they understand why.`;
+  if (m.length > REMOVAL_MESSAGE.max) return `Keep it under ${REMOVAL_MESSAGE.max} characters.`;
+  return null;
+}
+
+export function buildCollabRemoval(message: string, timestamp: unknown): Record<string, unknown> {
+  return { status: 'removed', removalMessage: message.trim(), updatedAt: timestamp };
+}
+
+export type CollabNotificationType = 'collab_request' | 'collab_accepted' | 'collab_declined' | 'collab_removed';
 
 /** In-app notification tied to a collaboration request (`connectionId` holds the request id). */
 export function buildCollabNotification(
@@ -62,6 +76,8 @@ export function buildCollabNotification(
   workTitle: string,
   role: string,
   timestamp: unknown,
+  /** collab_removed only: the author's reason, shown to the removed member. */
+  message?: string,
 ): Record<string, unknown> {
   return {
     recipientUid,
@@ -74,6 +90,7 @@ export function buildCollabNotification(
     role,
     read: false,
     createdAt: timestamp,
+    ...(message !== undefined ? { message: message.trim() } : {}),
   };
 }
 

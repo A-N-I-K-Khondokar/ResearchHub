@@ -8,6 +8,7 @@
  */
 
 import {
+  arrayRemove,
   arrayUnion,
   collection,
   deleteDoc,
@@ -28,6 +29,7 @@ import { db } from '@/config/firebase';
 import {
   buildCollabConnection,
   buildCollabNotification,
+  buildCollabRemoval,
   buildCollabRequest,
   buildCollabResponse,
   buildContactCard,
@@ -142,6 +144,30 @@ export async function respondToApplication(
       request.role,
       now,
     ),
+  );
+  await batch.commit();
+}
+
+/**
+ * Author removes an accepted member from the team, with a required reason.
+ * One batch: request accepted -> removed (+ reason), the member's exact team
+ * entry leaves the post, and the member gets a notice with the same reason.
+ * The connection between the two researchers is kept.
+ */
+export async function removeTeamMember(me: UserProfile, request: CollabRequest, message: string): Promise<void> {
+  const firestore = getFirestoreDb();
+  const author = participantOf(me);
+  const now = serverTimestamp();
+  const reason = message.trim();
+  const batch = writeBatch(firestore);
+  batch.update(doc(firestore, 'collab_requests', request.id), buildCollabRemoval(reason, now));
+  batch.update(doc(firestore, 'research_works', request.workId), {
+    team: arrayRemove(buildTeamMember(request.applicant, request.role)),
+    updatedAt: now,
+  });
+  batch.set(
+    doc(collection(firestore, 'notifications')),
+    buildCollabNotification('collab_removed', author, request.applicantUid, request.id, request.workTitle, request.role, now, reason),
   );
   await batch.commit();
 }

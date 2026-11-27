@@ -31,6 +31,7 @@ import {
   limit,
   getDocs,
   arrayUnion,
+  arrayRemove,
 } from 'firebase/firestore';
 // Real payload builder used by src/services/user.service.ts (requires
 // `node --experimental-strip-types`, available in Node >= 22.6).
@@ -46,6 +47,7 @@ import {
   buildCollabConnection,
   buildTeamMember,
   buildContactCard,
+  buildCollabRemoval,
 } from '../../src/utils/collab.ts';
 import {
   connectionIdFor,
@@ -2076,7 +2078,7 @@ describe('Firestore Security Rules Suite — CSE Research Hub', () => {
   });
 
   // -------------------------------------------------------------------------
-  // 15. Tier 1 collaboration workflow (TEST-157 to TEST-174)
+  // 15. Tier 1 collaboration workflow (TEST-157 to TEST-185)
   // -------------------------------------------------------------------------
   describe('15. Collaboration Requests, Teams and Contact Cards', () => {
     const LENA_UID = 'user_lena_approved';
@@ -2214,6 +2216,98 @@ describe('Firestore Security Rules Suite — CSE Research Hub', () => {
       await assertFails(applyBatch(lenaDb(), LENA, WORK, '#MLEngineer').commit());
       await assertFails(applyBatch(lenaDb(), LENA, WORK, '#DataAnnotation').commit());
       await assertFails(deleteDoc(doc(lenaDb(), 'collab_requests', reqId)));
+    });
+
+    // Mirrors collab.service removeTeamMember(): request accepted -> removed with a
+    // reason, team entry removed, and a notice carrying the same reason (one batch).
+    const REASON = 'We are narrowing the scope to annotation only for this semester.';
+    function removeBatch(db, { reason = REASON, team = true, request = true, notify = true, noticeMessage } = {}) {
+      const batch = writeBatch(db);
+      if (request) batch.update(doc(db, 'collab_requests', reqId), buildCollabRemoval(reason, serverTimestamp()));
+      if (team) {
+        batch.update(doc(db, 'research_works', 'collab_open'), {
+          team: arrayRemove(buildTeamMember(LENA, '#DataAnnotation')), updatedAt: serverTimestamp(),
+        });
+      }
+      if (notify) {
+        batch.set(doc(collection(db, 'notifications')),
+          buildCollabNotification('collab_removed', CHARLIE, LENA_UID, reqId, WORK.title, '#DataAnnotation',
+            serverTimestamp(), noticeMessage ?? reason));
+      }
+      return batch;
+    }
+    async function lenaOnTeam() {
+      await lenaApplies();
+      await assertSucceeds(acceptBatch(charlieDb()).commit());
+    }
+
+    it('TEST-179: Author removes a member with a reason (request + team + notice, atomic) → ALLOW', async () => {
+      await lenaOnTeam();
+      await assertSucceeds(removeBatch(charlieDb()).commit());
+      const work = await getDoc(doc(charlieDb(), 'research_works', 'collab_open'));
+      assert.equal(work.data().team.length, 0);
+      const req = await getDoc(doc(lenaDb(), 'collab_requests', reqId));
+      assert.equal(req.data().status, 'removed');
+      assert.equal(req.data().removalMessage, REASON);
+      const notes = await getDocs(query(collection(lenaDb(), 'notifications'), where('recipientUid', '==', LENA_UID)));
+      assert.ok(notes.docs.some((d) => d.data().type === 'collab_removed' && d.data().message === REASON));
+    });
+
+    it('TEST-180: Removal without a reason, or a reason that is too short / too long → DENY', async () => {
+      await lenaOnTeam();
+      await assertFails(removeBatch(charlieDb(), { reason: 'Bye' }).commit());
+      await assertFails(removeBatch(charlieDb(), { reason: 'x'.repeat(301) }).commit());
+      const db = charlieDb();
+      const batch = writeBatch(db);
+      batch.update(doc(db, 'collab_requests', reqId), { status: 'removed', updatedAt: serverTimestamp() });
+      batch.update(doc(db, 'research_works', 'collab_open'), {
+        team: arrayRemove(buildTeamMember(LENA, '#DataAnnotation')), updatedAt: serverTimestamp(),
+      });
+      await assertFails(batch.commit());
+    });
+
+    it('TEST-181: Marking "removed" without taking them off the team, or removing a pending applicant → DENY', async () => {
+      await lenaOnTeam();
+      await assertFails(removeBatch(charlieDb(), { team: false }).commit());
+      // A pending application can only be accepted / declined, never "removed".
+      await testEnv.withSecurityRulesDisabled(async (c) => {
+        await updateDoc(doc(c.firestore(), 'collab_requests', reqId), { status: 'pending' });
+      });
+      await assertFails(removeBatch(charlieDb()).commit());
+    });
+
+    it('TEST-182: The member, or another researcher, cannot perform the removal → DENY', async () => {
+      await lenaOnTeam();
+      await assertFails(removeBatch(lenaDb()).commit());
+      await assertFails(removeBatch(maxDb()).commit());
+    });
+
+    it('TEST-183: Forged removal notices (no matching change, or a different message) → DENY', async () => {
+      await lenaOnTeam();
+      // Notice alone, with no removal in the batch.
+      await assertFails(removeBatch(charlieDb(), { request: false, team: false }).commit());
+      // Message in the notice does not match the stored reason.
+      await assertFails(removeBatch(charlieDb(), { noticeMessage: 'You were terrible at this, goodbye forever.' }).commit());
+      // A message on any other notification type.
+      const db = charlieDb();
+      const batch = writeBatch(db);
+      batch.set(doc(collection(db, 'notifications')),
+        buildCollabNotification('collab_accepted', CHARLIE, LENA_UID, reqId, WORK.title, '#DataAnnotation', serverTimestamp(), 'hi there friend'));
+      await assertFails(batch.commit());
+    });
+
+    it('TEST-184: Removed member clears the old application and applies again → ALLOW; cannot self-restore → DENY', async () => {
+      await lenaOnTeam();
+      await assertSucceeds(removeBatch(charlieDb()).commit());
+      await assertFails(updateDoc(doc(lenaDb(), 'collab_requests', reqId), buildCollabResponse(true, serverTimestamp())));
+      await assertSucceeds(deleteDoc(doc(lenaDb(), 'collab_requests', reqId)));
+      await assertSucceeds(applyBatch(lenaDb(), LENA, WORK, '#MLEngineer').commit());
+    });
+
+    it('TEST-185: An accepted member still cannot delete their application (only after removal) → DENY', async () => {
+      await lenaOnTeam();
+      await assertFails(deleteDoc(doc(lenaDb(), 'collab_requests', reqId)));
+      await assertFails(deleteDoc(doc(maxDb(), 'collab_requests', reqId)));
     });
 
     // Mirrors research.service updateResearchWork() / updateResearchStage().

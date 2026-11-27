@@ -11,7 +11,8 @@
 import type { Timestamp } from 'firebase/firestore';
 import type { ConnectionParticipant } from './network.types';
 
-export type CollabRequestStatus = 'pending' | 'accepted' | 'declined';
+/** 'removed': the author took an accepted member off the team (with a reason). */
+export type CollabRequestStatus = 'pending' | 'accepted' | 'declined' | 'removed';
 
 export interface CollabRequest {
   id: string;
@@ -27,6 +28,8 @@ export interface CollabRequest {
   createdAt: Timestamp;
   updatedAt: Timestamp;
   respondedAt: Timestamp | null;
+  /** Set when status is 'removed': the author's reason. */
+  removalMessage?: string;
 }
 
 /** Member shown on a collaboration post once accepted. */

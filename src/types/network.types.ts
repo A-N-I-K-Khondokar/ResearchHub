@@ -58,7 +58,8 @@ export type InAppNotificationType =
   | 'connection_accepted'
   | 'collab_request'
   | 'collab_accepted'
-  | 'collab_declined';
+  | 'collab_declined'
+  | 'collab_removed';
 
 export interface InAppNotification {
   id: string;
@@ -72,6 +73,8 @@ export interface InAppNotification {
   /** Collaboration notifications only. */
   workTitle?: string;
   role?: string;
+  /** collab_removed only: the author's reason. */
+  message?: string;
   read: boolean;
   createdAt: Timestamp;
 }

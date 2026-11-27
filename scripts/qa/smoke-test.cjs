@@ -281,10 +281,41 @@ const participant = (p) => ({ uid: p.uid, displayName: p.displayName, photoURL: 
     currentDocument: { exists: true },
   }])) === 200);
 
+  // ---- Team management: author removes a member with a reason ---------------
+  const removeNotifId = `demo_qa_${crypto.randomBytes(4).toString('hex')}`;
+  const reason = 'QA smoke test: the project scope changed for this phase.';
+  check('Team: author removes a member with a reason (request + team + notice, atomic)', (await commitAs(tahsin, [
+    {
+      update: { name: name(`collab_requests/${requestId}`), fields: encodeFields({ status: 'removed', removalMessage: reason }) },
+      updateMask: { fieldPaths: ['status', 'removalMessage'] },
+      updateTransforms: serverTime('updatedAt'),
+      currentDocument: { exists: true },
+    },
+    {
+      update: { name: name(`research_works/${collabId}`), fields: {} },
+      updateMask: { fieldPaths: [] },
+      updateTransforms: [{ fieldPath: 'team', removeAllFromArray: { values: [member] } }, ...serverTime('updatedAt')],
+      currentDocument: { exists: true },
+    },
+    {
+      update: { name: name(`notifications/${removeNotifId}`), fields: encodeFields({
+        recipientUid: nusrat.uid, actorUid: tahsin.uid, actorName: tProfile.displayName, actorPhotoURL: tProfile.photoURL ?? null,
+        type: 'collab_removed', connectionId: requestId, workTitle: collabWork.title, role: '#DataAnnotation', read: false, message: reason,
+      }) },
+      updateTransforms: serverTime('createdAt'),
+    },
+  ])) === 200);
+  const afterRemoval = await get(nusrat, `research_works/${collabId}`);
+  check('Team: removed member is off the team', !(afterRemoval.data?.team || []).some((m) => m.uid === nusrat.uid));
+  const removedReq = await get(nusrat, `collab_requests/${requestId}`);
+  check('Team: member sees "removed" with the reason', removedReq.data?.status === 'removed' && removedReq.data?.removalMessage === reason);
+  check('Team: removed member clears the old application (to re-apply)', (await commitAs(nusrat, [{ delete: name(`collab_requests/${requestId}`) }])) === 200);
+
   // ---- Clean up -------------------------------------------------------------
   const cleanup = [
     await commitAs(tahsin, [{ delete: name(`notifications/${applyNotifId}`) }]),
     await commitAs(nusrat, [{ delete: name(`notifications/${acceptNotifId}`) }]),
+    await commitAs(nusrat, [{ delete: name(`notifications/${removeNotifId}`) }]),
     await commitAs(nusrat, [{ delete: name(`contact_cards/${nusrat.uid}`) }]),
     await commitAs(tahsin, [{ delete: name(`research_works/${collabId}`) }]),
     await commitAs(nusrat, [{ delete: name(`users/${nusrat.uid}/saved_items/${workId}`) }]),

@@ -1018,8 +1018,10 @@ service cloud.firestore {
       let actor = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
       return d.keys().hasOnly([
           'recipientUid', 'actorUid', 'actorName', 'actorPhotoURL',
-          'type', 'connectionId', 'read', 'createdAt', 'workTitle', 'role'
+          'type', 'connectionId', 'read', 'createdAt', 'workTitle', 'role', 'message'
         ]) &&
+        // Only a removal notice carries a message (the author's reason).
+        (('message' in d) == (d.type == 'collab_removed')) &&
         d.keys().hasAll([
           'recipientUid', 'actorUid', 'actorName', 'actorPhotoURL',
           'type', 'connectionId', 'read', 'createdAt'
@@ -1046,7 +1048,7 @@ service cloud.firestore {
             getAfter(connPath).data.recipientUid == request.auth.uid &&
             getAfter(connPath).data.requesterUid == d.recipientUid) ||
           // Collaboration application / decision (connectionId = collab request id).
-          (d.type in ['collab_request', 'collab_accepted', 'collab_declined'] &&
+          (d.type in ['collab_request', 'collab_accepted', 'collab_declined', 'collab_removed'] &&
             isValidCollabNotification(d))
         );
     }
@@ -1068,8 +1070,40 @@ service cloud.firestore {
             get(reqPath).data.status == 'pending' &&
             after.status == (d.type == 'collab_accepted' ? 'accepted' : 'declined') &&
             after.authorUid == request.auth.uid &&
-            after.applicantUid == d.recipientUid)
+            after.applicantUid == d.recipientUid) ||
+          // Author removes an accepted member in this same batch; the notice
+          // carries exactly the reason stored on the request.
+          (d.type == 'collab_removed' &&
+            get(reqPath).data.status == 'accepted' &&
+            after.status == 'removed' &&
+            after.authorUid == request.auth.uid &&
+            after.applicantUid == d.recipientUid &&
+            d.message == after.removalMessage)
         );
+    }
+
+    // The team entry written when an application was accepted (see buildTeamMember).
+    function teamEntryOf(r) {
+      return {
+        'uid': r.applicantUid,
+        'displayName': r.applicant.displayName,
+        'photoURL': r.applicant.get('photoURL', null),
+        'role': r.role
+      };
+    }
+
+    // Author removes an accepted member: accepted -> removed with a reason, and the
+    // member's team entry leaves the post in the SAME batch.
+    function isValidMemberRemoval(before, after) {
+      let workPath = /databases/$(database)/documents/research_works/$(before.workId);
+      return before.authorUid == request.auth.uid &&
+        before.status == 'accepted' &&
+        after.status == 'removed' &&
+        after.diff(before).affectedKeys().hasOnly(['status', 'removalMessage', 'updatedAt']) &&
+        isValidString(after.removalMessage, 10, 300) &&
+        after.updatedAt == request.time &&
+        teamEntryOf(before) in get(workPath).data.get('team', []) &&
+        !(teamEntryOf(before) in getAfter(workPath).data.get('team', []));
     }
 
     match /notifications/{notificationId} {
@@ -1126,16 +1160,20 @@ service cloud.firestore {
         (isAuthenticated() &&
           (resource.data.applicantUid == request.auth.uid || resource.data.authorUid == request.auth.uid));
       allow create: if isApprovedUser() && isValidCollabRequestCreate(requestId, request.resource.data);
-      allow update: if isApprovedUser() &&
-        resource.data.authorUid == request.auth.uid &&
-        resource.data.status == 'pending' &&
-        request.resource.data.status in ['accepted', 'declined'] &&
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'respondedAt', 'updatedAt']) &&
-        request.resource.data.respondedAt == request.time &&
-        request.resource.data.updatedAt == request.time;
+      allow update: if isApprovedUser() && (
+        (resource.data.authorUid == request.auth.uid &&
+          resource.data.status == 'pending' &&
+          request.resource.data.status in ['accepted', 'declined'] &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'respondedAt', 'updatedAt']) &&
+          request.resource.data.respondedAt == request.time &&
+          request.resource.data.updatedAt == request.time) ||
+        isValidMemberRemoval(resource.data, request.resource.data)
+      );
+      // Applicant withdraws while pending, or clears a "removed" application
+      // (e.g. to apply to the same post again).
       allow delete: if isAuthenticated() &&
         resource.data.applicantUid == request.auth.uid &&
-        resource.data.status == 'pending';
+        resource.data.status in ['pending', 'removed'];
     }
 
     // ===============================================================
