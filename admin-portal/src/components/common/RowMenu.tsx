@@ -40,8 +40,7 @@ export const RowMenu: React.FC<{ label: string; items: RowMenuItem[] }> = ({ lab
       <button
         ref={btnRef}
         type="button"
-        className="btn btn-ghost btn-sm"
-        style={{ padding: 6 }}
+        className="btn btn-ghost btn-sm btn-icon"
         aria-label={label}
         aria-haspopup="menu"
         aria-expanded={open}

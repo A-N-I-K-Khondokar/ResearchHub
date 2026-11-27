@@ -761,3 +761,102 @@ body[data-theme='dark'] .login-alert.is-info { background: #1F2937; color: #CBD5
 body[data-theme='dark'] .login-alert.is-error { background: rgba(220,38,38,0.12); color: #FCA5A5; border-color: rgba(220,38,38,0.3); }
 body[data-theme='dark'] .login-alert code { color: #F8FAFC; }
 body[data-theme='dark'] .login-link { color: #CBD5E1; }
+
+/* ==========================================================================
+   Buttons v2 — fixed heights, softer radius, press + focus states
+   ========================================================================== */
+.btn {
+  min-height: 38px; padding: 0 16px; border-radius: 10px; font-size: 13.5px; line-height: 1;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+  transition: background-color var(--transition-fast), border-color var(--transition-fast),
+    box-shadow var(--transition-fast), transform 80ms ease, color var(--transition-fast);
+}
+.btn:active:not(:disabled) { transform: translateY(1px); box-shadow: none; }
+.btn:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.35); }
+.btn:disabled { opacity: 0.5; box-shadow: none; }
+.btn-sm { min-height: 32px; padding: 0 12px; border-radius: 8px; font-size: 13px; }
+.btn svg { flex-shrink: 0; }
+
+.btn-primary { background: linear-gradient(180deg, #3B82F6 0%, #2563EB 100%); border-color: #1D4ED8; color: #fff; }
+.btn-primary:hover:not(:disabled) { background: linear-gradient(180deg, #2563EB 0%, #1D4ED8 100%); }
+
+.btn-secondary { background: var(--bg-surface); border-color: var(--border); color: var(--text-primary); }
+.btn-secondary:hover:not(:disabled) { background: var(--bg-surface-subtle); border-color: #CBD5E1; }
+body[data-theme='dark'] .btn-secondary:hover:not(:disabled) { border-color: #374151; }
+
+.btn-success { background: linear-gradient(180deg, #22C55E 0%, #16A34A 100%); border-color: #15803D; color: #fff; }
+.btn-success:hover:not(:disabled) { background: linear-gradient(180deg, #16A34A 0%, #15803D 100%); }
+
+.btn-danger { background: linear-gradient(180deg, #EF4444 0%, #DC2626 100%); border-color: #B91C1C; color: #fff; }
+.btn-danger:hover:not(:disabled) { background: linear-gradient(180deg, #DC2626 0%, #B91C1C 100%); }
+
+/* Clear but calm: Reject, Remove */
+.btn-soft-danger { background: var(--status-rejected-bg); border-color: rgba(220, 38, 38, 0.25); color: var(--status-rejected-text); }
+.btn-soft-danger:hover:not(:disabled) { background: #FECACA; border-color: rgba(220, 38, 38, 0.4); }
+body[data-theme='dark'] .btn-soft-danger:hover:not(:disabled) { background: rgba(220, 38, 38, 0.25); }
+
+.btn-warning { background: linear-gradient(180deg, #F59E0B 0%, #D97706 100%); border-color: #B45309; color: #fff; }
+.btn-warning:hover:not(:disabled) { background: linear-gradient(180deg, #D97706 0%, #B45309 100%); }
+
+.btn-ghost { box-shadow: none; border-color: transparent; }
+
+/* Square icon-only button */
+.btn-icon { width: 38px; padding: 0; }
+.btn-icon.btn-sm { width: 32px; }
+
+/* ==========================================================================
+   Navigation v2 — collapsible sidebar, active indicator, account menu
+   ========================================================================== */
+.sidebar { transition: width var(--transition-normal), transform var(--transition-normal); }
+.nav-section { padding: 14px 14px 6px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; color: #64748B; }
+.nav-item { position: relative; min-height: 40px; }
+.nav-item.is-active::before {
+  content: ''; position: absolute; left: -12px; top: 8px; bottom: 8px; width: 3px; border-radius: 0 3px 3px 0; background: #60A5FA;
+}
+.nav-item .nav-kbd {
+  font-size: 10.5px; font-weight: 600; color: #64748B; border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 5px; padding: 0 5px; line-height: 16px;
+}
+.nav-item:hover .nav-kbd { color: #94A3B8; }
+.collapse-btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 34px;
+  border: 1px solid rgba(255,255,255,0.08); border-radius: var(--radius-md); background: transparent;
+  color: var(--text-sidebar-muted); font: inherit; font-size: 12.5px; cursor: pointer;
+}
+.collapse-btn:hover { background: rgba(255,255,255,0.05); color: #E2E8F0; }
+
+/* Collapsed (desktop): icons only */
+@media (min-width: 961px) {
+  .sidebar.is-collapsed { width: 76px; }
+  .sidebar.is-collapsed .nav-label,
+  .sidebar.is-collapsed .nav-kbd,
+  .sidebar.is-collapsed .nav-section,
+  .sidebar.is-collapsed .brand-text,
+  .sidebar.is-collapsed .collapse-text { display: none; }
+  .sidebar.is-collapsed .nav-item { justify-content: center; padding: 10px 0; }
+  .sidebar.is-collapsed .nav-badge { position: absolute; top: 4px; right: 10px; padding: 0 5px; font-size: 10px; }
+  .sidebar.is-collapsed .brand-row { justify-content: center; padding-left: 0; padding-right: 0; }
+}
+@media (max-width: 960px) {
+  .collapse-btn { display: none; }
+}
+
+/* Top bar: pending shortcut + account menu */
+.top-actions { display: flex; align-items: center; gap: 8px; }
+.pending-pill {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 12px; border-radius: var(--radius-full);
+  border: 1px solid rgba(217, 119, 6, 0.3); background: var(--status-pending-bg); color: var(--status-pending-text);
+  font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer;
+}
+.pending-pill:hover { border-color: #D97706; }
+.account-btn {
+  display: inline-flex; align-items: center; gap: 8px; padding: 3px 8px 3px 3px; border-radius: var(--radius-full);
+  border: 1px solid var(--border); background: var(--bg-surface); color: var(--text-primary); font: inherit; cursor: pointer;
+}
+.account-btn:hover { background: var(--bg-surface-subtle); }
+.account-name { font-size: 13px; font-weight: 600; max-width: 140px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 640px) {
+  .account-name, .pending-pill .pill-text { display: none; }
+}
+.menu-head { padding: 10px 12px 8px; border-bottom: 1px solid var(--border-subtle); margin-bottom: 4px; }
+.menu-sep { height: 1px; background: var(--border-subtle); margin: 4px 0; }

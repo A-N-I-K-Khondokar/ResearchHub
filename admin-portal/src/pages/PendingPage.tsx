@@ -170,7 +170,7 @@ export const PendingPage: React.FC<PendingPageProps> = ({ onInspectUser, onActio
                   <Button variant="ghost" size="sm" icon={<Eye size={14} aria-hidden="true" />} onClick={() => onInspectUser(u)}>
                     Details
                   </Button>
-                  <Button variant="secondary" size="sm" icon={<XCircle size={14} aria-hidden="true" />} onClick={() => onActionClick(u, 'reject')}>
+                  <Button variant="soft-danger" size="sm" icon={<XCircle size={14} aria-hidden="true" />} onClick={() => onActionClick(u, 'reject')}>
                     Reject
                   </Button>
                   <Button variant="success" size="sm" icon={<CheckCircle size={14} aria-hidden="true" />} onClick={() => onActionClick(u, 'approve')}>

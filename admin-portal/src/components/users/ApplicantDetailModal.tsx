@@ -159,7 +159,7 @@ export const ApplicantDetailModal: React.FC<ApplicantDetailModalProps> = ({ isOp
     <>
       {user.approvalStatus === 'pending' && (
         <>
-          <Button variant="secondary" icon={<XCircle size={15} aria-hidden="true" />} onClick={() => onActionClick(user, 'reject')}>
+          <Button variant="soft-danger" icon={<XCircle size={15} aria-hidden="true" />} onClick={() => onActionClick(user, 'reject')}>
             Reject
           </Button>
           <Button variant="success" icon={<CheckCircle size={15} aria-hidden="true" />} onClick={() => onActionClick(user, 'approve')}>
@@ -195,7 +195,7 @@ export const ApplicantDetailModal: React.FC<ApplicantDetailModalProps> = ({ isOp
             <div className="uid-row" style={{ marginTop: 4 }}>
               <span>UID</span>
               <code>{user.uid}</code>
-              <button className="btn btn-ghost btn-sm" style={{ padding: 4 }} onClick={copyUid} aria-label="Copy UID" title="Copy UID">
+              <button className="btn btn-ghost btn-sm btn-icon" onClick={copyUid} aria-label="Copy UID" title="Copy UID">
                 {copied ? <Check size={13} color="var(--status-approved)" /> : <Copy size={13} />}
               </button>
             </div>

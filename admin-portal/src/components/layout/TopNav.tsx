@@ -1,11 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Bell, Menu, CheckCheck, Trash2, ChevronRight } from 'lucide-react';
+import { Bell, Menu, CheckCheck, Trash2, ChevronRight, ChevronDown, Clock, LogOut, Moon, Sun } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
+import { Avatar } from '../common/Avatar';
 import { useNotifications } from '../../context/NotificationContext';
 import { NAV_LABELS, type NavTab } from './Sidebar';
 import { RelativeTime } from '../common/RelativeTime';
 
 interface TopNavProps {
   currentTab: NavTab;
+  pendingCount?: number;
+  onGoPending?: () => void;
   onOpenMobileMenu?: () => void;
   onSelectApplicant?: (uid: string) => void;
 }
@@ -14,7 +19,27 @@ interface TopNavProps {
  * Slim top bar: menu button (small screens), breadcrumb, live alerts.
  * The page title itself lives in each page's PageHeader (no duplicate titles).
  */
-export const TopNav: React.FC<TopNavProps> = ({ currentTab, onOpenMobileMenu, onSelectApplicant }) => {
+export const TopNav: React.FC<TopNavProps> = ({ currentTab, pendingCount = 0, onGoPending, onOpenMobileMenu, onSelectApplicant }) => {
+  const { user, adminRecord, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
+  const [accountOpen, setAccountOpen] = useState(false);
+  const accountRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!accountOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (accountRef.current && !accountRef.current.contains(e.target as Node)) setAccountOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setAccountOpen(false);
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    accountRef.current?.querySelector<HTMLButtonElement>('.menu-item')?.focus();
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [accountOpen]);
+
   const { notifications, unreadCount, markAllAsRead, clearNotifications, markAsRead } = useNotifications();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -46,6 +71,14 @@ export const TopNav: React.FC<TopNavProps> = ({ currentTab, onOpenMobileMenu, on
         </nav>
       </div>
 
+      <div className="top-actions">
+      {pendingCount > 0 && currentTab !== 'pending' && onGoPending ? (
+        <button className="pending-pill" onClick={onGoPending} aria-label={`${pendingCount} applications waiting. Open Pending review`}>
+          <Clock size={14} aria-hidden="true" />
+          {pendingCount}
+          <span className="pill-text">pending</span>
+        </button>
+      ) : null}
       <div style={{ position: 'relative' }} ref={ref}>
         <button
           onClick={() => setOpen((v) => !v)}
@@ -74,12 +107,12 @@ export const TopNav: React.FC<TopNavProps> = ({ currentTab, onOpenMobileMenu, on
               </div>
               <div style={{ display: 'flex', gap: 2 }}>
                 {unreadCount > 0 && (
-                  <button onClick={markAllAsRead} className="btn btn-ghost btn-sm" style={{ padding: 6 }} aria-label="Mark all as read" title="Mark all as read">
+                  <button onClick={markAllAsRead} className="btn btn-ghost btn-sm btn-icon" aria-label="Mark all as read" title="Mark all as read">
                     <CheckCheck size={15} />
                   </button>
                 )}
                 {notifications.length > 0 && (
-                  <button onClick={clearNotifications} className="btn btn-ghost btn-sm" style={{ padding: 6 }} aria-label="Clear alerts" title="Clear alerts">
+                  <button onClick={clearNotifications} className="btn btn-ghost btn-sm btn-icon" aria-label="Clear alerts" title="Clear alerts">
                     <Trash2 size={15} />
                   </button>
                 )}
@@ -122,6 +155,55 @@ export const TopNav: React.FC<TopNavProps> = ({ currentTab, onOpenMobileMenu, on
             </div>
           </div>
         )}
+      </div>
+
+      {/* Account menu: who is signed in, theme, sign out */}
+      <div style={{ position: 'relative' }} ref={accountRef}>
+        <button
+          className="account-btn"
+          onClick={() => setAccountOpen((v) => !v)}
+          aria-haspopup="menu"
+          aria-expanded={accountOpen}
+          aria-label="Account menu"
+        >
+          <Avatar name={user?.displayName || user?.email} photoURL={user?.photoURL} size={30} />
+          <span className="account-name">{(user?.displayName || 'Admin').split(' ')[0]}</span>
+          <ChevronDown size={14} aria-hidden="true" color="var(--text-secondary)" />
+        </button>
+        {accountOpen ? (
+          <div className="menu" role="menu" style={{ minWidth: 240 }}>
+            <div className="menu-head">
+              <div style={{ fontSize: 13.5, fontWeight: 700 }}>{user?.displayName || 'Administrator'}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', wordBreak: 'break-all' }}>{adminRecord?.email || user?.email}</div>
+            </div>
+            <button
+              type="button"
+              role="menuitem"
+              className="menu-item"
+              onClick={() => {
+                toggleTheme();
+                setAccountOpen(false);
+              }}
+            >
+              {theme === 'dark' ? <Sun size={14} aria-hidden="true" /> : <Moon size={14} aria-hidden="true" />}
+              {theme === 'dark' ? 'Light mode' : 'Dark mode'}
+            </button>
+            <div className="menu-sep" />
+            <button
+              type="button"
+              role="menuitem"
+              className="menu-item is-danger"
+              onClick={() => {
+                setAccountOpen(false);
+                logout();
+              }}
+            >
+              <LogOut size={14} aria-hidden="true" />
+              Sign out
+            </button>
+          </div>
+        ) : null}
+      </div>
       </div>
     </header>
   );
