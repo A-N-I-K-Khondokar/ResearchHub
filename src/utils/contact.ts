@@ -141,3 +141,24 @@ export function parseContact(text: string | null | undefined): { method: Contact
   if (li) return { method: 'linkedin', value: li[1] };
   return { method: 'other', value: t };
 }
+
+/**
+ * The bare value to copy / show for a contact string: "+8801712345678",
+ * "@handle", "name@uni.edu" or the URL — never the surrounding words
+ * ("WhatsApp +880 1712-345678" → "+8801712345678").
+ */
+export function contactValueFor(raw: string | null | undefined): string {
+  const text = (raw ?? '').trim();
+  if (!text) return '';
+  const action = contactActionFor(text);
+  if (action?.kind === 'whatsapp') return `+${action.url.split('/').pop()}`;
+  if (action?.kind === 'phone') return action.url.replace(/^tel:/, '');
+  if (action?.kind === 'telegram') return `@${action.url.split('/').pop()}`;
+  if (action?.kind === 'email') return action.url.replace(/^mailto:/, '');
+  if (action?.kind === 'link') {
+    const link = text.match(URL_RE);
+    return link ? link[1] : text;
+  }
+  return text;
+}
+

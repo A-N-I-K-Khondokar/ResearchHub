@@ -335,7 +335,7 @@ export default function ResearcherProfileScreen() {
                             if (action) {
                               Linking.openURL(action.url).catch(() => toast.show('Unable to open this app', 'error'));
                             } else {
-                              copyContact(contact.preferredContact ?? '', () => toast.show('Copied', 'success')).catch(() => {});
+                              copyContact(contact.preferredContact ?? '', (value) => toast.show(`Copied ${value}`, 'success')).catch(() => {});
                             }
                           },
                         }]
