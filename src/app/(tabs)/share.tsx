@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -35,7 +35,28 @@ import { formatResearchTag } from '@/utils/researchWork';
 import { RESEARCH_LIMITS, type ResearchStage, type ResearchPostType, SUGGESTED_COLLAB_ROLES } from '@/types/research.types';
 import { useLocalSearchParams } from 'expo-router';
 import { CurrentWorkCard } from '@/components/cards/CurrentWorkCard';
-import { Users, Eye } from 'lucide-react-native';
+import { Users, Eye, Send, ChevronDown, ChevronUp, CheckCircle2, Circle, Save } from 'lucide-react-native';
+import { useToast } from '@/context/ToastContext';
+import { tagMatchKey } from '@/utils/researchWork';
+import { confirmAction } from '@/utils/dialogs';
+
+/** Description limit in the form (the rules allow up to 5000). */
+const DESC_MAX = 2000;
+
+/** Roles that usually fit a topic — suggested first when that topic is chosen. */
+const ROLE_HINTS: Record<string, string[]> = {
+  machinelearning: ['#MLEngineer', '#DataAnnotation', '#Statistician'],
+  datascience: ['#Statistician', '#MLEngineer', '#DataAnnotation'],
+  computervision: ['#MLEngineer', '#DataAnnotation'],
+  banglanlp: ['#DataAnnotation', '#MLEngineer', '#Linguist'],
+  nlp: ['#DataAnnotation', '#MLEngineer', '#Linguist'],
+  iot: ['#HardwareEngineer', '#EmbeddedDeveloper'],
+  hci: ['#UIUXDesigner', '#UserResearcher', '#FrontendDeveloper'],
+  softwareengineering: ['#BackendDeveloper', '#FrontendDeveloper'],
+  distributedsystems: ['#BackendDeveloper', '#DevOpsEngineer'],
+  cybersecurity: ['#SecurityAnalyst', '#BackendDeveloper'],
+  bioinformatics: ['#Statistician', '#MLEngineer', '#Biologist'],
+};
 
 // Common CSE Suggested Tags
 const SUGGESTED_TAGS = [
@@ -51,7 +72,6 @@ const SUGGESTED_TAGS = [
   '#Bioinformatics',
 ];
 
-const SUGGESTED_ROLES = SUGGESTED_COLLAB_ROLES;
 
 // Project progression stages with minimalist line-art vector icons
 const RESEARCH_STAGES: { id: ResearchStage; label: string; icon: typeof Lightbulb }[] = [
@@ -99,7 +119,23 @@ export default function ShareTab() {
   const [description, setDescription] = useState('');
   const [customTag, setCustomTag] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [selectedStage, setSelectedStage] = useState<ResearchStage>('Experiment');
+  const [selectedStage, setSelectedStage] = useState<ResearchStage>('Idea');
+  const [showPreview, setShowPreview] = useState(false);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const [touched, setTouched] = useState<{ title?: boolean; desc?: boolean; url?: boolean }>({});
+  const toast = useToast();
+
+  // Scroll-to-first-error: y positions of the form card and its fields
+  const scrollRef = useRef<ScrollView>(null);
+  const cardY = useRef(0);
+  const fieldY = useRef<Record<string, number>>({});
+  const trackField = (key: string) => (e: { nativeEvent: { layout: { y: number } } }) => {
+    fieldY.current[key] = e.nativeEvent.layout.y;
+  };
+  const scrollToField = (key: string) => {
+    const y = cardY.current + (fieldY.current[key] ?? 0) - spacing.md;
+    scrollRef.current?.scrollTo({ y: Math.max(0, y), animated: true });
+  };
   const [externalUrl, setExternalUrl] = useState('');
 
   // UI / Submission State
@@ -159,9 +195,80 @@ export default function ShareTab() {
     setSelectedTags((prev) => prev.filter((t) => t !== tagToRemove));
   };
 
+  // Field validators (used live after a field is touched, and on submit)
+  const titleProblem = (v: string) => {
+    const t = v.trim();
+    if (!t) return 'Please enter a title.';
+    if (t.length < RESEARCH_LIMITS.titleMin) return `Title must be at least ${RESEARCH_LIMITS.titleMin} characters.`;
+    return '';
+  };
+  const descProblem = (v: string) => {
+    const d = v.trim();
+    if (!d) return isCollab ? 'Describe the project and the help you need.' : 'Please add a short summary of your work.';
+    if (d.length < RESEARCH_LIMITS.descriptionMin)
+      return `${RESEARCH_LIMITS.descriptionMin - d.length} more character${RESEARCH_LIMITS.descriptionMin - d.length === 1 ? '' : 's'} needed.`;
+    return '';
+  };
+  const urlProblem = (v: string) => {
+    const u = v.trim();
+    return u && (!/^https?:\/\/.+/i.test(u) || u.length > RESEARCH_LIMITS.urlMax)
+      ? 'Link must start with http:// or https://'
+      : '';
+  };
+
+  // Suggested topics: my research interests first, then common CSE topics
+  const suggestedTags = useMemo(() => {
+    const mine = (userProfile?.researchInterests ?? []).map(formatResearchTag).filter(Boolean);
+    const seen = new Set<string>();
+    return [...mine, ...SUGGESTED_TAGS].filter((t) => {
+      const k = tagMatchKey(t);
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+  }, [userProfile?.researchInterests]);
+  const myTagKeys = useMemo(
+    () => new Set((userProfile?.researchInterests ?? []).map(tagMatchKey)),
+    [userProfile?.researchInterests],
+  );
+
+  // Suggested roles: ones that fit the chosen topics first
+  const suggestedRoles = useMemo(() => {
+    const fromTopics = selectedTags.flatMap((t) => ROLE_HINTS[tagMatchKey(t)] ?? []);
+    const seen = new Set<string>();
+    return [...fromTopics, ...SUGGESTED_COLLAB_ROLES].filter((r) => {
+      const k = r.toLowerCase();
+      if (seen.has(k) || lookingFor.some((x) => x.toLowerCase() === k)) return false;
+      seen.add(k);
+      return true;
+    });
+  }, [selectedTags, lookingFor]);
+
+  // Readiness checklist
+  const checklist = [
+    { label: 'Title', done: !titleProblem(title) },
+    { label: 'Description', done: !descProblem(description) },
+    ...(isCollab ? [{ label: 'Roles', done: lookingFor.length > 0 || Boolean(roleInput.trim()) }] : []),
+    { label: 'Topics', done: selectedTags.length > 0, optional: true },
+  ];
+  const hasContent = Boolean(title.trim() || description.trim() || selectedTags.length || lookingFor.length || externalUrl.trim());
+
+  const handleClear = async () => {
+    if (!hasContent) return;
+    const ok = await confirmAction({
+      title: 'Clear this form?',
+      message: 'Everything you have typed will be removed.',
+      confirmLabel: 'Clear',
+      cancelLabel: 'Keep',
+      destructive: true,
+      icon: 'warning',
+    });
+    if (ok) handleModalClose();
+  };
+
   // Form Validation & Firestore Submission
-  const handleSubmit = async () => {
-    if (isSubmitting) return;
+  const handleSubmit = async (asDraft = false) => {
+    if (isSubmitting || isSavingDraft) return;
     setSubmitError('');
     let isValid = true;
 
@@ -181,40 +288,16 @@ export default function ShareTab() {
     }
 
     const trimmedTitle = title.trim();
-    if (!trimmedTitle) {
-      setTitleError('Please enter a research or project title.');
-      isValid = false;
-    } else if (trimmedTitle.length < RESEARCH_LIMITS.titleMin) {
-      setTitleError(`Title must be at least ${RESEARCH_LIMITS.titleMin} characters.`);
-      isValid = false;
-    } else if (trimmedTitle.length > RESEARCH_LIMITS.titleMax) {
-      setTitleError(`Title must be ${RESEARCH_LIMITS.titleMax} characters or less.`);
-      isValid = false;
-    } else {
-      setTitleError('');
-    }
-
     const trimmedDesc = description.trim();
-    if (!trimmedDesc) {
-      setDescError('Please provide a brief abstract or research update.');
-      isValid = false;
-    } else if (trimmedDesc.length < RESEARCH_LIMITS.descriptionMin) {
-      setDescError(`Please write at least ${RESEARCH_LIMITS.descriptionMin} characters describing your work.`);
-      isValid = false;
-    } else if (trimmedDesc.length > RESEARCH_LIMITS.descriptionMax) {
-      setDescError(`Description must be ${RESEARCH_LIMITS.descriptionMax} characters or less.`);
-      isValid = false;
-    } else {
-      setDescError('');
-    }
-
     const trimmedUrl = externalUrl.trim();
-    if (trimmedUrl && (!/^https?:\/\/.+/i.test(trimmedUrl) || trimmedUrl.length > RESEARCH_LIMITS.urlMax)) {
-      setUrlError('Link must start with http:// or https:// (max 500 characters).');
-      isValid = false;
-    } else {
-      setUrlError('');
-    }
+    const tErr = titleProblem(title);
+    const dErr = descProblem(description);
+    const uErr = urlProblem(externalUrl);
+    setTitleError(tErr);
+    setDescError(dErr);
+    setUrlError(uErr);
+    setTouched({ title: true, desc: true, url: true });
+    if (tErr || dErr || uErr) isValid = false;
 
     if (tags.length > RESEARCH_LIMITS.tagsMax) {
       setSubmitError(`Please use at most ${RESEARCH_LIMITS.tagsMax} tags.`);
@@ -238,14 +321,32 @@ export default function ShareTab() {
       }
     }
 
-    if (!isValid) return;
+    if (!isValid) {
+      // Take the user to the first problem
+      const first = tErr ? 'title' : dErr ? 'desc' : isCollab && roles.length === 0 ? 'roles' : uErr ? 'url' : null;
+      if (first) scrollToField(first);
+      return;
+    }
 
     if (!userProfile || userProfile.approvalStatus !== 'approved') {
       setSubmitError('Only approved researchers can share work. Please sign in again.');
       return;
     }
 
-    setIsSubmitting(true);
+    // Confirm before publishing (the in-app popup from DialogContext)
+    const ok = asDraft || await confirmAction({
+      title: isCollab ? 'Post collaboration request?' : 'Post this update?',
+      message: isCollab
+        ? `"${trimmedTitle}" will be visible to all approved CSE researchers, who can apply as ${roles.slice(0, 3).join(', ')}${roles.length > 3 ? '…' : ''}.`
+        : `"${trimmedTitle}" will be visible to all approved CSE researchers in the feed.`,
+      confirmLabel: 'Post',
+      cancelLabel: 'Keep editing',
+      icon: 'info',
+    });
+    if (!ok) return;
+
+    if (asDraft) setIsSavingDraft(true);
+    else setIsSubmitting(true);
     try {
       await createResearchWork(userProfile, {
         title: trimmedTitle,
@@ -255,8 +356,14 @@ export default function ShareTab() {
         externalUrl: trimmedUrl || null,
         postType,
         lookingFor: isCollab ? roles : undefined,
+        status: asDraft ? 'draft' : 'published',
       });
-      setShowSuccessModal(true);
+      if (asDraft) {
+        toast.show('Draft saved — find it on your Profile under Currently Working On');
+        handleModalClose();
+      } else {
+        setShowSuccessModal(true);
+      }
     } catch (err: any) {
       console.error('[Share] Publish failed:', err);
       setSubmitError(
@@ -266,6 +373,7 @@ export default function ShareTab() {
       );
     } finally {
       setIsSubmitting(false);
+      setIsSavingDraft(false);
     }
   };
 
@@ -276,7 +384,9 @@ export default function ShareTab() {
     setDescription('');
     setCustomTag('');
     setSelectedTags([]);
-    setSelectedStage('Experiment');
+    setSelectedStage('Idea');
+    setTouched({});
+    setShowPreview(false);
     setExternalUrl('');
     setTitleError('');
     setDescError('');
@@ -299,29 +409,12 @@ export default function ShareTab() {
         style={styles.keyboardAvoid}
       >
         <ScrollView
+          ref={scrollRef}
           style={styles.scrollView}
           contentContainerStyle={[styles.scrollContent, { paddingTop: spacing.md }]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Identity-First Header Row */}
-          <View style={styles.identityHeader}>
-            <Avatar
-              name={authorName}
-              uri={userProfile?.photoURL}
-              size="md"
-              style={{ borderWidth: 1, borderColor: colors.borderSubtle }}
-            />
-            <View style={styles.identityTextCol}>
-              <Text style={[styles.userName, { color: colors.textPrimary }]}>
-                {authorName}
-              </Text>
-              <Text style={[styles.statusText, { color: colors.textSecondary }]}>
-                {isCollab ? 'Looking for collaborators...' : 'Drafting a research update...'}
-              </Text>
-            </View>
-          </View>
-
           {/* Post type toggle: Share Work | Find Collaborators */}
           <View
             style={[styles.segment, { backgroundColor: colors.surfaceSubtle, borderColor: colors.borderSubtle }]}
@@ -363,6 +456,9 @@ export default function ShareTab() {
 
           {/* Card Container for Form */}
           <View
+            onLayout={(e) => {
+              cardY.current = e.nativeEvent.layout.y;
+            }}
             style={[
               styles.formCard,
               {
@@ -374,7 +470,7 @@ export default function ShareTab() {
             ]}
           >
             {/* Field: Research Title */}
-            <View style={styles.fieldBlock}>
+            <View style={styles.fieldBlock} onLayout={trackField('title')}>
               <View style={styles.labelRow}>
                 <PenLine size={15} strokeWidth={1.8} color={colors.textSecondary} />
                 <Text style={[styles.fieldLabel, { color: colors.textPrimary }]}>
@@ -385,7 +481,11 @@ export default function ShareTab() {
                 value={title}
                 onChangeText={(val) => {
                   setTitle(val);
-                  if (titleError) setTitleError('');
+                  if (touched.title || titleError) setTitleError(titleProblem(val));
+                }}
+                onBlur={() => {
+                  setTouched((t) => ({ ...t, title: true }));
+                  if (title.length) setTitleError(titleProblem(title));
                 }}
                 placeholder={isCollab ? 'e.g., Building a Bangla handwriting OCR dataset' : 'e.g., Optimizing Transformers for Bengali Dialects'}
                 placeholderTextColor={colors.textMuted}
@@ -397,7 +497,7 @@ export default function ShareTab() {
                     color: colors.textPrimary,
                   },
                 ]}
-                maxLength={120}
+                maxLength={RESEARCH_LIMITS.titleMax}
               />
               <View style={styles.charCountRow}>
                 {titleError ? (
@@ -405,12 +505,19 @@ export default function ShareTab() {
                 ) : (
                   <View />
                 )}
-                <Text style={[styles.charCount, { color: colors.textSecondary }]}>{title.length}/120</Text>
+                <Text
+                  style={[
+                    styles.charCount,
+                    { color: title.length > RESEARCH_LIMITS.titleMax * 0.9 ? colors.warning : colors.textSecondary },
+                  ]}
+                >
+                  {title.length}/{RESEARCH_LIMITS.titleMax}
+                </Text>
               </View>
             </View>
 
             {/* Field: Abstract / Description */}
-            <View style={styles.fieldBlock}>
+            <View style={styles.fieldBlock} onLayout={trackField('desc')}>
               <View style={styles.labelRow}>
                 <AlignLeft size={15} strokeWidth={1.8} color={colors.textSecondary} />
                 <Text style={[styles.fieldLabel, { color: colors.textPrimary }]}>
@@ -421,7 +528,11 @@ export default function ShareTab() {
                 value={description}
                 onChangeText={(val) => {
                   setDescription(val);
-                  if (descError) setDescError('');
+                  if (touched.desc || descError) setDescError(descProblem(val));
+                }}
+                onBlur={() => {
+                  setTouched((t) => ({ ...t, desc: true }));
+                  if (description.length) setDescError(descProblem(description));
                 }}
                 placeholder={isCollab
                   ? 'What is the project, what is done so far, and what would a collaborator work on?'
@@ -439,7 +550,7 @@ export default function ShareTab() {
                     color: colors.textPrimary,
                   },
                 ]}
-                maxLength={600}
+                maxLength={DESC_MAX}
               />
               <View style={styles.charCountRow}>
                 {descError ? (
@@ -447,15 +558,30 @@ export default function ShareTab() {
                 ) : (
                   <View />
                 )}
-                <Text style={[styles.charCount, { color: colors.textSecondary }]}>
-                  {description.length}/600
+                <Text
+                  style={[
+                    styles.charCount,
+                    {
+                      color:
+                        description.trim().length > 0 && description.trim().length < RESEARCH_LIMITS.descriptionMin
+                          ? colors.textMuted
+                          : description.length > DESC_MAX * 0.9
+                            ? colors.warning
+                            : colors.textSecondary,
+                    },
+                  ]}
+                >
+                  {description.trim().length > 0 && description.trim().length < RESEARCH_LIMITS.descriptionMin
+                    ? `min ${RESEARCH_LIMITS.descriptionMin} · `
+                    : ''}
+                  {description.length}/{DESC_MAX}
                 </Text>
               </View>
             </View>
 
             {/* Field: Looking For (collaboration posts only) */}
             {isCollab ? (
-              <View style={styles.fieldBlock}>
+              <View style={styles.fieldBlock} onLayout={trackField('roles')}>
                 <View style={styles.labelRow}>
                   <Users size={15} strokeWidth={1.8} color={colors.textSecondary} />
                   <Text style={[styles.fieldLabel, { color: colors.textPrimary }]}>
@@ -520,7 +646,7 @@ export default function ShareTab() {
                   </View>
                 ) : null}
                 <View style={styles.tagsContainer}>
-                  {SUGGESTED_ROLES.filter((r) => !lookingFor.some((x) => x.toLowerCase() === r.toLowerCase())).map((role) => (
+                  {suggestedRoles.slice(0, 8).map((role) => (
                     <TouchableOpacity
                       key={role}
                       activeOpacity={0.75}
@@ -626,7 +752,7 @@ export default function ShareTab() {
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={styles.suggestedScrollContent}
                 >
-                  {SUGGESTED_TAGS.map((tag) => {
+                  {suggestedTags.map((tag) => {
                     const isAlreadySelected = selectedTags.some(
                       (t) => t.toLowerCase() === tag.toLowerCase()
                     );
@@ -665,7 +791,7 @@ export default function ShareTab() {
                           numberOfLines={1}
                           ellipsizeMode="tail"
                         >
-                          {isAlreadySelected ? `${tag} ✓` : tag}
+                          {isAlreadySelected ? `${tag} ✓` : myTagKeys.has(tagMatchKey(tag)) ? `★ ${tag}` : tag}
                         </Text>
                       </TouchableOpacity>
                     );
@@ -735,7 +861,7 @@ export default function ShareTab() {
             </View>
 
             {/* Field: External Link (Optional) */}
-            <View style={[styles.fieldBlock, { marginBottom: spacing.md }]}>
+            <View style={[styles.fieldBlock, { marginBottom: spacing.md }]} onLayout={trackField('url')}>
               <View style={styles.labelRow}>
                 <Link2 size={15} strokeWidth={1.8} color={colors.textSecondary} />
                 <Text style={[styles.fieldLabel, { color: colors.textPrimary }]}>
@@ -746,7 +872,11 @@ export default function ShareTab() {
                 value={externalUrl}
                 onChangeText={(text) => {
                   setExternalUrl(text);
-                  if (urlError) setUrlError('');
+                  if (touched.url || urlError) setUrlError(urlProblem(text));
+                }}
+                onBlur={() => {
+                  setTouched((t) => ({ ...t, url: true }));
+                  setUrlError(urlProblem(externalUrl));
                 }}
                 placeholder="e.g., https://github.com/lab/repo or DOI"
                 placeholderTextColor={colors.textMuted}
@@ -776,26 +906,19 @@ export default function ShareTab() {
               </Text>
             ) : null}
 
-            {/* Primary Action Button */}
-            <Button
-              label={isCollab ? 'Post Collaboration Request' : 'Post Update'}
-              onPress={handleSubmit}
-              variant="primary"
-              size="lg"
-              fullWidth
-              loading={isSubmitting}
-              disabled={isSubmitting}
-            />
-          </View>
-
-          {/* Live preview — exactly how the post will look in the feed */}
-          {title.trim() || description.trim() ? (
-            <View style={styles.previewSection}>
-              <View style={styles.labelRow}>
-                <Eye size={15} strokeWidth={1.8} color={colors.textSecondary} />
-                <Text style={[styles.fieldLabel, { color: colors.textPrimary }]}>Preview</Text>
-              </View>
-              <View pointerEvents="none">
+            {/* Preview (collapsible) — exactly how the post will look in the feed */}
+            <TouchableOpacity
+              onPress={() => setShowPreview((v) => !v)}
+              style={[styles.previewToggle, { borderColor: colors.borderSubtle }]}
+              accessibilityRole="button"
+              accessibilityState={{ expanded: showPreview }}
+            >
+              <Eye size={15} strokeWidth={1.8} color={colors.textSecondary} />
+              <Text style={[styles.fieldLabel, { color: colors.textPrimary, flex: 1 }]}>Preview</Text>
+              {showPreview ? <ChevronUp size={18} color={colors.textMuted} /> : <ChevronDown size={18} color={colors.textMuted} />}
+            </TouchableOpacity>
+            {showPreview ? (
+              <View pointerEvents="none" style={styles.previewBody}>
                 <CurrentWorkCard
                   work={{
                     id: 'preview',
@@ -817,8 +940,62 @@ export default function ShareTab() {
                   onCollaboratePress={isCollab ? () => {} : undefined}
                 />
               </View>
+            ) : null}
+
+            {/* Readiness checklist */}
+            <View style={styles.checklist} accessibilityLabel="Post checklist">
+              {checklist.map((c) => (
+                <View key={c.label} style={styles.checkItem}>
+                  {c.done ? (
+                    <CheckCircle2 size={14} color={colors.success} />
+                  ) : (
+                    <Circle size={14} color={colors.textMuted} />
+                  )}
+                  <Text style={[styles.checkText, { color: c.done ? colors.textPrimary : colors.textMuted }]}>
+                    {c.label}
+                    {'optional' in c && c.optional ? ' (optional)' : ''}
+                  </Text>
+                </View>
+              ))}
             </View>
-          ) : null}
+
+            {/* Actions — Clear · Save draft · Post (compact; Post asks for confirmation) */}
+            <View style={[styles.submitRow, { borderTopColor: colors.borderSubtle }]}>
+              <TouchableOpacity
+                onPress={handleClear}
+                disabled={!hasContent || isSubmitting || isSavingDraft}
+                hitSlop={8}
+                style={styles.clearBtn}
+                accessibilityRole="button"
+                accessibilityLabel="Clear form"
+              >
+                <Text style={[styles.clearText, { color: hasContent ? colors.textSecondary : colors.textMuted }]}>Clear</Text>
+              </TouchableOpacity>
+              <View style={styles.submitActions}>
+                <Button
+                  label="Save draft"
+                  onPress={() => handleSubmit(true)}
+                  variant="outline"
+                  size="sm"
+                  loading={isSavingDraft}
+                  disabled={isSubmitting || isSavingDraft}
+                  icon={<Save size={14} color={colors.primary} />}
+                  style={styles.submitButton}
+                />
+                <Button
+                  label={isCollab ? 'Post request' : 'Post update'}
+                  onPress={() => handleSubmit(false)}
+                  variant="primary"
+                  size="sm"
+                  loading={isSubmitting}
+                  disabled={isSubmitting || isSavingDraft}
+                  icon={<Send size={14} color="#FFFFFF" />}
+                  style={styles.submitButton}
+                />
+              </View>
+            </View>
+          </View>
+
         </ScrollView>
       </KeyboardAvoidingView>
 
@@ -828,7 +1005,7 @@ export default function ShareTab() {
         onClose={handleModalClose}
         title={isCollab ? 'Collaboration Request Posted' : 'Research Update Shared'}
         message={isCollab
-          ? 'Your project is now in the feed with a "Looking for collaborators" badge. Interested researchers can connect with you.'
+          ? 'Your project is now in the feed with a "Looking for collaborators" badge. Researchers can apply for the roles you listed — you will see applications in Notifications.'
           : 'Your current work has been posted to the CSE departmental feed. Peers and faculty can now review and connect.'}
         buttonText="Back to Feed"
       />
@@ -837,6 +1014,31 @@ export default function ShareTab() {
 }
 
 const styles = StyleSheet.create({
+  submitRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+    borderTopWidth: 1,
+    paddingTop: spacing.md,
+    marginTop: spacing.xs,
+  },
+  submitActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  submitButton: { paddingHorizontal: spacing.md },
+  clearBtn: { paddingVertical: 8, paddingRight: spacing.sm },
+  clearText: { fontSize: 14, fontFamily: fontFamilies.sansSemiBold },
+  previewToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderTopWidth: 1,
+    paddingTop: spacing.md,
+    marginTop: spacing.xs,
+  },
+  previewBody: { marginTop: spacing.sm },
+  checklist: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, marginTop: spacing.md, marginBottom: spacing.sm },
+  checkItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  checkText: { fontSize: 12, fontFamily: fontFamilies.sansMedium },
   safeArea: {
     flex: 1,
   },

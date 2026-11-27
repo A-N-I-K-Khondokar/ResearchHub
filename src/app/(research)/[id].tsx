@@ -37,6 +37,7 @@ import {
   MessageCircle,
   MoreHorizontal,
   Pencil,
+  Send,
   Settings2,
   UserPlus,
   Users,
@@ -60,6 +61,7 @@ import {
   formatWorkDate,
   getPublishedWorksByAuthor,
   updateResearchStage,
+  publishDraft,
 } from '@/services/research.service';
 import { respondToApplication, setCollabStatus, subscribeReceivedApplications } from '@/services/collab.service';
 import type { ResearchWork } from '@/types/research.types';
@@ -222,6 +224,25 @@ export default function ResearchDetailScreen() {
     }
   };
 
+  const handlePublish = async () => {
+    if (!work || work.status !== 'draft') return;
+    const ok = await confirmAction({
+      title: isCollabPost ? 'Publish collaboration request?' : 'Publish this update?',
+      message: `"${work.title}" will be visible to all approved CSE researchers.`,
+      confirmLabel: 'Publish',
+      cancelLabel: 'Not yet',
+      icon: 'info',
+    });
+    if (!ok) return;
+    try {
+      await publishDraft(work.id);
+      setWork({ ...work, status: 'published' });
+      toast.show(isCollabPost ? 'Collaboration request published' : 'Update published');
+    } catch {
+      toast.show('Could not publish. Please try again.', 'error');
+    }
+  };
+
   const handleDelete = async () => {
     if (!work) return;
     const ok = await confirmAction({
@@ -327,7 +348,18 @@ export default function ResearchDetailScreen() {
     const canSave = work.status === 'published' && !isOwner;
 
     let primary: React.ReactNode;
-    if (isOwner) {
+    if (isOwner && work.status === 'draft') {
+      primary = (
+        <TouchableOpacity
+          onPress={handlePublish}
+          style={[styles.primaryBtn, { backgroundColor: colors.primary }]}
+          accessibilityRole="button"
+        >
+          <Send size={17} color="#FFFFFF" />
+          <Text style={styles.primaryText}>Publish draft</Text>
+        </TouchableOpacity>
+      );
+    } else if (isOwner) {
       primary = (
         <TouchableOpacity
           onPress={() => setManageOpen(true)}
@@ -774,6 +806,7 @@ export default function ResearchDetailScreen() {
             statusBusy={statusBusy}
             isDeleting={isDeleting}
             onEdit={() => setEditing(true)}
+            onPublish={handlePublish}
             onToggleOpen={handleToggleOpen}
             onRespond={handleRespond}
             onDelete={handleDelete}

@@ -1,6 +1,6 @@
 # Firestore Data Model & Security
 
-CSE Research Hub uses **Firebase Authentication** and **Cloud Firestore** (Spark plan, no Cloud Functions). Every rule below is enforced in [`firestore.rules`](../firestore.rules) and covered by the emulator suite in [`tests/firestore/firestore.rules.test.mjs`](../tests/firestore/firestore.rules.test.mjs) (177 tests).
+CSE Research Hub uses **Firebase Authentication** and **Cloud Firestore** (Spark plan, no Cloud Functions). Every rule below is enforced in [`firestore.rules`](../firestore.rules) and covered by the emulator suite in [`tests/firestore/firestore.rules.test.mjs`](../tests/firestore/firestore.rules.test.mjs) (178 tests).
 
 All timestamps written by clients must equal the server's `request.time` (`serverTimestamp()`); client-generated times are rejected.
 

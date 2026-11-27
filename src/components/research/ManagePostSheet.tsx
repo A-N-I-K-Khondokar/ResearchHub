@@ -9,7 +9,7 @@
 import React from 'react';
 import { Modal, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Check, ChevronRight, Pencil, Settings2, X } from 'lucide-react-native';
+import { Check, ChevronRight, Pencil, Send, Settings2, X } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { Avatar } from '@/components/common/Avatar';
 import { SoftDangerButton } from '@/components/common/SoftDangerButton';
@@ -27,6 +27,8 @@ interface ManagePostSheetProps {
   statusBusy: boolean;
   isDeleting: boolean;
   onEdit: () => void;
+  /** Drafts only: publish to the feed. */
+  onPublish?: () => void;
   onToggleOpen: (open: boolean) => void;
   onRespond: (request: CollabRequest, accept: boolean) => void;
   onDelete: () => void;
@@ -41,6 +43,7 @@ export const ManagePostSheet: React.FC<ManagePostSheetProps> = ({
   statusBusy,
   isDeleting,
   onEdit,
+  onPublish,
   onToggleOpen,
   onRespond,
   onDelete,
@@ -81,6 +84,27 @@ export const ManagePostSheet: React.FC<ManagePostSheetProps> = ({
           </View>
 
           <ScrollView contentContainerStyle={styles.body}>
+            {/* Publish (drafts) */}
+            {work.status === 'draft' && onPublish ? (
+              <TouchableOpacity
+                onPress={() => {
+                  onClose();
+                  setTimeout(onPublish, 250);
+                }}
+                style={[styles.row, { backgroundColor: colors.primary, borderColor: colors.primary }]}
+                accessibilityRole="button"
+              >
+                <Send size={18} color="#FFFFFF" />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.rowTitle, { color: '#FFFFFF' }]}>Publish now</Text>
+                  <Text style={[styles.rowSub, { color: 'rgba(255,255,255,0.85)' }]}>
+                    This is a draft — only you can see it.
+                  </Text>
+                </View>
+                <ChevronRight size={18} color="#FFFFFF" />
+              </TouchableOpacity>
+            ) : null}
+
             {/* Edit */}
             <TouchableOpacity
               onPress={() => {

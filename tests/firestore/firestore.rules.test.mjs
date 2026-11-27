@@ -2252,6 +2252,16 @@ describe('Firestore Security Rules Suite — CSE Research Hub', () => {
       assert.equal(work.team.length, 1);
     });
 
+    it('TEST-178: Author saves a draft (hidden from others), then publishes it → ALLOW; others cannot publish → DENY', async () => {
+      const db = charlieDb();
+      const ref = doc(collection(db, 'research_works'));
+      await assertSucceeds(setDoc(ref, buildResearchWorkDocument(CHARLIE_AUTHOR, { ...COLLAB, status: 'draft' }, serverTimestamp())));
+      await assertFails(getDoc(doc(lenaDb(), 'research_works', ref.id)));
+      await assertFails(updateDoc(doc(lenaDb(), 'research_works', ref.id), { status: 'published', updatedAt: serverTimestamp() }));
+      await assertSucceeds(updateDoc(ref, { status: 'published', updatedAt: serverTimestamp() }));
+      await assertSucceeds(getDoc(doc(lenaDb(), 'research_works', ref.id)));
+    });
+
     it('TEST-167: Direct "accepted" connection without an accepted application → DENY', async () => {
       await lenaApplies();
       const conn = buildCollabConnection(CHARLIE, LENA, reqId, serverTimestamp());

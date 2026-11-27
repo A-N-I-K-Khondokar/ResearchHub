@@ -221,6 +221,11 @@ export async function updateResearchWork(
   );
 }
 
+/** Publish one of my drafts (rules: author only; status is an allowed field). */
+export async function publishDraft(workId: string): Promise<void> {
+  await updateDoc(doc(getFirestoreDb(), COLLECTION, workId), { status: 'published', updatedAt: serverTimestamp() });
+}
+
 /** Quick stage change from the stage stepper. */
 export async function updateResearchStage(workId: string, stage: ResearchWork['stage']): Promise<void> {
   await updateDoc(doc(getFirestoreDb(), COLLECTION, workId), { stage, updatedAt: serverTimestamp() });
